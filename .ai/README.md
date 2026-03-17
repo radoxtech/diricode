@@ -41,7 +41,6 @@ gh auth status
 | ----------------- | ------------------------------------------ | ------------------- |
 | `/start-work`     | Initialize task branch/worktree            | `commands/start-work.md`     |
 | `/finish-work`    | Complete work, create PR, merge            | `commands/finish-work.md`    |
-| `/gh-workflow`    | Complete GitHub CLI workflow guide         | `commands/gh-workflow.md`    |
 | `/current-sprint` | Show sprint status & task candidates       | `commands/current-sprint.md` |
 
 ---
@@ -62,16 +61,27 @@ Executable workflows for common development tasks:
    - Creates PR with proper commit linking
    - Handles merge and cleanup
    
-3. **`gh-workflow.md`** - Complete GitHub CLI workflow reference
-   - Issue creation and management
-   - PR operations
-   - Project board commands
-   - Advanced GitHub operations
    
 4. **`current-sprint.md`** - Current sprint status and implementation candidates
    - Shows sprint overview
    - Lists ready-to-work tasks
    - Provides health metrics
+
+4. **`project-health.md`** - Project health check and maintenance
+   - Identifies stale issues and PRs
+   - Checks label consistency
+   - Reports epic progress and blockers
+
+### Agents Directory (`.ai/agents/`)
+
+Specialized oracle agents for consultative workflows:
+
+1. **`github-workflow-oracle.md`** - Git & GitHub CLI expert
+   - Branch operations and naming conventions
+   - Commit formatting and PR workflows
+   - Issue management and GraphQL queries
+   - Epic-specific operations
+   - Invoke when you need: `git`, `gh`, or GitHub API guidance
 
 ### Knowledge Directory (`.ai/knowledge/`)
 
@@ -173,8 +183,8 @@ git commit -m "refactor: optimize validation - refs #{ISSUE_NUMBER}"
 ├── commands/
 │   ├── start-work.md
 │   ├── finish-work.md
-│   ├── gh-workflow.md
 │   ├── current-sprint.md
+│   └── project-health.md
 │   └── README.md
 ├── knowledge/
 │   ├── epic-hierarchy.md
@@ -448,7 +458,6 @@ Worktree cleaned up
 ### Command Files
 - `start-work.md` - Task initialization workflow
 - `finish-work.md` - Work completion and PR creation
-- `gh-workflow.md` - GitHub CLI reference
 - `current-sprint.md` - Sprint status and candidates
 
 ### Knowledge Files
