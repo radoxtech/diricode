@@ -76,7 +76,7 @@ Executable workflows for common development tasks:
 
 Specialized executor agents for consultative workflows:
 
-1. **`github-workflow-executor.md`** - Git & GitHub CLI expert
+1. **`github-ops.md`** - Git & GitHub CLI expert
    - Branch operations and naming conventions
    - Commit formatting and PR workflows
    - Issue management and GraphQL queries
