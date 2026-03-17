@@ -74,14 +74,14 @@ Executable workflows for common development tasks:
 
 ### Agents Directory (`.ai/agents/`)
 
-Specialized oracle agents for consultative workflows:
+Specialized executor agents for consultative workflows:
 
-1. **`github-workflow-oracle.md`** - Git & GitHub CLI expert
+1. **`github-workflow-executor.md`** - Git & GitHub CLI expert
    - Branch operations and naming conventions
    - Commit formatting and PR workflows
    - Issue management and GraphQL queries
    - Epic-specific operations
-   - Invoke when you need: `git`, `gh`, or GitHub API guidance
+   - Executes: `git`, `gh`, and GitHub CLI commands
 
 ### Knowledge Directory (`.ai/knowledge/`)
 
