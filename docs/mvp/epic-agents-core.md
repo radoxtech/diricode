@@ -260,3 +260,10 @@ This mapping is policy, not hardcoded constants, and must integrate with router 
 - DC-CORE-012 -> {006,009,010}
 - {006,009,010} -> 007
 - {008,009,007} -> 011
+
+---
+
+## New Tasks (Post-ADR Review)
+
+- [ ] Implement async subagent pattern: start_job/check_status/get_result tools for HEAVY tier agents (ADR-039)
+- [ ] Implement tool-based agent discovery: list_agents(category?) and search_agents(query) tools replacing hardcoded dispatcher list (ADR-040)

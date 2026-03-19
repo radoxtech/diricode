@@ -1,7 +1,7 @@
 # DiriCode — Architecture Decision Records
 
 > All ADRs in English. Consistent with all 13 analysis documents and user decisions.
-> Last updated: 2026-03-10
+> Last updated: 2026-03-18
 
 ## Index
 
@@ -39,6 +39,15 @@
 | [030](adr-030-mcp-capabilities.md) | MCP Capabilities in MVP | MVP | Tools |
 | [031](adr-031-observability-eventstream-agent-tree.md) | Observability: EventStream + Agent Tree UI | MVP+v2 | UI |
 | [032](adr-032-web-ui-vite-react-shadcn.md) | Web UI Framework: Vite + React + shadcn/ui | MVP | UI |
+| [033](adr-033-interceptor-wrapper-hook-split.md) | Interceptor/Wrapper Hook Split | Draft | MVP |
+| [034](adr-034-middleware-execution-order.md) | Middleware Execution Order | Draft | MVP |
+| [035](adr-035-tool-call-limit.md) | ToolCallLimit | Draft | MVP |
+| [036](adr-036-tool-retry-backoff.md) | ToolRetry | Draft | MVP |
+| [037](adr-037-llm-tool-emulator.md) | LLMToolEmulator | Draft | v2 |
+| [038](adr-038-llm-tool-selector.md) | LLMToolSelector | Draft | v2 |
+| [039](adr-039-async-subagent-pattern.md) | Async Subagent Pattern | Draft | v2 |
+| [040](adr-040-tool-based-agent-discovery.md) | Tool-Based Agent Discovery | Draft | v2 |
+| [041](adr-041-mcp-web-research-servers.md) | MCP Web Research Server Selection | Accepted | MVP |
 
 ## Template
 

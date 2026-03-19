@@ -59,3 +59,24 @@ The model router must handle provider failures, rate limits, and context overflo
 - **Positive:** Full control over retry logic, error classification, and fallback chains. No external dependency (no LiteLLM). Direct integration with agent system.
 - **Negative:** Must maintain provider adapters ourselves (mitigated by Vercel AI SDK doing most of the heavy lifting).
 - **Inspiration:** Plandex (retry wrapper + fallback chain pattern). License: MIT.
+
+### Addendum — LangChain-Inspired Patterns (2026-03-18)
+
+**wrap_model_call Pattern** (ADR-033)
+The router/fallback chain can be expressed as composed `wrap_model_call` wrappers:
+```typescript
+const resilientModel = wrap_model_call([
+  modelRetryWrapper,     // ADR-036 pattern applied to models
+  modelFallbackWrapper,  // This ADR's fallback logic
+  actualModelCall
+]);
+```
+
+**Retry/Fallback Composition**
+The four fallback types are implemented as wrappers: Round Robin, Priority, Cost-Optimized, Context-Aware.
+
+**Model Retry vs Tool Retry**
+- **Model retry** (`wrap_model_call`): Handles provider failures at LLM API level
+- **Tool retry** (`wrap_tool_call` from ADR-033): Handles tool execution failures
+
+These compose in the middleware pipeline.

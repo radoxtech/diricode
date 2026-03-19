@@ -68,3 +68,24 @@ Hooks enable extensibility without modifying core code. Analysis identified 20 h
 
 - **Positive:** 20 extension points cover the full agent lifecycle. Phased rollout reduces MVP complexity. Hybrid model satisfies both performance and extensibility.
 - **Negative:** DAG resolution adds implementation complexity. External process hooks have higher latency.
+
+### Addendum — LangChain-Inspired Patterns (2026-03-18)
+
+**Interceptor/Wrapper Classification** (ADR-033)
+The 20 hook types are now classified into two execution models:
+
+**Interceptors** (Sequential, State Modification):
+- session-start, post-commit, plan-created, post-tool-use, context-monitor, rules-injection
+- session-end, task-completed, worktree-create, worktree-remove, config-change, subagent-stop
+
+**Wrappers** (Nested, Control Flow):
+- pre-commit, error-retry, plan-validated, pre-tool-use, preemptive-compaction
+- file-guard, loop-detection, user-prompt-submit
+
+**Execution Order Contract** (ADR-034)
+- Interceptors: Registration order (FIFO)
+- Wrappers: Nested, first registered = outermost
+- After interceptors: Reverse order (LIFO)
+
+**`jump_to` Mechanism**
+Hooks can now redirect execution: `jump_to("end")`, `jump_to("tools")`, `jump_to("model")`.
