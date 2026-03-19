@@ -41,7 +41,8 @@ gh auth status
 | ----------------- | ------------------------------------------ | ------------------- |
 | `/start-work`     | Initialize task branch/worktree            | `commands/start-work.md`     |
 | `/finish-work`    | Complete work, create PR, merge            | `commands/finish-work.md`    |
-| `/current-sprint` | Show sprint status & task candidates       | `commands/current-sprint.md` |
+| `/current-sprint`   | Show sprint status & task candidates      | `commands/current-sprint.md`  |
+| `/project-health`  | Project health check, stale issues, blockers | `commands/project-health.md` |
 
 ---
 
