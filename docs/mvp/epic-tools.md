@@ -265,3 +265,12 @@ Implement URL fetch with timeout and markdown conversion for external context in
 ## Dependencies
 - **Blocked by**: `epic-safety.md`, `epic-agents-core.md`, `epic-server.md`.
 - **Blocks**: `epic-pipeline.md`, `epic-context.md`, `epic-agents-roster.md`.
+
+---
+
+## New Tasks (Post-ADR Review)
+
+- [ ] Implement ToolCallLimit middleware: thread_limit (session-wide budget) + run_limit (per-invocation budget) (ADR-035)
+- [ ] Implement ToolRetry middleware: exponential backoff + jitter, configurable retry_on filter, max_retries=3 (ADR-036)
+- [ ] Implement LLMToolEmulator wrapper: replaces tool execution with LLM-simulated responses for dev/test/CI mode (ADR-037, v2 scope)
+- [ ] Implement LLMToolSelector wrapper: cheap model pre-filters tool list before main model call to reduce token usage (ADR-038, v2 scope)

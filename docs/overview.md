@@ -93,6 +93,32 @@ graph TD
 
 ---
 
+## Middleware Pipeline
+
+DiriCode uses a layered middleware approach inspired by LangChain's middleware patterns (implemented natively, no dependency):
+
+```mermaid
+graph LR
+    Dispatcher -->|delegates| Agent
+    Agent -->|calls| Middleware
+    subgraph "Middleware Pipeline"
+        M1[Tool Selector] --> M2[Emulator]
+        M2 --> M3[Approval]
+        M3 --> M4[Retry]
+        M4 --> M5[Limits]
+    end
+    Middleware -->|executes| Tools
+    Tools -->|returns| Agent
+    Agent -->|returns| Dispatcher
+```
+
+**Key Patterns:**
+- **Interceptor/Wrapper Split**: State modification vs control flow
+- **Execution Order**: FIFO interceptors, nested wrappers, LIFO cleanup
+- **Composition**: Wrappers compose naturally for safety, retry, limits
+
+See [ADR-033: Interceptor/Wrapper Hook Split](adr/adr-033-interceptor-wrapper-hook-split.md), [ADR-034: Middleware Execution Order](adr/adr-034-middleware-execution-order.md), and [ADR-015: Tool Annotations](adr/adr-015-tool-annotations.md) for details.
+
 ## Version Roadmap
 
 | Version | Theme | Iterations | Key Deliverable |
@@ -180,6 +206,11 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 | devops-operator | MEDIUM | Utility | v3 |
 
 ---
+
+**Agent Execution Features:**
+- **HEAVY tier agents** run as async subagents with isolated context and full tool access (see [ADR-039](adr/adr-039-async-subagent-pattern.md))
+- **Tool-based agent discovery**: Agents are registered with capabilities metadata, enabling dynamic routing by the dispatcher (see [ADR-040](adr/adr-040-tool-based-agent-discovery.md))
+
 
 ## Hook Types → Version Mapping
 

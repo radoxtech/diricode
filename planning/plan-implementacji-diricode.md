@@ -287,3 +287,48 @@ Ponizej gotowe tickety do utworzenia jako issues. Plan i execution sa trzymane w
 - Web UI jest PRIMARY interfejsem i pokazuje drzewo agentow.
 - TUI istnieje jako sciezka v2 (nie blokuje MVP).
 - Guardrails, verifier i pipeline Interview -> Plan -> Execute -> Verify sa aktywne end-to-end.
+
+---
+
+## 5. Dodatkowe Zadania — Middleware i Async Subagents
+
+> Zadania wynikajace z ADR-033 (Middleware) i ADR-039 (Async Subagents)
+
+### Pakiet: `@diricode/providers` — Rozszerzenie Middleware
+
+- **[PROV-MW-01]** Zaimplementowac `MiddlewarePipeline` class z `.pipe()` i `.invoke()` API.
+- **[PROV-MW-02]** Stworzyc `SecretRedactorMiddleware` — auto-scan env vars i maskowanie przed wyslaniem do LLM.
+- **[PROV-MW-03]** Stworzyc `RateLimitMiddleware` — tracking quota usage i throttling.
+- **[PROV-MW-04]** Stworzyc `CacheLookupMiddleware` — in-memory cache dla idempotent tool calls (Bun native Map/WeakMap).
+- **[PROV-MW-05]** Stworzyc `OutputValidatorMiddleware` — Zod validation tool output.
+- **[PROV-MW-06]** Stworzyc `AnnotationEnricherMiddleware` — auto-dodawanie metadata do tool results.
+- **[PROV-MW-07]** Integracja middleware pipeline z provider layer w `@diricode/providers` — wrap przed wyslaniem request do LLM.
+
+### Pakiet: `@diricode/core` — Async Subagents
+
+- **[CORE-ASYNC-01]** Zaimplementowac `Wave` class do parallel agent execution.
+- **[CORE-ASYNC-02]** Zaimplementowac `Wave.spawn(agents[])` — tworzenie subagentow w osobnych contextach.
+- **[CORE-ASYNC-03]** Zaimplementowac `Wave.collect()` — czekanie na wszystkich agentow z timeout.
+- **[CORE-ASYNC-04]** Zaimplementowac `Wave.merge(results[])` — agregacja wynikow przez Verifier agenta.
+- **[CORE-ASYNC-05]** Dodac `async-subagent` tool do delegacji bez blokowania parenta.
+- **[CORE-ASYNC-06]** Zaimplementowac `SubagentContext` isolation — kazdy subagent ma wlasny token budget i memory.
+- **[CORE-ASYNC-07]** Dodac `parent.heartbeat()` dla wykrywania orphaned subagents.
+- **[CORE-ASYNC-08]** Zaimplementowac `SubagentResultAggregator` — smart merge konfliktowac wynikow.
+
+### Pakiet: `@diricode/tools` — Tool Retry z Backoff (ADR-036)
+
+- **[TOOL-RETRY-01]** Zaimplementowac `RetryPolicy` interface z `maxAttempts`, `backoffMs`, `jitterMs`.
+- **[TOOL-RETRY-02]** Stworzyc `ExponentialBackoffRetry` — retry z exponential backoff + jitter.
+- **[TOOL-RETRY-03]** Dodac `RetryMiddleware` — auto-retry transient failures przed wyslaniem do agenta.
+- **[TOOL-RETRY-04]** Zaimplementowac `RetryBudget` — globalny limit retry per session (ADR-035 ToolCallLimit integration).
+
+### Pakiet: `@diricode/tools` — Tool Call Limits (ADR-035)
+
+- **[TOOL-LIMIT-01]** Zaimplementowac `ToolCallLimiter` z `threadLimit` i `runLimit` tracking.
+- **[TOOL-LIMIT-02]** Stworzyc `ToolCallCounter` — per-thread i per-run licznik wywolan.
+- **[TOOL-LIMIT-03]** Dodac `LimitExceededError` z context (tool name, thread id, limit type).
+- **[TOOL-LIMIT-04]** Zintegrowac `ToolCallLimiter` z loop detector (ADR-003) — shared budget.
+
+---
+
+*Aktualizacja: Marzec 2026 | Odniesienia: ADR-033, ADR-034, ADR-035, ADR-036, ADR-039*

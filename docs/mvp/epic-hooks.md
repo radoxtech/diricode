@@ -213,3 +213,11 @@ MVP scope includes the engine, two executors, six required hook implementations,
 5. **DC-HOOK-005** config wiring + lean mode interaction
 
 This order minimizes risk: stable core first, then execution backends, then functional hooks, then operator controls.
+
+---
+
+## New Tasks (Post-ADR Review)
+
+- [ ] Implement interceptor/wrapper split: before/after interceptors (sequential FIFO/LIFO) + wrap_model_call/wrap_tool_call wrappers (nested onion model) (ADR-033)
+- [ ] Implement middleware execution order contract: before=FIFO, wrap=nested (first registered = outermost), after=LIFO (ADR-034)
+- [ ] Implement jump_to mechanism for controlled early exit: jump_to("end"), jump_to("tools"), jump_to("model") (ADR-033)

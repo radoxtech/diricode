@@ -72,8 +72,43 @@ All 32 ADRs are maintained in `docs/adr/` (English, consistent format, one file 
 | 030 | MCP Capabilities in MVP | MVP | Tools |
 | 031 | Observability: EventStream + Agent Tree UI | MVP+v2 | UI |
 | 032 | Web UI Framework: Vite + React + shadcn/ui | MVP | UI |
+| 033 | Interceptor/Wrapper Split | MVP | Hooks |
+| 034 | Execution Order Contract | MVP | Hooks |
+| 035 | ToolCallLimit Middleware | MVP | Hooks |
+| 036 | ToolRetry Middleware | MVP | Hooks |
+| 037 | LLMToolEmulator Middleware | MVP | Hooks |
+| 038 | LLMToolSelector Middleware | MVP | Hooks |
+| 039 | Async Subagents | MVP | Agent System |
+| 040 | Agent Discovery | MVP | Agent System |
 
 Full ADR details: see [`docs/adr/`](docs/adr/README.md) (each ADR in a separate file).
+
+---
+
+### Middleware Architecture (LangChain-Inspired Patterns)
+
+**Interceptor/Wrapper Split** (ADR-033)
+The hook framework now distinguishes between:
+- **Interceptors**: Sequential execution for state modification (`before_model_call`, `after_tool_call`)
+- **Wrappers**: Nested/onion execution for control flow (`wrap_model_call`, `wrap_tool_call`)
+
+**Execution Order Contract** (ADR-034)
+Formal guarantees: interceptors in FIFO order, wrappers nested (outermost first), after-interceptors in LIFO.
+
+**Tool Middleware Stack**
+| Component | ADR | Purpose |
+|-----------|-----|---------|
+| ToolCallLimit | ADR-035 | Per-tool call limits (thread/run) |
+| ToolRetry | ADR-036 | Exponential backoff for transient failures |
+| LLMToolEmulator | ADR-037 | LLM-based tool emulation for testing |
+| LLMToolSelector | ADR-038 | Pre-filter tools with cheaper model |
+| Approval | ADR-014 | Human-in-the-loop via wrap_tool_call |
+
+**Async Subagents** (ADR-039)
+HEAVY tier agents support async execution via `start_job` → `check_status` → `get_result` pattern.
+
+**Agent Discovery** (ADR-040)
+Tool-based discovery via `list_agents()` and `search_agents()` replaces static agent lists in prompts.
 
 ---
 

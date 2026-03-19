@@ -266,3 +266,81 @@
 | 3 | **Infinite TODO loop** (#668) | OMO | System ciągłości sam siebie niszczy |
 | 4 | **Git snapshot abuse** (#3176) | OpenCode | 45GB git add . = unusable na dużych projektach |
 | 5 | **Write/Edit model adaptation** (#1357) | OpenCode | „75+ modeli" to kłamstwo bez tego |
+
+---
+
+## Aktualizacja: Marzec 2026 — Adresowane braki (DiriCode)
+
+> Ponizej lista brakow oznaczonych jako ADRESOWANE przez nowa architekture DiriCode (ADR-033 do ADR-040)
+
+### Adresowane braki krytyczne
+
+| # | Problem | Status | Rozwiazanie | ADR |
+|---|---------|--------|-------------|-----|
+| 1 | **Approval workflow** (#1081) | ✅ ADRESOWANE | Smart approval workflow + hybryda AI/human gate | ADR-014 |
+| 2 | **Copilot token drain** (#8030) | ✅ ADRESOWANE | Middleware pipeline z rate limiting + caching | ADR-033 |
+| 3 | **Infinite TODO loop** (#668) | ✅ ADRESOWANE | Loop detector + wave-based execution z timeout | ADR-039 |
+
+### Adresowane braki powazne
+
+| # | Problem | Status | Rozwiazanie | ADR |
+|---|---------|--------|-------------|-----|
+| 1 | **Windows support** (#631) | ✅ ADRESOWANE | Web UI jako PRIMARY interface (cross-platform) | - |
+| 2 | **Brak standalone mode** (OMO) | ✅ ADRESOWANE | DiriCode jako standalone (nie plugin) | - |
+| 3 | **Hardcoded model references** (#839) | ✅ ADRESOWANE | Configurable families w diricode.config.ts | ADR-025 |
+
+### Adresowane brakujace funkcje
+
+| # | Problem | Status | Rozwiazanie | ADR |
+|---|---------|--------|-------------|-----|
+| 1 | **Brak memory system** (#74) | ✅ ADRESOWANE | @diricode/memory — SQLite + FTS5 + Timeline | — |
+| 2 | **Brak user context management** (#1990) | ✅ ADRESOWANE | Context budget + progressive detail (3 poziomy) | ADR-020 |
+| 3 | **Brak automated learning capture** (#1397) | ✅ ADRESOWANE | Timeline-based memory z agent/task metadata | — |
+| 4 | **Brak RAG / vector search** | ✅ ADRESOWANE | FTS5 full-text search + skill discovery | — |
+| 5 | **Brak granular permissions** | ✅ ADRESOWANE | Tool annotations (readOnly/destructive/idempotent) | ADR-015 |
+| 6 | **Brak native Agent Teams** (#12661) | ✅ ADRESOWANE | Async subagents z wave-based parallel execution | ADR-039 |
+| 7 | **Brak plan mode z pytaniami** (#3844) | ✅ ADRESOWANE | Pipeline: Interview -> Plan -> Execute -> Verify | - |
+| 8 | **Brak approval workflow** | ✅ ADRESOWANE | Smart approval UI (hybryda: pytaj -> zapamietuj -> AI) | ADR-014 |
+| 9 | **Brak GUI dla konfiguracji** | ✅ ADRESOWANE | Web UI z config dashboard | - |
+| 10 | **Brak team collaboration** | ✅ ADRESOWANE | GitHub Issues + Epic jako plan storage | - |
+
+### Nowe wzorce architektoniczne (LangChain-Inspired)
+
+```
+ADR-033: Interceptor/Wrapper Hook Split
+  → Rozwiazuje: mixed hook responsibilities, complex ordering
+
+ADR-034: Middleware Execution Order Contract
+  → Rozwiazuje: nondeterministic middleware sequencing
+
+ADR-035: ToolCallLimit
+  → Rozwiazuje: runaway tool loops, infinite recursive calls
+
+ADR-036: ToolRetry with Exponential Backoff
+  → Rozwiazuje: transient tool failures, brittle error handling
+
+ADR-037: LLMToolEmulator
+  → Rozwiazuje: dev/test requiring live tools, slow feedback loops
+
+ADR-038: LLMToolSelector
+  → Rozwiazuje: LLM receiving too many tools, context overload
+
+ADR-039: Async Subagent Pattern
+  → Rozwiazuje: blocking orchestration, slow parallel execution
+
+ADR-040: Tool-Based Agent Discovery
+  → Rozwiazuje: hardcoded agent lists, static agent routing
+```
+
+### Podsumowanie adresowanych luk
+
+| Kategoria | Przed | Po | Reduction |
+|-----------|-------|-----|-----------|
+| 🔴 Krytyczne | 9 | 6 | -33% |
+| 🟠 Poważne | 10 | 7 | -30% |
+| 🟡 Brakujace funkcje | 19 | 9 | -53% |
+| **RAZEM** | **43** | **25** | **-42%** |
+
+---
+
+*Aktualizacja: Marzec 2026 | Architektura: LangChain-Inspired (ADR-033 do ADR-040)*

@@ -28,3 +28,14 @@ The full agent roster (40 agents across 6 categories) is defined in ADR-004.
 
 - **Positive:** Clear separation of concerns. Each agent has a focused prompt and model assignment. Cost-effective (cheap agents for cheap tasks).
 - **Negative:** Requires careful context passing between agents. Dispatcher quality is critical — bad routing = bad results.
+
+### Addendum — LangChain-Inspired Patterns (2026-03-18)
+
+**Async Subagent Execution** (ADR-039)
+The dispatcher now supports asynchronous execution for HEAVY tier agents via the 3-tool pattern: `start_job` → `check_status` → `get_result`. This allows the dispatcher to start long-running tasks, perform other work, and collect results later. LIGHT and MEDIUM tier agents remain synchronous.
+
+**Tool-Based Agent Discovery** (ADR-040)
+Instead of maintaining all 40+ agent descriptions in the system prompt, the dispatcher now uses `list_agents()` and `search_agents()` tools to discover available agents dynamically. This reduces token usage and allows the dispatcher to find the most relevant agents for each task.
+
+**Supervisor Pattern Mapping**
+DiriCode's dispatcher aligns with LangChain's "supervisor" concept: the dispatcher is the supervisor that routes tasks, and sub-agents are the workers that execute them. This terminology is for conceptual alignment only — DiriCode implements this pattern natively without LangChain dependencies.

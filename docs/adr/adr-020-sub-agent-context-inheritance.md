@@ -28,3 +28,14 @@ Default mode: **Summary** (best balance of context and cost).
 - **Positive:** 100x token savings vs Full mode. Sub-agents get enough context to work effectively without the full conversation.
 - **Negative:** Summary mode loses some nuance from parent session. Acceptable for most tasks.
 - **Inspiration:** Vercel AI SDK (toModelOutput), OpenCode (session_compact).
+
+### Addendum — LangChain-Inspired Patterns (2026-03-18)
+
+**Async Context Handoff** (ADR-039)
+Async subagents receive context at `start_job` time — they cannot access parent conversation mid-flight. For this reason, **Isolated mode** is preferred for async agents: they receive task description + relevant files only.
+
+**Input/Output Customization**
+The dispatcher can customize what context each sub-agent receives (input transform) and how results are incorporated back (output transform). This extends the three inheritance modes with fine-grained control.
+
+**Result Integration**
+When an async agent completes, `get_result(job_id)` returns the result. The parent decides integration depth: Full, Summary (uses ADR-017 condenser), or Structured.

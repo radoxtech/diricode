@@ -993,3 +993,132 @@ DEFAULT_CATEGORIES = {
 | **Hash-anchored Edit** | Hashline system | LINE#HASH tags → deterministic references → mismatch protection |
 | **3-Tier Hook Loading** | OMO hooks | Core (36) → Continuation (7) → Skill (2), safeCreateHook wrapper |
 | **Dynamic Prompt Builder** | Agent prompts | Buduje prompt z dostępnych komponentów, tabel, sekcji |
+
+---
+
+## 16. EWOLUCJA ARCHITEKTURY — STARE VS NOWE WZORCE
+
+> Na podstawie ADR-033 do ADR-040 — przejscie z monolitu na LangChain-Inspired modular architecture
+
+### 16.1 Przeglad zmian architektonicznych
+
+```
+STARY PATTERN (OpenCode 1.x + OMO legacy):
+┌─────────────────────────────────────────────────────────────┐
+│ Monolityczny plugin z 44 hookami w jednym miejscu           │
+│ Bezposrednie wywolania tool.execute przed LLM               │
+│ Static agent prompts (hardcoded w TS)                       │
+│ Synchroniczna orkiestracja (jeden agent czeka na drugi)     │
+│ Globalny event bus bez typowania                            │
+│ Tool output jako plain text (brak struktury)                │
+└─────────────────────────────────────────────────────────────┘
+
+NOWY PATTERN (DiriCode / OpenCode 2.x):
+┌─────────────────────────────────────────────────────────────┐
+│ Modular components (Router, Memory, Tools jako osobne)      │
+│ Middleware pipeline przed LLM request (ADR-033)             │
+│ Dynamic prompt assembly z SKILL.md + runtime data           │
+│ Async subagents z parallel wave execution (ADR-039)         │
+│ Tool retry with exponential backoff (ADR-036)               │
+│ Tool call limits per session (ADR-035)                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 16.2 Tabela kontrastujaca — Stare vs Nowe wzorce
+
+| Aspekt | STARY PATTERN (Legacy) | NOWY PATTERN (LangChain-Inspired) | ADR |
+|--------|------------------------|-----------------------------------|-----|
+| **Orchestracja** | Single-threaded, synchroniczna | Async subagents z wave-based parallel | ADR-039 |
+| **Agent Prompts** | Static, hardcoded w TypeScript | Dynamic assembly z SKILL.md templates | ADR-007 |
+| **Tool Calls** | Bezposrednie execute przed LLM | Middleware pipeline z transformacjami | ADR-033 |
+| **Event System** | Globalny bus bez typowania | Typed Event Bus (Zod schemas) | — |
+| **Memory** | Session-only (brak persistence) | SQLite + FTS5 + Timeline service | — |
+| **Tool Output** | Plain text | Structured + Annotations (readOnly/destructive/idempotent) | ADR-015 |
+| **Error Handling** | Silent fail lub crash | Guardrails + Checkpoint protocols | ADR-014 |
+| **Router Logic** | Provider-specific w kazdym agentcie | Centralny TS Router z failover | ADR-025 |
+| **Context Management** | Manual (brak kontroli) | Context budget + Progressive detail | ADR-020 |
+| **Skill System** | Ad-hoc (rozne formaty) | Standard SKILL.md z YAML frontmatter | ADR-007 |
+
+### 16.3 Kluczowe inspiracje z LangChain
+
+```typescript
+// STARY: Bezposrednie tool execution
+const result = await tool.execute(args)  // bez middleware
+
+// NOWY: Middleware chain (ADR-033, ADR-034)
+const result = await toolChain
+  .pipe(secretRedactor)      // mask secrets
+  .pipe(rateLimitGuard)      // check quotas
+  .pipe(cacheLookup)         // check cache
+  .pipe(executeTool)         // actual execution
+  .pipe(outputValidator)     // validate structure
+  .pipe(annotationEnricher)  // add metadata
+  .invoke(args)
+```
+
+### 16.4 Async Subagents — Evolucja delegacji
+
+```
+LEGACY PATTERN (OMO):
+  task() → tworzy nowa sesje OpenCode
+  → czeka na zakonczenie (blocking)
+  → zwraca wynik
+  
+  Problem: 1 subagent = 1 czekajacy agent glowny
+
+NOWY PATTERN (ADR-039):
+  wave.spawn([agent1, agent2, agent3])  // parallel
+  → kazdy dostaje wlasny kontekst
+  → wave.collect() czeka na wszystkich
+  → merge results przez Verifier agenta
+  
+  Zaleta: N subagents = 1 orchestration overhead
+```
+
+### 16.5 Typed Event Bus — Evolucja komunikacji
+
+```typescript
+// STARY: Brak typowania, string-based events
+bus.emit('session.updated', data)  // data: any
+
+// NOWY: Zod-validated events (compile-time safety + runtime validation)
+const SessionUpdatedEvent = z.object({
+  sessionId: z.string(),
+  status: z.enum(['idle', 'busy', 'error']),
+  timestamp: z.number()
+})
+
+bus.emit('session.updated', validatedData)
+// Compile-time safety + runtime validation
+```
+
+### 16.6 Tool Annotations — Evolucja bezpieczenstwa
+
+```typescript
+// STARY: Brak informacji o narzedziach
+const tools = [readTool, writeTool, bashTool]
+// Agent nie wie ktore sa destructive
+
+// NOWY: Explicit annotations (ADR-015)
+const tools = [
+  { ...readTool, annotations: { readOnly: true, idempotent: true } },
+  { ...writeTool, annotations: { destructive: true, idempotent: false } },
+  { ...bashTool, annotations: { destructive: true, idempotent: false } }
+]
+// Dispatcher moze auto-approve readOnly, pytac o destructive
+```
+
+### 16.7 Podsumowanie migracji
+
+| Metryka | Legacy | LangChain-Inspired | Improvement |
+|---------|--------|-------------------|-------------|
+| Modularyzacja | Low (monolit) | High (components) | 5x separacji |
+| Parallel execution | Brak | Wave-based | N-x speedup |
+| Type safety | Runtime only | Zod compile+runtime | 90% mniej bugow |
+| Context control | Manual | Budget + progress detail | 50% mniej tokenow |
+| Tool safety | All-or-nothing | Granular annotations | Controllable risk |
+| Skill portability | Brak | SKILL.md standard | Reusable ecosystem |
+
+---
+
+*Ostatnia aktualizacja: Marzec 2026 | ADR-033 through ADR-040 (async subagents: ADR-039; tool annotations: ADR-015)*

@@ -70,3 +70,33 @@
 - **Packages**: PROV, CORE, TOOL, MEM, SRV, CLI, WEB, SKILL, HOOK, PIPE, CTX, OBS, SAFE, SETUP, TEST
 - **Numbers are globally unique within package** — never reused
 - **Cross-references**: Issues reference other issues as `depends: DC-PROV-001`
+
+## Middleware Conventions
+
+**wrap_tool_call Convention**
+All tool safety checks MUST be implemented as `wrap_tool_call` wrappers:
+```typescript
+const safeTool = wrap_tool_call([
+  gitSafetyWrapper,    // ADR-027
+  approvalWrapper,     // ADR-014
+  retryWrapper,        // ADR-036
+  limitWrapper,        // ADR-035
+  actualTool
+]);
+```
+
+**wrap_model_call Convention**
+Model retry and fallback MUST be implemented as `wrap_model_call` wrappers.
+
+**Naming Convention**
+- Interceptors: suffixed with `Interceptor` (e.g., `LoggingInterceptor`)
+- Wrappers: suffixed with `Wrapper` (e.g., `RetryWrapper`)
+
+**Registration Order Matters**
+Wrapper registration order = nesting order (first registered = outermost).
+
+**Error Handling in Middleware**
+Wrappers MUST catch and re-throw with context (which wrapper, what input caused error).
+
+**Composition Over Inheritance**
+Prefer composing multiple small wrappers over monolithic middleware classes.
