@@ -1,570 +1,353 @@
 ---
-description: Show current sprint status with epic-aware progress rollup and propose implementation candidates
+description: Show active sprint status and propose non-conflicting feature-level worktree candidates from the live GitHub project model
 ---
 
 # /current-sprint Command
 
 **You are executing the `/current-sprint` command.**
 
-This command shows the current sprint situation, analyzes issues by status and priority across the epic hierarchy, and proposes 3-5 candidates for implementation based on readiness, priority, and dependencies.
+This command analyzes the active sprint for `radoxtech/diricode` and returns:
+
+1. Sprint status
+2. Epic-aware feature context
+3. Blocked work
+4. Active work that already occupies conflict domains
+5. **Non-conflicting feature candidates**
+6. **Suggested parallel work bundles** for multiple git worktrees
 
 ---
 
-## ⚠️ CRITICAL: Use Existing Script
+## ⚠️ CRITICAL: GitHub MCP Only for GitHub Data
 
-**DO NOT create new scripts or inline bash blocks.**
+Use **GitHub MCP tools only** for GitHub operations.
 
-**Use the canonical script:**
+- Allowed for GitHub: `github_projects_list`, `github_projects_get`, `github_issue_read`, `github_list_issues`
+- Allowed for local files: normal filesystem tools
+- Do **not** use `gh` CLI for GitHub reads
 
-```bash
-bash .sisyphus/scripts/current_sprint_persist.sh
+Project constants:
+
+- Owner: `radoxtech`
+- Repo: `diricode`
+- Project number: `4`
+
+---
+
+## Live DiriCode GitHub Model
+
+The **live GitHub project model** currently uses:
+
+- parent issues labeled `epic`
+- implementation issues labeled `feature`
+
+This command must therefore:
+
+- include only `feature` issues as implementation candidates
+- exclude `epic` issues from candidate output
+- use epic linkage only for context and rollup
+
+### Important note
+
+Repo knowledge docs describe a deeper `Meta-Epic → Epic → Sub-Epic → Task` model.
+However, the live GitHub board currently operates as `epic → feature`.
+
+`/current-sprint` must use the **live GitHub model**, not the aspirational hierarchy model.
+
+---
+
+## Required Inputs Per Candidate
+
+For every sprint issue considered as a candidate, collect:
+
+- issue number
+- title
+- state
+- labels
+- body
+- project status
+- sprint value
+- parent epic context (native sub-issue linkage or `**Epic**: #N` body reference)
+
+### Label Taxonomy
+
+### Live canonical labels currently used on GitHub
+
+- `epic`
+- `feature`
+
+### Additional routing labels supported by this command
+
+These are used for safer parallel work selection:
+
+- `component:*` — broad subsystem ownership
+- `area:*` — narrow implementation surface
+- `conflict:*` — shared collision domain
+- `execution:*` — operational routing hints
+
+Examples:
+
+- `component:web`
+- `area:event-schema`
+- `conflict:api-contract`
+- `execution:parallel-safe`
+
+---
+
+## Dependency + Conflict Model
+
+This command must distinguish:
+
+### 1. Dependency
+The feature must wait for another issue.
+
+Treat a feature as **blocked** if any of these is true:
+
+- Project Status = `Blocked`
+- label `status:blocked` is present
+- label `execution:blocked` is present
+- body contains a machine-readable dependency line, e.g. `**Depends on**: #34, #41`
+- GitHub-native dependency data is available in the MCP response and shows unresolved blockers
+
+### 2. Conflict
+The feature may be technically startable, but should not run in parallel with another active feature.
+
+Treat two features as **conflicting** if any of these is true:
+
+- they share any `conflict:*` label
+- they share any `area:*` label
+- one blocks the other
+- both belong to a high-risk shared surface with no finer labels, especially:
+  - `component:repo`
+  - `component:config`
+  - `component:eventstream`
+
+---
+
+## Selection Rules
+
+### Candidate pool
+
+Only consider issues that are:
+
+- open
+- in the active sprint
+- labeled `feature`
+- status `Todo` or `Ready`
+
+Exclude:
+
+- `epic` issues
+- closed issues
+- `In Progress`, `Review`, `Done`, `Blocked`
+
+### Active work set
+
+Build an **active work set** from sprint features in:
+
+- `In Progress`
+- `Review`
+
+These occupy their conflict domains.
+
+### Safe parallel candidate
+
+A feature is **safe** only if:
+
+- it is not blocked
+- it does not conflict with any active feature
+- it does not conflict with another already-selected safe candidate in the same bundle
+
+### Coordination-needed candidate
+
+A feature is **coordination-needed** if:
+
+- it is not blocked
+- but it shares `area:*`, `conflict:*`, or a high-risk component with active work or another top candidate
+
+---
+
+## Active Sprint Resolution
+
+### Step 1 — Discover project fields
+
+Use `github_projects_list(method="list_project_fields")` and record:
+
+- Sprint / Iteration field id
+- Status field id
+
+### Step 2 — Fetch project items
+
+Use `github_projects_list(method="list_project_items")` with pagination and include the Sprint + Status field ids.
+
+### Step 3 — Resolve active sprint
+
+If the project uses an iteration field:
+
+- active sprint = iteration where `startDate <= today < startDate + duration`
+
+If there is **no Sprint / Iteration field**:
+
+- clearly state that sprint planning is not configured
+- switch to **degraded mode**:
+  - analyze open `feature` issues in `Todo` / `Ready`
+  - still compute safe candidates and bundles
+  - clearly mark the result as `No active sprint configured`
+
+---
+
+## Epic Context Resolution
+
+For every candidate feature, resolve its parent epic using:
+
+1. native sub-issue linkage
+2. deterministic `**Epic**: #N` body reference
+
+If the parent epic cannot be resolved, mark the feature as orphaned and reduce readiness.
+
+---
+
+## Scoring
+
+Score each feature 0–100.
+
+| Factor | Weight | Notes |
+|---|---:|---|
+| Status readiness | 25 | `Ready` > `Todo` |
+| Priority | 20 | Critical > High > Medium > Low |
+| Dependency freedom | 20 | blocked = 0 |
+| Parallel safety | 20 | no active conflicts = full score |
+| Epic context resolved | 5 | parent epic known |
+| Size / atomicity | 10 | smaller, isolated work preferred |
+
+### Tiebreakers
+
+Prefer features that:
+
+1. unblock other issues
+2. have `execution:parallel-safe`
+3. have both `component:*` and `area:*`
+4. avoid shared `conflict:*`
+
+---
+
+## Bundle Generation
+
+After ranking, generate **2–5 suggested bundles**.
+
+Each bundle must:
+
+- contain only safe feature candidates
+- contain no pair sharing `area:*`
+- contain no pair sharing `conflict:*`
+- contain no blocker/dependent pair
+
+Use a greedy strategy:
+
+1. sort by score descending
+2. pick highest feature
+3. add next feature only if it does not conflict with any feature already in the bundle
+
+---
+
+## Required Output Sections
+
+The report must include all of the following:
+
+### 1. Sprint Overview
+- sprint name or degraded-mode note
+- issue counts by status
+- feature count considered for execution
+
+### 2. Active Conflict Domains
+- currently occupied `component:*`
+- currently occupied `area:*`
+- currently occupied `conflict:*`
+
+### 3. Blocked Features
+- feature
+- blocker reason
+- parsed `Depends on` references if present
+
+### 4. Ready Now — Safe Parallel Features
+Only features safe to start in separate worktrees now.
+
+For each feature show:
+
+- issue number / title
+- status / priority
+- labels summary
+- parent epic
+- why it is safe
+
+### 5. Ready Now — Needs Coordination
+Features that are startable but not safely parallel.
+
+For each feature show:
+
+- why excluded from safe set
+- which active feature / conflict domain caused it
+
+### 6. Suggested Parallel Bundles
+Return 2–5 bundles such as:
+
+```text
+Bundle A
+- #41 Bash execution tool
+- #90 SQLite database setup
+- #131 Vite + React project scaffold
 ```
 
-**Location:** `.sisyphus/scripts/current_sprint_persist.sh`
-
-**What it does:**
-- Identifies the current active sprint from GitHub Project
-- Fetches all `[Task]`-level issues in the current sprint with full metadata
-- Resolves the epic chain for each task: `[Meta-Epic] → [Epic] → [Sub-Epic] → [Task]`
-- Analyzes status distribution (Backlog, Todo, Ready, In Progress, Review, Blocked, Done)
-- Computes priority breakdown (Critical, High, Medium, Low)
-- Identifies blocked issues and their blockers
-- Scores tasks for implementation readiness
-- Produces `.sisyphus/notepads/current-sprint/report.json` (machine-readable)
-- Generates human-readable summary with top 5 implementation candidates
-
-**Output:** `.sisyphus/notepads/current-sprint/report.json`
+### 7. Recommended Next Single Feature
+Best immediate next feature.
 
 ---
 
-## Overview
+## Required Machine-Readable Output
 
-The current sprint analysis provides:
+Write:
 
-1. **Sprint Overview** — Current sprint dates, days remaining, 2-week cycle progress
-2. **Epic Progress Rollup** — Completion percentage per Meta-Epic → Epic → Sub-Epic chain
-3. **Status Breakdown** — Distribution across workflow states
-4. **Priority Analysis** — Critical and high-priority tasks
-5. **Blocked Issues** — Tasks that need unblocking
-6. **Implementation Candidates** — Top 3-5 tasks ready to work on
-7. **Recommended Next Task** — Single best candidate to start
+- `.sisyphus/notepads/current-sprint/report.json`
+- `.sisyphus/notepads/current-sprint/summary.md`
 
----
+`report.json` must include at least:
 
-## Quick Sprint Check (Use Script)
-
-```bash
-# Use the canonical script (DO NOT create new scripts)
-bash .sisyphus/scripts/current_sprint_persist.sh
-```
-
-**After running, view the report:**
-
-```bash
-# View machine-readable report
-cat .sisyphus/notepads/current-sprint/report.json | jq .
-
-# View human summary
-cat .sisyphus/notepads/current-sprint/summary.md
-```
-
----
-
-## Detailed Analysis
-
-### 1. Get Current Sprint Information
-
-```bash
-gh api graphql -f query='
+```json
 {
-  user(login: "{USER}") {
-    projectV2(number: {PROJECT_NUMBER}) {
-      field(name: "Sprint") {
-        ... on ProjectV2IterationField {
-          configuration {
-            iterations {
-              id
-              title
-              startDate
-              duration
-            }
-            completedIterations {
-              id
-              title
-              startDate
-              duration
-            }
-          }
-        }
-      }
-    }
-  }
-}'
-```
-
-**Identify current sprint:** Find the iteration where `startDate <= today < startDate + duration`
-
-**Sprint cycle:** DiriCode uses 2-week sprints. Each sprint runs 14 days from `startDate`.
-
----
-
-### 2. Get Tasks in Current Sprint
-
-Only `[Task]`-level issues are sprint-assignable. Meta-Epics, Epics, and Sub-Epics track aggregate progress but do not live in sprint iterations directly.
-
-```bash
-gh api graphql -f query='
-{
-  user(login: "{USER}") {
-    projectV2(number: {PROJECT_NUMBER}) {
-      items(first: 100) {
-        nodes {
-          content {
-            ... on Issue {
-              number
-              title
-              state
-              url
-              assignees(first: 5) {
-                nodes { login }
-              }
-              labels(first: 10) {
-                nodes { name }
-              }
-              trackedInIssues(first: 1) {
-                nodes {
-                  number
-                  title
-                  trackedInIssues(first: 1) {
-                    nodes {
-                      number
-                      title
-                      trackedInIssues(first: 1) {
-                        nodes { number title }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-          sprint: fieldValueByName(name: "Sprint") {
-            ... on ProjectV2ItemFieldIterationValue {
-              title
-              startDate
-              duration
-            }
-          }
-          status: fieldValueByName(name: "Status") {
-            ... on ProjectV2ItemFieldSingleSelectValue {
-              name
-            }
-          }
-          priority: fieldValueByName(name: "Priority") {
-            ... on ProjectV2ItemFieldSingleSelectValue {
-              name
-            }
-          }
-        }
-        pageInfo { hasNextPage endCursor }
-      }
-    }
-  }
-}'
-```
-
-**Filter for current sprint:** Match `sprint.title` with the active iteration.
-
-**Filter for tasks only:** Retain issues with label `level:task`.
-
----
-
-### 3. Resolve Epic Chain for Each Task
-
-Each `[Task]` must show its full parent chain. The `trackedInIssues` field provides the upward traversal:
-
-```
-[Task] #<task>
-  └─ tracked in → [Sub-Epic] #<sub-epic>
-       └─ tracked in → [Epic] #<epic>
-            └─ tracked in → [Meta-Epic] #<meta-epic>
-```
-
-**Example display:**
-```
-[Meta-Epic] Authentication System → [Epic] User Registration → [Sub-Epic] API Endpoints → [Task] #130
-```
-
-If any level in the chain is missing, flag the task as `orphaned` — it may need re-parenting before work begins.
-
----
-
-### 4. Analyze Status Distribution
-
-```bash
-# Group by status and count
-cat report.json | jq '
-  [.tasks[] | select(.sprint == "Sprint N")] |
-  group_by(.status) |
-  map({status: .[0].status, count: length})
-'
-```
-
-**Workflow states for DiriCode:**
-
-| Status | Meaning |
-|--------|---------|
-| Backlog | Not yet prioritized for sprint |
-| Todo | Planned for sprint, not started |
-| Ready | Dependencies resolved, clear to implement |
-| In Progress | Actively being worked on |
-| Review | PR open, awaiting code review / CI |
-| Blocked | Blocked by dependency or issue |
-| Done | Merged and closed |
-
----
-
-### 5. Epic Progress Rollup
-
-Compute completion percentage at each hierarchy level by checking child checkbox status in tracking issues.
-
-```bash
-# For each Epic/Sub-Epic tracking issue, count checked vs total children
-gh api graphql -f query='
-{
-  repository(owner: "{USER}", name: "{REPO}") {
-    issues(first: 50, labels: ["level:epic"]) {
-      nodes {
-        number
-        title
-        body
-        state
-      }
-    }
-  }
-}'
-```
-
-Parse each tracking issue body for `## Tracking` section:
-- Count `- [x] #<n>` → completed children
-- Count `- [ ] #<n>` → pending children
-- Completion % = `completed / (completed + pending) * 100`
-
-**Rollup format:**
-```
-[Meta-Epic] #100 — 45% complete (9/20 tasks done)
-  └── [Epic] #110 — 80% complete (8/10 tasks done)
-  │     └── [Sub-Epic] #120 — 100% complete ✅
-  │     └── [Sub-Epic] #121 — 60% complete (3/5)
-  └── [Epic] #111 — 10% complete (1/10 tasks done)
+  "generated_at": "ISO-8601",
+  "mode": "active-sprint or degraded-no-sprint",
+  "active_sprint": "Sprint name or null",
+  "active_conflicts": {
+    "components": [],
+    "areas": [],
+    "conflicts": []
+  },
+  "blocked_features": [],
+  "safe_candidates": [],
+  "coordination_needed": [],
+  "bundles": [],
+  "recommended_next": {}
+}
 ```
 
 ---
 
-### 6. Identify Blocked Tasks
+## Best-Practice Guardrails
 
-```bash
-# Find tasks with Blocked status or status:blocked label
-cat report.json | jq '
-  [.tasks[] | select(.status == "Blocked" or (.labels | contains(["status:blocked"])))] |
-  map({number, title, status, labels, epicChain})
-'
-```
+Validated against current GitHub/GitLab issue dependency practices:
 
-**Resolution path:** Check if the blocking issue is also in-sprint. If yes, it may be unblocked by prioritizing the blocker as the next implementation candidate.
-
----
-
-### 7. Score Implementation Readiness
-
-**Scoring rubric (0–100):**
-
-| Factor | Weight | Criteria |
-|--------|--------|----------|
-| Status | 30 | Ready = 30, Todo = 20, Backlog = 10, Blocked = 0 |
-| Priority | 30 | Critical = 30, High = 25, Medium = 15, Low = 5 |
-| Epic chain resolved | 15 | Full chain = 15, Missing one level = 7, Orphaned = 0 |
-| Dependencies | 15 | No blockers = 15, Minor deps = 7, Blocked = 0 |
-| Size | 10 | Small = 10, Medium = 7, Large = 4, XL = 0 |
-
-**Implementation candidates** = Top 5 tasks by readiness score.
-
-**Tiebreaker:** Prefer tasks that unblock other tasks (i.e., tasks that appear as blockers in other issues).
-
----
-
-## Sprint Health Scoring
-
-Compute an overall sprint health score (0–100) at the end of the analysis:
-
-| Metric | Weight | Formula |
-|--------|--------|---------|
-| Completion velocity | 30 | `done / total * 30` |
-| No blocked tasks | 20 | `(1 - blocked/total) * 20` |
-| In-progress ratio | 20 | Healthy = 10–30% in-progress; outside range = deducted |
-| Ready queue depth | 15 | `min(ready/2, 15)` — at least 2 ready tasks = full score |
-| Unassigned critical tasks | 15 | `(1 - unassigned_critical/critical) * 15` |
-
-**Score interpretation:**
-- 80–100: Healthy sprint, on track
-- 60–79: Moderate risk, monitor blockers
-- 40–59: At risk, intervention needed
-- 0–39: Sprint in distress, escalate
-
----
-
-## Expected Output
-
-```
-==========================================
-   CURRENT SPRINT STATUS
-   Sprint N: <Start Date> - <End Date>
-   Days Remaining: X / 14
-==========================================
-
-=== SPRINT PROGRESS ===
-Total Tasks:     17
-Done:             3  (18%)
-In Progress:      2  (12%)
-Ready:            2  (12%)
-Todo:            10  (59%)
-Blocked:          0   (0%)
-
-=== PRIORITY BREAKDOWN ===
-Critical:  2
-High:      8
-Medium:    5
-Low:       2
-
-=== EPIC PROGRESS ROLLUP ===
-[Meta-Epic] #100 — 45% complete (9/20 tasks)
-  └── [Epic] #110 — 80% (8/10) 🟢
-  │     └── [Sub-Epic] #120 — 100% ✅
-  │     └── [Sub-Epic] #121 — 60% (3/5)
-  └── [Epic] #111 — 10% (1/10) 🔴
-
-=== BLOCKED TASKS ===
-Count: 1
-  #145 [Task] Add input validation — blocked by #140
-
-=== SPRINT HEALTH SCORE ===
-Score: 74/100 (Moderate — monitor blockers)
-
-=== TOP IMPLEMENTATION CANDIDATES ===
-
-🥇 #130 [Task] Implement POST /auth/register endpoint
-   Epic chain: [Meta-Epic] Auth System → [Epic] User Registration → [Sub-Epic] API Endpoints
-   Status: Ready | Priority: Critical | Score: 95/100
-   Labels: level:task, type:enhancement, priority:critical
-   Assignee: unassigned
-   → RECOMMENDED: Start with this issue
-
-🥈 #131 [Task] Add input validation and error responses
-   Epic chain: [Meta-Epic] Auth System → [Epic] User Registration → [Sub-Epic] API Endpoints
-   Status: Ready | Priority: High | Score: 88/100
-   Labels: level:task, type:enhancement, priority:high
-   Assignee: unassigned
-
-🥉 #132 [Task] Build registration form component
-   Epic chain: [Meta-Epic] Auth System → [Epic] User Registration → [Sub-Epic] UI Components
-   Status: Todo | Priority: Critical | Score: 82/100
-   Labels: level:task, type:enhancement, priority:critical
-   Assignee: unassigned
-
-4. #133 [Task] Add client-side validation
-   Epic chain: [Meta-Epic] Auth System → [Epic] User Registration → [Sub-Epic] UI Components
-   Status: Todo | Priority: High | Score: 78/100
-   Labels: level:task, type:enhancement, priority:high
-   Assignee: unassigned
-
-5. #134 [Task] Write registration integration tests
-   Epic chain: [Meta-Epic] Auth System → [Epic] User Registration → [Sub-Epic] API Endpoints
-   Status: Todo | Priority: Medium | Score: 65/100
-   Labels: level:task, type:test, priority:medium
-   Assignee: unassigned
-
-=== RECOMMENDED NEXT TASK ===
-
-🎯 Issue #130 — [Task] Implement POST /auth/register endpoint
-   Epic: Auth System → User Registration → API Endpoints
-   Why: Ready status, critical priority, no blockers, unblocks downstream tasks
-
-   To start work:
-   /start-work
-
-   Or manually:
-   gh issue view 130
-   git worktree add ../{REPO}-#130 -b feat/auth-register-endpoint-#130
-
-==========================================
-   END OF SPRINT REPORT
-==========================================
-```
-
----
-
-## Project Constants Reference
-
-Replace these placeholders throughout queries:
-
-```bash
-# Placeholders — fill in from your project setup
-USER="{USER}"                   # GitHub username or org
-REPO="{REPO}"                   # Repository name
-PROJECT_NUMBER="{PROJECT_NUMBER}" # GitHub Project number (integer)
-
-# Retrieve project ID and field IDs
-gh api graphql -f query='
-{
-  user(login: "'"$USER"'") {
-    projectV2(number: '"$PROJECT_NUMBER"') {
-      id
-      fields(first: 20) {
-        nodes {
-          ... on ProjectV2FieldCommon { id name }
-          ... on ProjectV2SingleSelectField {
-            id name
-            options { id name }
-          }
-          ... on ProjectV2IterationField {
-            id name
-            configuration {
-              iterations { id title startDate }
-            }
-          }
-        }
-      }
-    }
-  }
-}'
-```
-
-**Save the output** to `.sisyphus/notepads/current-sprint/project-fields.json` for reuse in mutations.
-
----
-
-## Starting Work on Recommended Task
-
-### Option 1: Use /start-work Command (Recommended)
-
-```
-/start-work
-```
-
-The `/start-work` command will:
-- Validate you are in the main repo (not a worktree)
-- Show the top-priority `[Task]` from the current sprint
-- Display full epic chain context
-- Create an isolated worktree
-- Move the issue to "In Progress" via GraphQL mutation
-
-### Option 2: Manual Start
-
-```bash
-# View the task
-gh issue view <number>
-
-# Create worktree (adjust branch prefix by type label)
-git worktree add ../{REPO}-#<number> -b feat/<description>-#<number>
-
-# Move to In Progress via GraphQL
-gh api graphql -f query='
-mutation {
-  updateProjectV2ItemFieldValue(input: {
-    projectId: "<PROJECT_ID>"
-    itemId: "<ITEM_ID>"
-    fieldId: "<STATUS_FIELD_ID>"
-    value: { singleSelectOptionId: "<IN_PROGRESS_OPTION_ID>" }
-  }) { projectV2Item { id } }
-}'
-```
-
-**Branch prefix by `type:*` label:**
-
-| Label | Branch prefix |
-|-------|--------------|
-| `type:bug` | `fix/` |
-| `type:enhancement` | `feat/` |
-| `type:refactor` | `refactor/` |
-| `type:documentation` | `docs/` |
-| `type:test` | `test/` |
-| `type:chore` | `chore/` |
-| _(no type label)_ | `feat/` |
+- use hierarchy for ownership/scope
+- use dependencies for true blockers
+- use labels/fields for conflict surfaces
+- never suggest blocked work as ready work
+- never recommend two implementation issues together if they share the same narrow implementation surface
 
 ---
 
 ## Related Commands
 
-- **[gh-workflow.md](./gh-workflow.md)** — Complete GitHub CLI workflow reference
-- **[start-work.md](./start-work.md)** — Start working on a task (worktree-based)
-- **[project-health.md](./project-health.md)** — Comprehensive project health check
-- **[create-issue.md](./create-issue.md)** — Create a new issue and add to sprint
+- `./start-work.md`
+- `./project-health.md`
 
 ---
 
-## Troubleshooting
-
-### No Current Sprint Found
-
-If the script cannot identify an active sprint:
-
-```bash
-# List all sprint iterations
-gh api graphql -f query='
-{
-  user(login: "{USER}") {
-    projectV2(number: {PROJECT_NUMBER}) {
-      field(name: "Sprint") {
-        ... on ProjectV2IterationField {
-          configuration {
-            iterations { id title startDate duration }
-            completedIterations { id title startDate duration }
-          }
-        }
-      }
-    }
-  }
-}'
-```
-
-Check that today's date falls within `startDate` + 14 days of an active iteration. If not, a new sprint iteration may need to be created in the GitHub Project settings.
-
-### Empty Sprint
-
-If the current sprint has no tasks:
-
-```bash
-# Check if tasks are assigned to the wrong sprint iteration
-# Run project-health to audit sprint assignments
-/project-health
-```
-
-### Orphaned Tasks (Missing Epic Chain)
-
-If tasks are missing parent references:
-
-```bash
-# Find tasks without a Sub-Epic parent
-gh issue list \
-  --repo "{USER}/{REPO}" \
-  --label "level:task" \
-  --json number,title,trackedInIssues \
-  --jq '.[] | select(.trackedInIssues | length == 0) | {number, title}'
-```
-
-Orphaned tasks must be added to a Sub-Epic tracking issue before work begins. Use the `## Tracking` checkbox pattern in the parent issue body.
-
-### Rate Limiting
-
-```bash
-# Check current rate limit status
-gh api rate_limit
-
-# If limited, use cached report while waiting for reset
-cat .sisyphus/notepads/current-sprint/report.json | jq .
-cat .sisyphus/notepads/current-sprint/summary.md
-```
-
----
-
-**Version:** 1.0.0
+**Version:** 2.2.0
