@@ -14,10 +14,10 @@ GitHub operations (git push, gh pr create, status transitions) are routine tasks
 
 ```typescript
 delegate_task({
-  subagent_type: 'github-ops',
-  load_skills: ['git-master'],
-  prompt: 'Execute the /finish-work workflow for DiriCode. Worktree: <path>. Issue: #<N>.',
-  description: 'Finish work workflow for current worktree',
+  subagent_type: "github-ops",
+  load_skills: ["git-master"],
+  prompt: "Execute the /finish-work workflow for DiriCode. Worktree: <path>. Issue: #<N>.",
+  description: "Finish work workflow for current worktree",
 });
 ```
 
@@ -27,11 +27,11 @@ delegate_task({
 
 **This command can ONLY be run from within a worktree directory.**
 
-| Condition | Result |
-| --- | --- |
-| You're in the main repo | ❌ ERROR — use `/start-work` first |
-| You have uncommitted changes | ❌ ERROR — commit first |
-| PR not yet merged | ❌ ERROR — merge or use `--abandon` |
+| Condition                    | Result                              |
+| ---------------------------- | ----------------------------------- |
+| You're in the main repo      | ❌ ERROR — use `/start-work` first  |
+| You have uncommitted changes | ❌ ERROR — commit first             |
+| PR not yet merged            | ❌ ERROR — merge or use `--abandon` |
 
 ---
 
@@ -152,6 +152,7 @@ gh issue edit "$ISSUE_NUMBER" \
 ```
 
 **Status transition at this step:**
+
 ```
 In Progress → Review
 ```
@@ -190,6 +191,7 @@ echo "✅ PR #$PR_NUMBER created: $PR_URL"
 ```
 
 **PR checklist before merge:**
+
 - [ ] PR title follows: `type(scope): description (#N)`
 - [ ] PR body references the issue (`Closes #N` or `Fixes #N`)
 - [ ] Epic/Sub-Epic context mentioned if applicable
@@ -252,6 +254,7 @@ gh issue comment "$ISSUE_NUMBER" \
 ```
 
 **Status transitions:**
+
 ```
 Review → Done     (on successful merge)
 Review → Blocked  (on merge failure, CI failure, or conflict)
@@ -287,6 +290,7 @@ fi
 ```
 
 **DiriCode epic hierarchy:**
+
 ```
 [Meta-Epic] #N
   └── [Epic] #N
@@ -384,6 +388,7 @@ Use when work must be discarded without merging.
 ```
 
 **When to use:**
+
 - Spike/research with no implementable outcome
 - Wrong approach — need a complete restart
 - Blocked by external dependency with no ETA
@@ -553,11 +558,11 @@ echo "Ready for next task: /start-work"
 
 ## Command Flags
 
-| Flag | Purpose | Usage |
-| --- | --- | --- |
-| (none) | Full workflow: validate → quality → PR → merge → cleanup | `/finish-work` |
-| `--abandon` | Discard work, remove worktree, mark issue Blocked | `/finish-work --abandon` |
-| `--force` | Force cleanup even if PR not merged — **DANGEROUS** | `/finish-work --force` |
+| Flag        | Purpose                                                  | Usage                    |
+| ----------- | -------------------------------------------------------- | ------------------------ |
+| (none)      | Full workflow: validate → quality → PR → merge → cleanup | `/finish-work`           |
+| `--abandon` | Discard work, remove worktree, mark issue Blocked        | `/finish-work --abandon` |
+| `--force`   | Force cleanup even if PR not merged — **DANGEROUS**      | `/finish-work --force`   |
 
 ---
 
@@ -568,13 +573,13 @@ Backlog → Todo → Ready → In Progress → Review → Done
                                               ↘ Blocked
 ```
 
-| Event | Transition |
-| --- | --- |
-| /start-work executed | `Ready → In Progress` |
-| /finish-work started, PR created | `In Progress → Review` |
-| PR merged successfully | `Review → Done` |
-| Merge failed / CI failure | `Review → Blocked` |
-| /finish-work --abandon | `In Progress → Blocked` |
+| Event                            | Transition              |
+| -------------------------------- | ----------------------- |
+| /start-work executed             | `Ready → In Progress`   |
+| /finish-work started, PR created | `In Progress → Review`  |
+| PR merged successfully           | `Review → Done`         |
+| Merge failed / CI failure        | `Review → Blocked`      |
+| /finish-work --abandon           | `In Progress → Blocked` |
 
 ### Epic Cascade
 

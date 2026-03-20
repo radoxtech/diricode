@@ -25,22 +25,24 @@ Meta-Epic
 
 ### Level 1: Meta-Epic `[Meta-Epic]`
 
-| Property | Value |
-|----------|-------|
-| **Bracket Prefix** | `[Meta-Epic]` |
-| **Label** | `level:meta-epic` |
-| **Scope** | Strategic goal (quarter/year span) |
-| **Owned by** | Product leadership |
-| **Max children** | No hard limit (practical: ≤ 10 Epics) |
+| Property           | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Bracket Prefix** | `[Meta-Epic]`                         |
+| **Label**          | `level:meta-epic`                     |
+| **Scope**          | Strategic goal (quarter/year span)    |
+| **Owned by**       | Product leadership                    |
+| **Max children**   | No hard limit (practical: ≤ 10 Epics) |
 
 **Purpose:** Represents a high-level strategic objective. A Meta-Epic spans multiple features and capabilities. It answers "what are we building toward?".
 
 **Title format:**
+
 ```
 [Meta-Epic] <Strategic objective description>
 ```
 
 **Example:**
+
 ```
 [Meta-Epic] Authentication & Authorization System
 ```
@@ -49,23 +51,25 @@ Meta-Epic
 
 ### Level 2: Epic `[Epic]`
 
-| Property | Value |
-|----------|-------|
-| **Bracket Prefix** | `[Epic]` |
-| **Label** | `level:epic` |
-| **Scope** | Feature or capability (sprint/milestone span) |
-| **Owned by** | Engineering team lead |
-| **Max children** | No hard limit (practical: ≤ 10 Sub-Epics) |
-| **Parent** | Must reference a Meta-Epic |
+| Property           | Value                                         |
+| ------------------ | --------------------------------------------- |
+| **Bracket Prefix** | `[Epic]`                                      |
+| **Label**          | `level:epic`                                  |
+| **Scope**          | Feature or capability (sprint/milestone span) |
+| **Owned by**       | Engineering team lead                         |
+| **Max children**   | No hard limit (practical: ≤ 10 Sub-Epics)     |
+| **Parent**         | Must reference a Meta-Epic                    |
 
 **Purpose:** Represents a complete feature or capability. An Epic delivers user-visible value. It answers "what feature are we shipping?".
 
 **Title format:**
+
 ```
 [Epic] <Feature/capability description>
 ```
 
 **Example:**
+
 ```
 [Epic] User Registration Flow
 ```
@@ -74,23 +78,25 @@ Meta-Epic
 
 ### Level 3: Sub-Epic `[Sub-Epic]`
 
-| Property | Value |
-|----------|-------|
-| **Bracket Prefix** | `[Sub-Epic]` |
-| **Label** | `level:sub-epic` |
-| **Scope** | Component or module (days/week span) |
-| **Owned by** | Senior engineer |
-| **Max children** | No hard limit (practical: ≤ 15 Tasks) |
-| **Parent** | Must reference an Epic |
+| Property           | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Bracket Prefix** | `[Sub-Epic]`                          |
+| **Label**          | `level:sub-epic`                      |
+| **Scope**          | Component or module (days/week span)  |
+| **Owned by**       | Senior engineer                       |
+| **Max children**   | No hard limit (practical: ≤ 15 Tasks) |
+| **Parent**         | Must reference an Epic                |
 
 **Purpose:** Represents a distinct component or module within a feature. A Sub-Epic groups related Tasks that share a concern (e.g., backend API, frontend UI, data model). It answers "what component/layer are we building?".
 
 **Title format:**
+
 ```
 [Sub-Epic] <Component/module description>
 ```
 
 **Example:**
+
 ```
 [Sub-Epic] Registration API Endpoints
 ```
@@ -99,23 +105,25 @@ Meta-Epic
 
 ### Level 4: Task `[Task]`
 
-| Property | Value |
-|----------|-------|
-| **Bracket Prefix** | `[Task]` |
-| **Label** | `level:task` |
-| **Scope** | Atomic work unit (hours/day span) |
-| **Owned by** | Individual engineer |
-| **Max children** | None (Tasks are leaf nodes) |
-| **Parent** | Must reference a Sub-Epic |
+| Property           | Value                             |
+| ------------------ | --------------------------------- |
+| **Bracket Prefix** | `[Task]`                          |
+| **Label**          | `level:task`                      |
+| **Scope**          | Atomic work unit (hours/day span) |
+| **Owned by**       | Individual engineer               |
+| **Max children**   | None (Tasks are leaf nodes)       |
+| **Parent**         | Must reference a Sub-Epic         |
 
 **Purpose:** Represents an atomic, implementable unit of work. A Task must be completable in a single sprint by a single engineer. It answers "what exactly needs to be coded/done?".
 
 **Title format:**
+
 ```
 [Task] <Atomic implementation description>
 ```
 
 **Example:**
+
 ```
 [Task] Implement POST /auth/register endpoint
 ```
@@ -233,12 +241,12 @@ Each level (Meta-Epic, Epic, Sub-Epic) follows a 4-state lifecycle. Labels encod
 Draft → Active → Completed → Archived
 ```
 
-| State | Label | Description |
-|-------|-------|-------------|
-| **Draft** | `lifecycle:draft` | Defined but not yet scheduled or staffed |
-| **Active** | `lifecycle:active` | Currently being worked in sprint(s) |
-| **Completed** | `lifecycle:completed` | All children closed, acceptance criteria met |
-| **Archived** | `lifecycle:archived` | Historical record, no further changes expected |
+| State         | Label                 | Description                                    |
+| ------------- | --------------------- | ---------------------------------------------- |
+| **Draft**     | `lifecycle:draft`     | Defined but not yet scheduled or staffed       |
+| **Active**    | `lifecycle:active`    | Currently being worked in sprint(s)            |
+| **Completed** | `lifecycle:completed` | All children closed, acceptance criteria met   |
+| **Archived**  | `lifecycle:archived`  | Historical record, no further changes expected |
 
 ### State Transition Rules
 
@@ -262,6 +270,7 @@ progress(node) = count(closed_children) / count(all_children) × 100
 ### Example Rollup
 
 Using the example above:
+
 - If `#130` and `#131` are both closed → `#120` progress = 100%
 - If `#132` is closed, `#133` is open → `#121` progress = 50%
 - `#110` progress = avg of children completion = (100% + 50%) / 2 = 75%
@@ -281,7 +290,9 @@ Using the example above:
           title
           state
           labels(first: 5) {
-            nodes { name }
+            nodes {
+              name
+            }
           }
         }
         totalCount
@@ -294,6 +305,7 @@ Using the example above:
 ```
 
 **Progress percentage:**
+
 ```
 progress = closedTrackedIssuesCount / trackedIssuesCount × 100
 ```
@@ -313,7 +325,9 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
       title
       state
       labels(first: 10) {
-        nodes { name }
+        nodes {
+          name
+        }
       }
       trackedIssues(first: 20) {
         nodes {
@@ -321,7 +335,9 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
           title
           state
           labels(first: 10) {
-            nodes { name }
+            nodes {
+              name
+            }
           }
           trackedIssues(first: 30) {
             nodes {
@@ -329,7 +345,9 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
               title
               state
               labels(first: 10) {
-                nodes { name }
+                nodes {
+                  name
+                }
               }
             }
           }
@@ -357,7 +375,9 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
         title
         state
         labels(first: 10) {
-          nodes { name }
+          nodes {
+            name
+          }
         }
         trackedIssuesCount
         closedTrackedIssuesCount
@@ -383,7 +403,9 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
               title
               state
               labels(first: 10) {
-                nodes { name }
+                nodes {
+                  name
+                }
               }
               trackedIssuesCount
               closedTrackedIssuesCount
@@ -402,7 +424,10 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
             }
           }
         }
-        pageInfo { hasNextPage endCursor }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
     }
   }
@@ -420,6 +445,7 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
 **Definition:** A Task (`level:task`) that has no parent Sub-Epic, or whose parent Sub-Epic does not list it in the tracking issue body.
 
 **Detection:**
+
 ```graphql
 # Tasks not tracked by any issue
 {
@@ -429,7 +455,10 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
         number
         title
         trackedBy {
-          nodes { number title }
+          nodes {
+            number
+            title
+          }
           totalCount
         }
       }
@@ -440,6 +469,7 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
 ```
 
 **Enforcement:**
+
 - On issue creation: CI check warns if `level:task` issue has no parent reference in body
 - Warning format: `⚠️ ORPHAN TASK: Issue #<n> has label level:task but is not tracked by any Sub-Epic`
 - **Action required:** Engineer must assign the Task to a Sub-Epic before it can move to "In Progress"
@@ -450,11 +480,13 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
 **Rule:** Hierarchy depth is fixed at exactly 4 levels. No level below `[Task]` is permitted.
 
 **Enforcement:**
+
 - Issue title validation: Reject issue creation if title uses a bracket prefix not in `[Meta-Epic, Epic, Sub-Epic, Task]`
 - PR/CI check: Scan new issues for invalid prefixes (e.g., `[Sub-Task]`, `[Micro-Task]`)
 - **Violation response:** Return error: `❌ INVALID HIERARCHY: Prefix "[Sub-Task]" is not permitted. Maximum depth is 4 levels (Meta-Epic → Epic → Sub-Epic → Task)`
 
 **What to do instead of a 5th level:**
+
 - Break the Task into multiple sibling Tasks under the same Sub-Epic
 - Create a new Sub-Epic if the scope warrants grouping
 
@@ -463,17 +495,20 @@ progress = closedTrackedIssuesCount / trackedIssuesCount × 100
 **Definition:** Open (incomplete) issues that remain when a sprint ends.
 
 **Behavior:**
+
 - Open Tasks and Sub-Epics do **not** auto-close when sprint ends
 - Sprint field value is updated by the current-sprint workflow to the next sprint iteration
 - Issue status is reset from "In Progress" back to "Ready" or "Todo" depending on state
 
 **Auto-move rules:**
+
 1. Issues in status `Done` → remain in completed sprint, not moved
 2. Issues in status `In Progress` → moved to next sprint, status → `Ready`
 3. Issues in status `Ready` or `Todo` → moved to next sprint, status unchanged
 4. Issues in status `Blocked` → moved to next sprint, `blocked` label retained
 
 **GraphQL mutation for sprint rollover:**
+
 ```graphql
 # Update sprint field on a project item
 mutation UpdateSprintField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $iterationId: String!) {
@@ -497,6 +532,7 @@ mutation UpdateSprintField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $iterat
 **Definition:** An issue assigned as a child to a parent of the wrong level (e.g., a Task directly under a Meta-Epic, skipping levels).
 
 **Rule:** Parent-child relationships must respect level order:
+
 - Meta-Epic → Epic (only)
 - Epic → Sub-Epic (only)
 - Sub-Epic → Task (only)
@@ -513,16 +549,16 @@ mutation UpdateSprintField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $iterat
 
 ## Label Reference
 
-| Label | Applied to | Meaning |
-|-------|-----------|---------|
-| `level:meta-epic` | Issues | Hierarchy level 1 — strategic goal |
-| `level:epic` | Issues | Hierarchy level 2 — feature/capability |
-| `level:sub-epic` | Issues | Hierarchy level 3 — component/module |
-| `level:task` | Issues | Hierarchy level 4 — atomic work unit |
-| `lifecycle:draft` | Epics, Sub-Epics, Meta-Epics | Not yet active |
-| `lifecycle:active` | Epics, Sub-Epics, Meta-Epics | Currently in progress |
-| `lifecycle:completed` | Epics, Sub-Epics, Meta-Epics | All children done |
-| `lifecycle:archived` | Epics, Sub-Epics, Meta-Epics | Historical record |
+| Label                 | Applied to                   | Meaning                                |
+| --------------------- | ---------------------------- | -------------------------------------- |
+| `level:meta-epic`     | Issues                       | Hierarchy level 1 — strategic goal     |
+| `level:epic`          | Issues                       | Hierarchy level 2 — feature/capability |
+| `level:sub-epic`      | Issues                       | Hierarchy level 3 — component/module   |
+| `level:task`          | Issues                       | Hierarchy level 4 — atomic work unit   |
+| `lifecycle:draft`     | Epics, Sub-Epics, Meta-Epics | Not yet active                         |
+| `lifecycle:active`    | Epics, Sub-Epics, Meta-Epics | Currently in progress                  |
+| `lifecycle:completed` | Epics, Sub-Epics, Meta-Epics | All children done                      |
+| `lifecycle:archived`  | Epics, Sub-Epics, Meta-Epics | Historical record                      |
 
 ---
 

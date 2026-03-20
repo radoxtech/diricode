@@ -30,13 +30,13 @@ Issue titles use **bracket prefixes** to indicate hierarchy level. All brackets 
 [<LEVEL>] <Description>
 \`\`\`
 
-| Bracket Prefix | Level | Scope | Example |
-|---|---|---|---|
-| \`[Meta-Epic]\` | Level 1 | Strategic goal (quarter/year span) | \`[Meta-Epic] Authentication & Authorization System\` |
-| \`[Epic]\` | Level 2 | Feature/capability (sprint/milestone span) | \`[Epic] User Registration Flow\` |
-| \`[Sub-Epic]\` | Level 3 | Decomposed feature area | \`[Sub-Epic] Email Verification\` |
-| \`[Task]\` | Level 4 | Atomic work unit | \`[Task] Add email validation regex\` |
-| *(no prefix)* | Task | Implicit/standalone task | \`Fix typo in README\` |
+| Bracket Prefix  | Level   | Scope                                      | Example                                               |
+| --------------- | ------- | ------------------------------------------ | ----------------------------------------------------- |
+| \`[Meta-Epic]\` | Level 1 | Strategic goal (quarter/year span)         | \`[Meta-Epic] Authentication & Authorization System\` |
+| \`[Epic]\`      | Level 2 | Feature/capability (sprint/milestone span) | \`[Epic] User Registration Flow\`                     |
+| \`[Sub-Epic]\`  | Level 3 | Decomposed feature area                    | \`[Sub-Epic] Email Verification\`                     |
+| \`[Task]\`      | Level 4 | Atomic work unit                           | \`[Task] Add email validation regex\`                 |
+| _(no prefix)_   | Task    | Implicit/standalone task                   | \`Fix typo in README\`                                |
 
 ### Rules
 
@@ -59,9 +59,9 @@ Fix: Handle null timestamps in user service
 
 ❌ Invalid:
 \`\`\`
-[meta-epic] lowercase prefix          # Use correct case
-[Meta Epic] space in bracket          # No spaces inside brackets
-Task: Use [Task] not Task:             # Bracket goes first
+[meta-epic] lowercase prefix # Use correct case
+[Meta Epic] space in bracket # No spaces inside brackets
+Task: Use [Task] not Task: # Bracket goes first
 \`\`\`
 
 ---
@@ -76,17 +76,17 @@ Branch names follow the pattern:
 
 ### Type Prefix
 
-Determined by the issue's \`type:*\` label:
+Determined by the issue's \`type:\*\` label:
 
-| Label | Prefix | Use Case |
-|---|---|---|
-| \`type:bug\` | \`fix/\` | Bug fixes |
-| \`type:enhancement\` | \`feat/\` | New features |
-| \`type:refactor\` | \`refactor/\` | Code refactoring |
-| \`type:documentation\` | \`docs/\` | Documentation |
-| \`type:test\` | \`test/\` | Test additions |
-| \`type:chore\` | \`chore/\` | Maintenance/tooling |
-| *(no type)* | \`feat/\` | Default to feature |
+| Label                  | Prefix        | Use Case            |
+| ---------------------- | ------------- | ------------------- |
+| \`type:bug\`           | \`fix/\`      | Bug fixes           |
+| \`type:enhancement\`   | \`feat/\`     | New features        |
+| \`type:refactor\`      | \`refactor/\` | Code refactoring    |
+| \`type:documentation\` | \`docs/\`     | Documentation       |
+| \`type:test\`          | \`test/\`     | Test additions      |
+| \`type:chore\`         | \`chore/\`    | Maintenance/tooling |
+| _(no type)_            | \`feat/\`     | Default to feature  |
 
 ### Description Formatting
 
@@ -109,16 +109,18 @@ chore/update-dependencies-#203
 
 ❌ Invalid:
 \`\`\`
-feature/user-dashboard               # Missing issue number
+feature/user-dashboard # Missing issue number
 fix/Registration Form Validation-#161 # Use kebab-case, spaces
-bug/123                              # Missing description
-feat/add-this-cool-feature-#245      # Too vague ("this cool")
+bug/123 # Missing description
+feat/add-this-cool-feature-#245 # Too vague ("this cool")
 \`\`\`
 
 ### Creation Command
 
 \`\`\`bash
+
 # Assuming type:bug label on issue #161
+
 ISSUE_NUM=161
 BRANCH_NAME="fix/registration-validation-#${ISSUE_NUM}"
 git checkout -b "$BRANCH_NAME"
@@ -140,21 +142,22 @@ Commit messages follow the **Conventional Commits** pattern:
 
 Must be one of:
 
-| Type | Use | Example |
-|---|---|---|
-| \`feat\` | New feature | \`feat(auth): add two-factor authentication\` |
-| \`fix\` | Bug fix | \`fix(api): handle null timestamps\` |
-| \`docs\` | Documentation | \`docs(readme): update setup instructions\` |
-| \`refactor\` | Code refactoring | \`refactor(payment): simplify charge logic\` |
-| \`test\` | Test additions/changes | \`test(user): add validation edge cases\` |
-| \`chore\` | Maintenance/tooling | \`chore(deps): update lodash to 4.17.21\` |
-| \`ci\` | CI/CD changes | \`ci(workflow): add performance benchmarks\` |
-| \`perf\` | Performance improvements | \`perf(query): add database indexing\` |
-| \`style\` | Formatting/whitespace | \`style(format): fix indentation\` |
+| Type         | Use                      | Example                                       |
+| ------------ | ------------------------ | --------------------------------------------- |
+| \`feat\`     | New feature              | \`feat(auth): add two-factor authentication\` |
+| \`fix\`      | Bug fix                  | \`fix(api): handle null timestamps\`          |
+| \`docs\`     | Documentation            | \`docs(readme): update setup instructions\`   |
+| \`refactor\` | Code refactoring         | \`refactor(payment): simplify charge logic\`  |
+| \`test\`     | Test additions/changes   | \`test(user): add validation edge cases\`     |
+| \`chore\`    | Maintenance/tooling      | \`chore(deps): update lodash to 4.17.21\`     |
+| \`ci\`       | CI/CD changes            | \`ci(workflow): add performance benchmarks\`  |
+| \`perf\`     | Performance improvements | \`perf(query): add database indexing\`        |
+| \`style\`    | Formatting/whitespace    | \`style(format): fix indentation\`            |
 
 ### Scope (Optional)
 
 Contextual area of change:
+
 - Service/component name: \`auth\`, \`payment\`, \`user\`
 - Module name: \`api\`, \`web\`, \`cli\`
 - Feature area: \`dashboard\`, \`notifications\`
@@ -169,6 +172,7 @@ Contextual area of change:
 ### Reference (Required)
 
 Include issue reference:
+
 - \`fixes #<number>\` - Closes the issue
 - \`refs #<number>\` - References without closing
 - \`closes #<number>\` - Closes the issue
@@ -187,10 +191,10 @@ chore(deps): update dependencies - refs #203
 
 ❌ Invalid:
 \`\`\`
-Added new feature                     # No type/scope
-fix: Added two-factor auth            # Wrong tense
-feat(a): new feature                  # Vague scope
-feat(auth): add two-factor auth       # Missing issue reference
+Added new feature # No type/scope
+fix: Added two-factor auth # Wrong tense
+feat(a): new feature # Vague scope
+feat(auth): add two-factor auth # Missing issue reference
 \`\`\`
 
 ---
@@ -205,13 +209,13 @@ PR titles mirror issue titles using the bracket format:
 
 ### Format
 
-| Level | Format | Example |
-|---|---|---|
+| Level     | Format                                    | Example                                    |
+| --------- | ----------------------------------------- | ------------------------------------------ |
 | Meta-Epic | \`[Meta-Epic] <Description> - #<number>\` | \`[Meta-Epic] Authentication System - #1\` |
-| Epic | \`[Epic] <Description> - #<number>\` | \`[Epic] User Registration Flow - #2\` |
-| Sub-Epic | \`[Sub-Epic] <Description> - #<number>\` | \`[Sub-Epic] Email Verification - #3\` |
-| Task | \`[Task] <Description> - #<number>\` | \`[Task] Add email validation - #4\` |
-| Implicit | \`<Description> - #<number>\` | \`Fix typo in README - #5\` |
+| Epic      | \`[Epic] <Description> - #<number>\`      | \`[Epic] User Registration Flow - #2\`     |
+| Sub-Epic  | \`[Sub-Epic] <Description> - #<number>\`  | \`[Sub-Epic] Email Verification - #3\`     |
+| Task      | \`[Task] <Description> - #<number>\`      | \`[Task] Add email validation - #4\`       |
+| Implicit  | \`<Description> - #<number>\`             | \`Fix typo in README - #5\`                |
 
 ### Rules
 
@@ -231,9 +235,9 @@ Fix registration form clearing - #245
 
 ❌ Invalid:
 \`\`\`
-PR for email validation              # Missing issue number
-[Task] Add email validation regex    # Missing issue number
-[Task] Add email validation regex #161  # Use - #161 not #161
+PR for email validation # Missing issue number
+[Task] Add email validation regex # Missing issue number
+[Task] Add email validation regex #161 # Use - #161 not #161
 \`\`\`
 
 ---
@@ -248,12 +252,12 @@ Labels follow three naming patterns based on category:
 level:<hierarchy-level>
 \`\`\`
 
-| Label | Use |
-|---|---|
-| \`level:meta-epic\` | Strategic business objectives |
-| \`level:epic\` | Shippable features/capabilities |
-| \`level:sub-epic\` | Decomposed feature areas |
-| \`level:task\` | Atomic work items |
+| Label               | Use                             |
+| ------------------- | ------------------------------- |
+| \`level:meta-epic\` | Strategic business objectives   |
+| \`level:epic\`      | Shippable features/capabilities |
+| \`level:sub-epic\`  | Decomposed feature areas        |
+| \`level:task\`      | Atomic work items               |
 
 ### Pattern 2: Category Labels
 
@@ -261,12 +265,12 @@ level:<hierarchy-level>
 <category>:<value>
 \`\`\`
 
-| Category | Values | Examples |
-|---|---|---|
-| \`type\` | bug, enhancement, refactor, documentation, test, chore | \`type:bug\`, \`type:enhancement\` |
-| \`priority\` | critical, high, medium, low | \`priority:critical\`, \`priority:high\` |
-| \`status\` | blocked, needs-review | \`status:blocked\`, \`status:needs-review\` |
-| \`sprint\` | current, next, backlog | \`sprint:current\`, \`sprint:next\` |
+| Category     | Values                                                 | Examples                                    |
+| ------------ | ------------------------------------------------------ | ------------------------------------------- |
+| \`type\`     | bug, enhancement, refactor, documentation, test, chore | \`type:bug\`, \`type:enhancement\`          |
+| \`priority\` | critical, high, medium, low                            | \`priority:critical\`, \`priority:high\`    |
+| \`status\`   | blocked, needs-review                                  | \`status:blocked\`, \`status:needs-review\` |
+| \`sprint\`   | current, next, backlog                                 | \`sprint:current\`, \`sprint:next\`         |
 
 ### Pattern 3: Project-Specific Labels
 
@@ -285,7 +289,7 @@ api-deprecated
 
 - **Always lowercase** in category and value
 - **Use hyphens** to separate words
-- **Consistent prefix** for related labels (all \`type:*\`, all \`priority:*\`)
+- **Consistent prefix** for related labels (all \`type:_\`, all \`priority:_\`)
 - **Singular** for label names, not plural
 
 ### Examples
@@ -301,11 +305,11 @@ breaking-change
 
 ❌ Invalid:
 \`\`\`
-Level:Task              # Uppercase
-type:bugs              # Plural
-Priority_High          # Underscore instead of hyphen
-Sprint:current         # Inconsistent casing
-needs review           # Space instead of hyphen
+Level:Task # Uppercase
+type:bugs # Plural
+Priority_High # Underscore instead of hyphen
+Sprint:current # Inconsistent casing
+needs review # Space instead of hyphen
 \`\`\`
 
 ---
@@ -344,11 +348,11 @@ Sprint 15
 
 ❌ Invalid:
 \`\`\`
-sprint 1           # Lowercase
-Sprint-1           # Hyphen instead of space
-Sprint001          # Leading zeros
-Iteration 1        # Wrong keyword
-S1                 # Abbreviated
+sprint 1 # Lowercase
+Sprint-1 # Hyphen instead of space
+Sprint001 # Leading zeros
+Iteration 1 # Wrong keyword
+S1 # Abbreviated
 \`\`\`
 
 ### Active Sprint
@@ -367,6 +371,7 @@ Worktree directories follow the pattern:
 \`\`\`
 
 Where:
+
 - \`{REPO_NAME}\` = Repository name (use placeholder, not project-specific name)
 - \`{ISSUE_NUMBER}\` = Issue number without \`#\` prefix
 
@@ -382,19 +387,19 @@ Where:
 
 ✅ Valid:
 \`\`\`
-../{REPO}-#161      # Generic placeholder
-../{REPO}-#245      # Generic placeholder
-../{REPO}-#1        # Single digit issue
-../diricode-#161    # If using the exact worktree
+../{REPO}-#161 # Generic placeholder
+../{REPO}-#245 # Generic placeholder
+../{REPO}-#1 # Single digit issue
+../diricode-#161 # If using the exact worktree
 \`\`\`
 
 ❌ Invalid:
 \`\`\`
-../booking-system-#161           # Hardcoded project name
-../company-repo-#161             # Hardcoded company prefix
-../{repo}#161                    # Missing hyphen or hash
-../REPO-#161                     # Wrong case
-../{REPO}_161                    # Underscore instead of hash
+../booking-system-#161 # Hardcoded project name
+../company-repo-#161 # Hardcoded company prefix
+../{repo}#161 # Missing hyphen or hash
+../REPO-#161 # Wrong case
+../{REPO}\_161 # Underscore instead of hash
 \`\`\`
 
 ### Creation Context
@@ -402,12 +407,15 @@ Where:
 Worktrees are typically created by commands like \`/start-work\`:
 
 \`\`\`bash
+
 # Example: Creating worktree for issue #161
+
 ISSUE_NUM=161
-REPO_NAME="{REPO}"  # Use placeholder or detected name
+REPO_NAME="{REPO}" # Use placeholder or detected name
 BRANCH_NAME="fix/registration-validation-#${ISSUE_NUM}"
 
 # Create worktree in parent directory
+
 git worktree add "../${REPO_NAME}-#${ISSUE_NUM}" "$BRANCH_NAME"
 \`\`\`
 
