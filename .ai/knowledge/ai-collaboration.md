@@ -18,39 +18,39 @@ This document defines the human/AI collaboration model for DiriCode development.
 
 These actions may be performed autonomously by AI agents without human approval:
 
-| Action | Notes |
-|--------|-------|
-| Create branches | Feature branches following naming conventions |
-| Create issues/tasks | Must reference a parent epic or Meta-Epic |
-| Create pull requests | From feature branches only |
-| Update issue status | Moving between workflow states |
-| Move items on project board | Within established workflow columns |
-| Assign labels | Using existing, configured labels only |
-| Commit to feature branches | All commits must reference issue numbers |
-| Push to feature branches | Own feature branches only |
-| Create sub-epics from epics | When human has approved the parent epic |
-| Update sprint fields | On issues/tasks within approved scope |
-| Close issues via commit messages | Using `fixes #N` or `closes #N` syntax |
-| Add comments to issues | Status updates, progress notes, blockers |
-| Request PR reviews | Assigning human reviewers to PRs |
-| Update PR metadata | Title, description, labels on own PRs |
+| Action                           | Notes                                         |
+| -------------------------------- | --------------------------------------------- |
+| Create branches                  | Feature branches following naming conventions |
+| Create issues/tasks              | Must reference a parent epic or Meta-Epic     |
+| Create pull requests             | From feature branches only                    |
+| Update issue status              | Moving between workflow states                |
+| Move items on project board      | Within established workflow columns           |
+| Assign labels                    | Using existing, configured labels only        |
+| Commit to feature branches       | All commits must reference issue numbers      |
+| Push to feature branches         | Own feature branches only                     |
+| Create sub-epics from epics      | When human has approved the parent epic       |
+| Update sprint fields             | On issues/tasks within approved scope         |
+| Close issues via commit messages | Using `fixes #N` or `closes #N` syntax        |
+| Add comments to issues           | Status updates, progress notes, blockers      |
+| Request PR reviews               | Assigning human reviewers to PRs              |
+| Update PR metadata               | Title, description, labels on own PRs         |
 
 ### AI CANNOT (Prohibited — Safety Violations)
 
 These actions are **prohibited** for AI agents without exception:
 
-| Prohibited Action | Why Prohibited |
-|-------------------|----------------|
-| Merge PRs to main/develop | Human gate is NON-NEGOTIABLE |
-| Delete remote branches without PR merge | Risk of data loss |
-| Force push to any branch | Rewrites history, breaks collaboration |
-| Create Meta-Epics | Requires human strategic approval |
-| Approve PRs | Review approval requires human judgment |
-| Modify protected branches directly | Bypasses safety controls |
-| Change project settings | Affects all contributors |
-| Modify labels/milestones configuration | System-level change |
-| Merge with --no-verify or skip hooks | Bypasses quality gates |
-| Access credentials, secrets, or .env files | Absolute security prohibition |
+| Prohibited Action                          | Why Prohibited                          |
+| ------------------------------------------ | --------------------------------------- |
+| Merge PRs to main/develop                  | Human gate is NON-NEGOTIABLE            |
+| Delete remote branches without PR merge    | Risk of data loss                       |
+| Force push to any branch                   | Rewrites history, breaks collaboration  |
+| Create Meta-Epics                          | Requires human strategic approval       |
+| Approve PRs                                | Review approval requires human judgment |
+| Modify protected branches directly         | Bypasses safety controls                |
+| Change project settings                    | Affects all contributors                |
+| Modify labels/milestones configuration     | System-level change                     |
+| Merge with --no-verify or skip hooks       | Bypasses quality gates                  |
+| Access credentials, secrets, or .env files | Absolute security prohibition           |
 
 ---
 
@@ -58,15 +58,15 @@ These actions are **prohibited** for AI agents without exception:
 
 These responsibilities belong exclusively to humans:
 
-| Responsibility | Rationale |
-|----------------|-----------|
-| Review PRs before merge | Code quality, intent verification, security review |
-| Approve epic creation proposals | Scope and strategic alignment decisions |
-| Merge to main branch | Final quality gate — no exceptions |
-| Resolve conflicting epic priorities | Requires understanding of business context |
-| Make scope decisions at Meta-Epic level | Strategic planning is human territory |
-| Approve architectural decisions | Long-term impact requires human judgment |
-| Resolve merge conflicts manually | When AI detects conflict and escalates |
+| Responsibility                          | Rationale                                          |
+| --------------------------------------- | -------------------------------------------------- |
+| Review PRs before merge                 | Code quality, intent verification, security review |
+| Approve epic creation proposals         | Scope and strategic alignment decisions            |
+| Merge to main branch                    | Final quality gate — no exceptions                 |
+| Resolve conflicting epic priorities     | Requires understanding of business context         |
+| Make scope decisions at Meta-Epic level | Strategic planning is human territory              |
+| Approve architectural decisions         | Long-term impact requires human judgment           |
+| Resolve merge conflicts manually        | When AI detects conflict and escalates             |
 
 ---
 
@@ -77,6 +77,7 @@ The AI and human collaborate iteratively on epic breakdown using a propose-revie
 ### Phase 1: Epic Proposal
 
 AI analyzes requirements and proposes epic breakdown:
+
 - Presents sub-epic titles, acceptance criteria, effort estimates
 - Flags dependencies, risks, unclear requirements
 - Format: comment on the Meta-Epic issue with breakdown table
@@ -84,6 +85,7 @@ AI analyzes requirements and proposes epic breakdown:
 ### Phase 2: Human Review
 
 Human reviews the AI proposal:
+
 - Approves, rejects, or modifies sub-epic scope
 - Confirms priorities and sequencing
 - Resolves ambiguities flagged by AI
@@ -92,6 +94,7 @@ Human reviews the AI proposal:
 ### Phase 3: AI Execution
 
 AI executes approved breakdown:
+
 - Creates sub-epic issues with approved titles and acceptance criteria
 - Links sub-epics to parent Meta-Epic
 - Sets initial sprint fields and labels
@@ -100,6 +103,7 @@ AI executes approved breakdown:
 ### Phase 4: Sub-Epic Decomposition
 
 When a sub-epic needs further breakdown:
+
 1. AI suggests task decomposition, human confirms scope
 2. AI creates task issues under approved sub-epic
 3. AI starts implementation (one task at a time, per issue)
@@ -108,6 +112,7 @@ When a sub-epic needs further breakdown:
 ### Blocked Epic Protocol
 
 When AI encounters a blocked epic:
+
 1. AI adds "blocked" label to epic issue
 2. AI comments with specific blocking reason and options
 3. AI assigns issue to human for priority decision
@@ -120,24 +125,24 @@ When AI encounters a blocked epic:
 
 ### Autonomous AI Execution (No Approval Needed)
 
-| Gate | AI Action |
-|------|-----------|
-| Feature implementation | Implement, commit, push to feature branch |
-| Issue status update | Move to In Progress or Review automatically |
-| Sub-task creation | Create when parent epic is approved |
-| PR creation | Push branch and open PR autonomously |
-| Label assignment | Apply from existing label set |
+| Gate                   | AI Action                                   |
+| ---------------------- | ------------------------------------------- |
+| Feature implementation | Implement, commit, push to feature branch   |
+| Issue status update    | Move to In Progress or Review automatically |
+| Sub-task creation      | Create when parent epic is approved         |
+| PR creation            | Push branch and open PR autonomously        |
+| Label assignment       | Apply from existing label set               |
 
 ### Human Approval Required Before Proceeding
 
-| Gate | Why Human Needed |
-|------|-----------------|
-| Epic scope definition | Business context and priority decisions |
-| Meta-Epic creation | Strategic planning authority |
-| Merge to main/develop | Final quality verification |
-| Architectural changes | Long-term technical impact |
-| Scope expansion beyond original issue | Prevents scope creep |
-| Security-sensitive changes | Access control and compliance |
+| Gate                                  | Why Human Needed                        |
+| ------------------------------------- | --------------------------------------- |
+| Epic scope definition                 | Business context and priority decisions |
+| Meta-Epic creation                    | Strategic planning authority            |
+| Merge to main/develop                 | Final quality verification              |
+| Architectural changes                 | Long-term technical impact              |
+| Scope expansion beyond original issue | Prevents scope creep                    |
+| Security-sensitive changes            | Access control and compliance           |
 
 ---
 
@@ -156,12 +161,12 @@ AI reads ALL review comments before taking any action.
 
 ### Step 2: Categorize Feedback
 
-| Feedback Type | AI Response |
-|---------------|-------------|
-| Code change request | Fix in feature branch, re-push |
-| Clarification question | Answer in PR comment, then fix if needed |
-| Scope disagreement | Comment asking human to clarify; do NOT change scope unilaterally |
-| Architecture concern | Escalate — do NOT implement alternative without human approval |
+| Feedback Type          | AI Response                                                       |
+| ---------------------- | ----------------------------------------------------------------- |
+| Code change request    | Fix in feature branch, re-push                                    |
+| Clarification question | Answer in PR comment, then fix if needed                          |
+| Scope disagreement     | Comment asking human to clarify; do NOT change scope unilaterally |
+| Architecture concern   | Escalate — do NOT implement alternative without human approval    |
 
 ### Step 3: Implement Fixes
 
@@ -190,6 +195,7 @@ gh pr edit <pr-number> --add-reviewer <reviewer>
 ```
 
 AI does NOT:
+
 - Self-approve after fixing
 - Force-push to rewrite history
 - Close and re-open the PR
@@ -230,12 +236,12 @@ Auto-resolution risks silently introducing bugs.
 
 ### GitHub API Limits
 
-| Authentication | Requests/Hour | Notes |
-|----------------|--------------|-------|
-| Authenticated (token) | 5,000 | Standard limit for all authenticated operations |
-| GraphQL (authenticated) | 5,000 points/hour | Points vary by query complexity |
-| Search API | 30 requests/minute | Separate limit for search endpoints |
-| Unauthenticated | 60 | Never use unauthenticated for AI operations |
+| Authentication          | Requests/Hour      | Notes                                           |
+| ----------------------- | ------------------ | ----------------------------------------------- |
+| Authenticated (token)   | 5,000              | Standard limit for all authenticated operations |
+| GraphQL (authenticated) | 5,000 points/hour  | Points vary by query complexity                 |
+| Search API              | 30 requests/minute | Separate limit for search endpoints             |
+| Unauthenticated         | 60                 | Never use unauthenticated for AI operations     |
 
 ### AI Rate Limit Behavior
 
@@ -279,6 +285,7 @@ chore: update dependencies - refs #89
 ### Issue Comments
 
 All AI status updates posted as issue comments must include:
+
 - What action was taken
 - Result (success/failure)
 - Next step or blocker
@@ -295,6 +302,7 @@ Example format:
 ### PR Descriptions
 
 AI-created PRs must include:
+
 - Link to originating issue
 - Summary of changes
 - Testing notes

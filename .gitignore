@@ -2,3 +2,45 @@ example-repos/
 .sisyphus/
 .env
 .github-token
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Bun artifacts
+bun.lock
+bun.lockb
+
+# Turbo cache
+.turbo/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+.next/
+!.next/cache/
+
+# Coverage
+coverage/
+
+# Environment files
+.env.*
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

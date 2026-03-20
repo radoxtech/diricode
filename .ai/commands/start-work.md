@@ -37,12 +37,12 @@ Repo knowledge docs describe a deeper task hierarchy, but the live GitHub board 
 
 Use **only** these GitHub MCP tools:
 
-| Operation | Tool |
-|-----------|------|
-| List project items | `github_projects_list(method="list_project_items")` |
-| Get project fields | `github_projects_list(method="list_project_fields")` |
-| Read issue details | `github_issue_read(method="get")` |
-| Read issue labels | `github_issue_read(method="get_labels")` |
+| Operation                  | Tool                                                  |
+| -------------------------- | ----------------------------------------------------- |
+| List project items         | `github_projects_list(method="list_project_items")`   |
+| Get project fields         | `github_projects_list(method="list_project_fields")`  |
+| Read issue details         | `github_issue_read(method="get")`                     |
+| Read issue labels          | `github_issue_read(method="get_labels")`              |
 | Update project item status | `github_projects_write(method="update_project_item")` |
 
 Project constants:
@@ -209,15 +209,15 @@ If refused, show:
 
 Type comes from `type:*` labels when available. Default to `feat/` if none.
 
-| Label | Prefix |
-|-------|--------|
-| `type:bug` | `fix/` |
-| `type:enhancement` | `feat/` |
-| `type:refactor` | `refactor/` |
-| `type:documentation` | `docs/` |
-| `type:test` | `test/` |
-| `type:chore` | `chore/` |
-| *(default)* | `feat/` |
+| Label                | Prefix      |
+| -------------------- | ----------- |
+| `type:bug`           | `fix/`      |
+| `type:enhancement`   | `feat/`     |
+| `type:refactor`      | `refactor/` |
+| `type:documentation` | `docs/`     |
+| `type:test`          | `test/`     |
+| `type:chore`         | `chore/`    |
+| _(default)_          | `feat/`     |
 
 Slug: strip issue code prefix (e.g. `DC-TOOL-004: `), lowercase, hyphens, max 50 chars.
 

@@ -116,8 +116,8 @@ You can also manually delegate GitHub operations to this agent:
 ```typescript
 // Delegate to github-ops agent
 task({
-  subagent_type: 'github-ops',
-  description: 'Create GitHub issue',
+  subagent_type: "github-ops",
+  description: "Create GitHub issue",
   prompt:
     "Create an issue for implementing API rate limiting with title 'Add rate limiting to API endpoints' and labels 'enhancement,backend'",
 });
@@ -128,9 +128,9 @@ task({
 ```typescript
 // Run in background (non-blocking)
 background_task({
-  agent: 'github-ops',
-  description: 'Merge PR #45',
-  prompt: 'Merge pull request #45 and delete the source branch',
+  agent: "github-ops",
+  description: "Merge PR #45",
+  prompt: "Merge pull request #45 and delete the source branch",
 });
 ```
 
@@ -235,8 +235,8 @@ The `github-ops` agent enforces the **AI Collaboration Model** defined in `.ai/k
 ```typescript
 // 1. Check for existing issue
 background_task({
-  agent: 'github-ops',
-  description: 'Find or create issue',
+  agent: "github-ops",
+  description: "Find or create issue",
   prompt:
     "Search for existing issues related to 'rate limiting'. If none exist, create one with title 'Add rate limiting to API endpoints' and label 'enhancement,backend'",
 });
@@ -246,8 +246,8 @@ background_task({
 
 // 3. Update issue status in GitHub Project
 background_task({
-  agent: 'github-ops',
-  description: 'Update issue status',
+  agent: "github-ops",
+  description: "Update issue status",
   prompt: "Update issue #123 status to 'In Progress' in the GitHub Project",
 });
 ```
@@ -256,11 +256,11 @@ background_task({
 
 ## Cost Comparison
 
-| Model             | Provider | Cost per 1M tokens (input) | Use Case             |
-| ----------------- | -------- | -------------------------- | -------------------- |
+| Model             | Provider | Cost per 1M tokens (input) | Use Case               |
+| ----------------- | -------- | -------------------------- | ---------------------- |
 | Claude Sonnet 4.5 | Sisyphus | $3.00                      | Complex DiriCode tasks |
-| GPT-5 mini        | Copilot  | $0.15                      | GitHub operations    |
-| **Savings**       | -        | **95% cheaper**            | -                    |
+| GPT-5 mini        | Copilot  | $0.15                      | GitHub operations      |
+| **Savings**       | -        | **95% cheaper**            | -                      |
 
 **Example Savings:**
 
@@ -403,11 +403,13 @@ git log --oneline --grep="fixes #" --grep="closes #" --grep="refs #" -i | head -
 ### Configuration
 
 1. Authenticate with GitHub CLI:
+
    ```bash
    gh auth login --web
    ```
 
 2. Verify authentication:
+
    ```bash
    gh auth status
    ```

@@ -13,9 +13,8 @@
       "inputs": ["src/**", "tests/**", "*.config.*"]
     },
     "lint": {
-      "dependsOn": ["build"],
       "cache": true,
-      "inputs": ["src/**", "*.config.*", ".eslintrc*"]
+      "inputs": ["src/**", "*.config.*", "eslint.config.js", "../../eslint.config.js"]
     },
     "typecheck": {
       "dependsOn": ["build"],

@@ -98,6 +98,7 @@ Examples:
 This command must distinguish:
 
 ### 1. Dependency
+
 The feature must wait for another issue.
 
 Treat a feature as **blocked** if any of these is true:
@@ -109,6 +110,7 @@ Treat a feature as **blocked** if any of these is true:
 - GitHub-native dependency data is available in the MCP response and shows unresolved blockers
 
 ### 2. Conflict
+
 The feature may be technically startable, but should not run in parallel with another active feature.
 
 Treat two features as **conflicting** if any of these is true:
@@ -210,14 +212,14 @@ If the parent epic cannot be resolved, mark the feature as orphaned and reduce r
 
 Score each feature 0–100.
 
-| Factor | Weight | Notes |
-|---|---:|---|
-| Status readiness | 25 | `Ready` > `Todo` |
-| Priority | 20 | Critical > High > Medium > Low |
-| Dependency freedom | 20 | blocked = 0 |
-| Parallel safety | 20 | no active conflicts = full score |
-| Epic context resolved | 5 | parent epic known |
-| Size / atomicity | 10 | smaller, isolated work preferred |
+| Factor                | Weight | Notes                            |
+| --------------------- | -----: | -------------------------------- |
+| Status readiness      |     25 | `Ready` > `Todo`                 |
+| Priority              |     20 | Critical > High > Medium > Low   |
+| Dependency freedom    |     20 | blocked = 0                      |
+| Parallel safety       |     20 | no active conflicts = full score |
+| Epic context resolved |      5 | parent epic known                |
+| Size / atomicity      |     10 | smaller, isolated work preferred |
 
 ### Tiebreakers
 
@@ -254,21 +256,25 @@ Use a greedy strategy:
 The report must include all of the following:
 
 ### 1. Sprint Overview
+
 - sprint name or degraded-mode note
 - issue counts by status
 - feature count considered for execution
 
 ### 2. Active Conflict Domains
+
 - currently occupied `component:*`
 - currently occupied `area:*`
 - currently occupied `conflict:*`
 
 ### 3. Blocked Features
+
 - feature
 - blocker reason
 - parsed `Depends on` references if present
 
 ### 4. Ready Now — Safe Parallel Features
+
 Only features safe to start in separate worktrees now.
 
 For each feature show:
@@ -280,6 +286,7 @@ For each feature show:
 - why it is safe
 
 ### 5. Ready Now — Needs Coordination
+
 Features that are startable but not safely parallel.
 
 For each feature show:
@@ -288,6 +295,7 @@ For each feature show:
 - which active feature / conflict domain caused it
 
 ### 6. Suggested Parallel Bundles
+
 Return 2–5 bundles such as:
 
 ```text
@@ -298,6 +306,7 @@ Bundle A
 ```
 
 ### 7. Recommended Next Single Feature
+
 Best immediate next feature.
 
 ---
