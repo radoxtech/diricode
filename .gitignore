@@ -1,2 +1,4 @@
 example-repos/
 .sisyphus/
+.env
+.github-token
