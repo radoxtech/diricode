@@ -1,0 +1,36 @@
+# Build outputs
+dist/
+*.tsbuildinfo
+.next/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Turbo cache
+.turbo/
+
+# Coverage
+coverage/
+
+# Environment files
+.env
+.env.*
+.env.local
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+
+# Archives and docs that don't need formatting
+archiwum/
+docs/**/*.md
+research/**
+specification/**
+planning/**
+survey/**
+
+# Config files that should not be formatted by Prettier
+pnpm-lock.yaml

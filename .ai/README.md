@@ -37,12 +37,12 @@ gh auth status
 
 ### Available Commands
 
-| Command           | Purpose                                    | File                |
-| ----------------- | ------------------------------------------ | ------------------- |
-| `/start-work`     | Initialize task branch/worktree            | `commands/start-work.md`     |
-| `/finish-work`    | Complete work, create PR, merge            | `commands/finish-work.md`    |
-| `/current-sprint`   | Show sprint status & task candidates      | `commands/current-sprint.md`  |
-| `/project-health`  | Project health check, stale issues, blockers | `commands/project-health.md` |
+| Command           | Purpose                                      | File                         |
+| ----------------- | -------------------------------------------- | ---------------------------- |
+| `/start-work`     | Initialize task branch/worktree              | `commands/start-work.md`     |
+| `/finish-work`    | Complete work, create PR, merge              | `commands/finish-work.md`    |
+| `/current-sprint` | Show sprint status & task candidates         | `commands/current-sprint.md` |
+| `/project-health` | Project health check, stale issues, blockers | `commands/project-health.md` |
 
 ---
 
@@ -56,14 +56,11 @@ Executable workflows for common development tasks:
    - Validates task-level issues only
    - Queries GitHub Projects for sprint candidates
    - Creates isolated worktree with epic context
-   
 2. **`finish-work.md`** - Complete work workflow and create PR
    - Closes worktree cleanly
    - Creates PR with proper commit linking
    - Handles merge and cleanup
-   
-   
-4. **`current-sprint.md`** - Current sprint status and implementation candidates
+3. **`current-sprint.md`** - Current sprint status and implementation candidates
    - Shows sprint overview
    - Lists ready-to-work tasks
    - Provides health metrics
@@ -93,25 +90,21 @@ Reference documentation and architectural patterns:
    - Naming conventions and bracket prefixes
    - Parent-child relationships
    - Issue linking requirements
-   
 2. **`github-ops-agent.md`** - GitHub Operations Agent configuration
    - Cost optimization patterns
    - Agent delegation strategies
    - GitHub CLI automation
    - Project management integration
-   
 3. **`worktree-isolation.md`** - AI-safe isolated development rules
    - Worktree creation and cleanup
    - Context isolation for LLM safety
    - File access restrictions
    - Branch management
-   
 4. **`labels-and-setup.md`** - Project setup and labeling strategy
    - Required labels for issue tracking
    - GitHub Projects configuration
    - Sprint board setup
    - Label-based filtering
-   
 5. **`ai-collaboration.md`** - LLM integration patterns
    - Prompt engineering for issue workflows
    - Agent delegation and skill loading
@@ -209,6 +202,7 @@ gh project list --owner {USER}
 ### 3. Set Up Project Views
 
 Create the following custom fields/views:
+
 - **Status**: Backlog, Ready, In Progress, Review, Done
 - **Epic Level**: Select the highest epic this task belongs to
 - **Priority**: High, Medium, Low
@@ -457,11 +451,13 @@ Worktree cleaned up
 ## 📚 Complete Reference
 
 ### Command Files
+
 - `start-work.md` - Task initialization workflow
 - `finish-work.md` - Work completion and PR creation
 - `current-sprint.md` - Sprint status and candidates
 
 ### Knowledge Files
+
 - `epic-hierarchy.md` - Four-level organization structure
 - `github-ops-agent.md` - GitHub automation patterns
 - `worktree-isolation.md` - Isolated development rules
@@ -473,6 +469,7 @@ Worktree cleaned up
 ## 🏃 Getting Started (First-Time Setup)
 
 1. **Clone repository and authenticate**
+
    ```bash
    gh auth login
    ```
@@ -499,8 +496,8 @@ Worktree cleaned up
 
 ## 📝 Version History
 
-| Version | Date       | Changes |
-| ------- | ---------- | -------- |
+| Version | Date       | Changes                             |
+| ------- | ---------- | ----------------------------------- |
 | 1.0     | 2026-03-17 | Initial DiriCode documentation pack |
 
 ---

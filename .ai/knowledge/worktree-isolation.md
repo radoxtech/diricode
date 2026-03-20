@@ -23,6 +23,7 @@ repos/
 ```
 
 Key properties:
+
 - Each worktree has its own branch — changes don't affect main
 - Multiple worktrees can coexist simultaneously
 - All worktrees share the same git history
@@ -43,30 +44,30 @@ Never mix work between worktrees. Never work directly on `main` or `develop`.
 
 ```typescript
 // ✅ CORRECT
-read({ filePath: '/Users/rado/repos/diricode-#123/apps/api/src/service.ts' });
+read({ filePath: "/Users/rado/repos/diricode-#123/apps/api/src/service.ts" });
 
 // ❌ WRONG — reads from main repo
-read({ filePath: '/Users/rado/repos/diricode/apps/api/src/service.ts' });
+read({ filePath: "/Users/rado/repos/diricode/apps/api/src/service.ts" });
 ```
 
 ### Rule 3: ALL Bash Commands Must Use `workdir`
 
 ```typescript
 // ✅ CORRECT
-bash({ command: 'pnpm test', workdir: '/Users/rado/repos/diricode-#123' });
+bash({ command: "pnpm test", workdir: "/Users/rado/repos/diricode-#123" });
 
 // ❌ WRONG — runs in main repo by default
-bash({ command: 'pnpm test' });
+bash({ command: "pnpm test" });
 ```
 
 ### Rule 4: ALL LSP Operations Must Use Worktree Paths
 
 ```typescript
 // ✅ CORRECT
-lsp_diagnostics({ filePath: '/Users/rado/repos/diricode-#123/apps/api/src/service.ts' });
+lsp_diagnostics({ filePath: "/Users/rado/repos/diricode-#123/apps/api/src/service.ts" });
 
 // ❌ WRONG
-lsp_diagnostics({ filePath: '/Users/rado/repos/diricode/apps/api/src/service.ts' });
+lsp_diagnostics({ filePath: "/Users/rado/repos/diricode/apps/api/src/service.ts" });
 ```
 
 ### Rule 5: Delegated Subagents Must Receive Worktree Context
@@ -214,13 +215,13 @@ Before every operation in a worktree, verify:
 
 ## Common Mistakes
 
-| ❌ Wrong | ✅ Correct | Why |
-|----------|-----------|-----|
-| `read(".../diricode/apps/...")` | `read(".../diricode-#123/apps/...")` | Reading from main |
-| `bash("pnpm test")` | `bash("pnpm test", workdir="...")` | Runs in main repo |
-| `glob(".../diricode/**/*.ts")` | `glob(".../diricode-#123/**/*.ts")` | Searches main files |
-| Delegate without worktree path | Include worktree path in prompt | Subagent has no context |
-| `cd ../diricode` in bash | Stay in worktree | Accidentally switches to main |
+| ❌ Wrong                        | ✅ Correct                           | Why                           |
+| ------------------------------- | ------------------------------------ | ----------------------------- |
+| `read(".../diricode/apps/...")` | `read(".../diricode-#123/apps/...")` | Reading from main             |
+| `bash("pnpm test")`             | `bash("pnpm test", workdir="...")`   | Runs in main repo             |
+| `glob(".../diricode/**/*.ts")`  | `glob(".../diricode-#123/**/*.ts")`  | Searches main files           |
+| Delegate without worktree path  | Include worktree path in prompt      | Subagent has no context       |
+| `cd ../diricode` in bash        | Stay in worktree                     | Accidentally switches to main |
 
 ---
 

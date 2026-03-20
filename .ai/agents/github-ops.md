@@ -46,16 +46,19 @@ Execute commands when a user or another agent needs to:
 ### Branch Operations
 
 Create feature branch:
+
 ```bash
 git checkout -b feat/{ISSUE_NUMBER}-brief-description
 ```
 
 Switch to existing branch:
+
 ```bash
 git checkout {BRANCH_NAME}
 ```
 
 Delete local branch:
+
 ```bash
 git branch -d {BRANCH_NAME}  # merged
 git branch -D {BRANCH_NAME}  # force
@@ -64,6 +67,7 @@ git branch -D {BRANCH_NAME}  # force
 ### Commit Operations
 
 Stage and commit:
+
 ```bash
 git add -A
 git commit -m "type(scope): description
@@ -72,12 +76,14 @@ Fixes #{ISSUE_NUMBER}"
 ```
 
 Amend last commit:
+
 ```bash
 git commit --amend --no-edit
 git push --force-with-lease
 ```
 
 Push to remote:
+
 ```bash
 git push -u origin {BRANCH_NAME}
 ```
@@ -85,21 +91,25 @@ git push -u origin {BRANCH_NAME}
 ### PR Operations
 
 Create PR:
+
 ```bash
 gh pr create --title "type: description" --body "Fixes #{ISSUE_NUMBER}" --draft
 ```
 
 Mark PR ready:
+
 ```bash
 gh pr ready {PR_NUMBER}
 ```
 
 Request review:
+
 ```bash
 gh pr edit {PR_NUMBER} --add-reviewer {USERNAME}
 ```
 
 Merge PR:
+
 ```bash
 gh pr merge {PR_NUMBER} --squash --delete-branch
 ```
@@ -107,16 +117,19 @@ gh pr merge {PR_NUMBER} --squash --delete-branch
 ### Issue Operations
 
 Create issue:
+
 ```bash
 gh issue create --title "[Task] Description" --label "task" --body "Part of Epic #{EPIC_NUMBER}"
 ```
 
 Add label:
+
 ```bash
 gh issue edit {ISSUE_NUMBER} --add-label "in-progress"
 ```
 
 Close issue:
+
 ```bash
 gh issue close {ISSUE_NUMBER} --reason "completed"
 ```
@@ -124,11 +137,13 @@ gh issue close {ISSUE_NUMBER} --reason "completed"
 ### Project Operations
 
 Add issue to project:
+
 ```bash
 gh project item-add {PROJECT_NUMBER} --owner {OWNER} --url https://github.com/{OWNER}/{REPO}/issues/{ISSUE_NUMBER}
 ```
 
 Update project field (status):
+
 ```bash
 gh project item-edit --id {ITEM_ID} --field-id {STATUS_FIELD_ID} --single-select-option-id {OPTION_ID}
 ```
@@ -137,16 +152,16 @@ gh project item-edit --id {ITEM_ID} --field-id {STATUS_FIELD_ID} --single-select
 
 ## Placeholder Reference
 
-| Placeholder | Description | Example |
-|-------------|-------------|---------|
-| `{ISSUE_NUMBER}` | GitHub issue/PR number | `42` |
-| `{BRANCH_NAME}` | Full branch name | `feat/42-login-form` |
-| `{PR_NUMBER}` | Pull request number | `15` |
-| `{EPIC_NUMBER}` | Parent epic issue number | `5` |
-| `{PROJECT_NUMBER}` | GitHub Project number | `1` |
-| `{OWNER}` | Repository owner | `myorg` |
-| `{REPO}` | Repository name | `myproject` |
-| `{USERNAME}` | GitHub username | `developer` |
+| Placeholder        | Description              | Example              |
+| ------------------ | ------------------------ | -------------------- |
+| `{ISSUE_NUMBER}`   | GitHub issue/PR number   | `42`                 |
+| `{BRANCH_NAME}`    | Full branch name         | `feat/42-login-form` |
+| `{PR_NUMBER}`      | Pull request number      | `15`                 |
+| `{EPIC_NUMBER}`    | Parent epic issue number | `5`                  |
+| `{PROJECT_NUMBER}` | GitHub Project number    | `1`                  |
+| `{OWNER}`          | Repository owner         | `myorg`              |
+| `{REPO}`           | Repository name          | `myproject`          |
+| `{USERNAME}`       | GitHub username          | `developer`          |
 
 ---
 
@@ -159,6 +174,7 @@ When a command fails:
 3. **Suggest recovery** — provide the fix command(s)
 
 Example:
+
 ```
 Error: failed to push some refs
 Cause: remote has newer commits
