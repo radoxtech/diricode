@@ -100,7 +100,7 @@ Data aktualizacji: 2026-03-10
 | `ui-ux-pro-max-skill/` | UI/UX Pro Max (data-driven skill) | MIT |
 | `awesome-claude-code/` | Awesome Claude Code (curated list) | CC BY-NC-ND 4.0 |
 
-### `archiwum/` — Nieaktualne dokumenty
+### `archive/` — Nieaktualne dokumenty
 
 Dokumenty zastapione nowszymi wersjami. Zachowane dla historii.
 
