@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@diricode/core": "workspace:*",
+    "tinyglobby": "^0.2.15",
     "zod": "^3.24.0"
   },
   "devDependencies": {
