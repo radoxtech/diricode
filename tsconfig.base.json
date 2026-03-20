@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "exactOptionalPropertyTypes": false,
+
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true,
+    "incremental": true,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+
+    "skipLibCheck": true,
+
+    "paths": {
+      "@diricode/core": ["./packages/core/src/index.ts"],
+      "@diricode/core/*": ["./packages/core/src/*"],
+      "@diricode/server": ["./packages/server/src/index.ts"],
+      "@diricode/server/*": ["./packages/server/src/*"],
+      "@diricode/web": ["./packages/web/src/index.ts"],
+      "@diricode/web/*": ["./packages/web/src/*"],
+      "@diricode/memory": ["./packages/memory/src/index.ts"],
+      "@diricode/memory/*": ["./packages/memory/src/*"],
+      "@diricode/providers": ["./packages/providers/src/index.ts"],
+      "@diricode/providers/*": ["./packages/providers/src/*"],
+      "@diricode/github-mcp": ["./packages/github-mcp/src/index.ts"],
+      "@diricode/github-mcp/*": ["./packages/github-mcp/src/*"],
+      "@diricode/tools": ["./packages/tools/src/index.ts"],
+      "@diricode/tools/*": ["./packages/tools/src/*"],
+      "@diricode/cli": ["./apps/cli/src/index.ts"],
+      "@diricode/cli/*": ["./apps/cli/src/*"]
+    }
+  }
+}
