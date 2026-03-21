@@ -210,94 +210,176 @@ See [ADR-012](docs/adr/adr-012-4-dimension-work-mode-system.md).
 
 ### Agent Roster — 40 Agents, 6 Categories
 
-| Category               | Example Agents                                                            |
-| ---------------------- | ------------------------------------------------------------------------- |
-| Command & Control      | dispatcher, auto-continue                                                 |
-| Strategy & Planning    | architect, planner-thorough, sprint-planner                               |
-| Code Production        | code-writer, code-writer-hard, debugger, test-writer, frontend-specialist |
-| Quality Assurance      | code-reviewer-thorough, verifier, risk-assessor                           |
-| Research & Exploration | code-explorer, web-researcher, browser-agent                              |
-| Utility                | commit-writer, namer, summarizer, git-operator                            |
-
-The dispatcher selects agents dynamically via `search_agents()` — it searches by capability tags, not a hardcoded list. See [ADR-004](docs/adr/adr-004-agent-roster-3-tiers.md) and [ADR-040](docs/adr/adr-040-tool-based-agent-discovery.md).
+The dispatcher selects agents dynamically via `search_agents()` — it searches by capability tags, not a hardcoded list.
 
 ```mermaid
-graph TD
-    subgraph "Command & Control"
-        D[dispatcher — HEAVY]
-        AC[auto-continue — MEDIUM]
-    end
+graph LR
+    D[🎯 Dispatcher]
 
-    subgraph "Strategy & Planning"
-        PT[planner-thorough — HEAVY]
-        PQ[planner-quick — MEDIUM]
-        AR[architect — HEAVY]
-        SP[sprint-planner — MEDIUM]
-        PB[project-builder — HEAVY]
-        PR[project-roadmapper — MEDIUM]
-        PV[prompt-validator — MEDIUM]
-        PLR[plan-reviewer — HEAVY]
-        TM[todo-manager — LOW]
-    end
+    D --> SP[Strategy & Planning\n9 agents]
+    D --> CP[Code Production\n9 agents]
+    D --> QA[Quality Assurance\n8 agents]
+    D --> RE[Research & Exploration\n4 agents]
+    D --> UT[Utility\n8 agents]
+    D --> AC[auto-continue]
 
-    subgraph "Code Production"
-        CW[code-writer — HEAVY]
-        CWH[code-writer-hard — HEAVY]
-        CWQ[code-writer-quick — MEDIUM]
-        FB[file-builder — MEDIUM]
-        CT[creative-thinker — HEAVY]
-        FS[frontend-specialist — HEAVY]
-        RA[refactoring-agent — HEAVY]
-        DB[debugger — HEAVY]
-        TW[test-writer — MEDIUM]
-    end
-
-    subgraph "Quality Assurance"
-        CRT[code-reviewer-thorough — HEAVY]
-        CRQ[code-reviewer-quick — MEDIUM]
-        SCR[spec-compliance-reviewer — MEDIUM]
-        VR[verifier — HEAVY]
-        RK[risk-assessor — MEDIUM]
-        MC[merge-coordinator — MEDIUM]
-        LC[license-checker — LOW]
-        IC[integration-checker — MEDIUM]
-    end
-
-    subgraph "Research & Exploration"
-        CE[code-explorer — MEDIUM]
-        WR[web-researcher — MEDIUM]
-        BA[browser-agent — MEDIUM]
-        CM[codebase-mapper — MEDIUM]
-    end
-
-    subgraph "Utility"
-        SU[summarizer — LOW]
-        CWR[commit-writer — LOW]
-        NM[namer — LOW]
-        IW[issue-writer — LOW]
-        LT[long-task-runner — MEDIUM]
-        GO[git-operator — MEDIUM]
-        GHO[github-operator — MEDIUM]
-        DO[devops-operator — MEDIUM]
-    end
-
-    D -->|delegates| PT
-    D -->|delegates| PQ
-    D -->|delegates| CW
-    D -->|delegates| CWH
-    D -->|delegates| DB
-    D -->|delegates| CRT
-    D -->|delegates| CE
-    D -->|delegates| SU
-
-    AR -->|selects files| CW
-    AR -->|selects files| TW
-    PT -->|creates plan| SP
-    CW -->|requests review| CRT
-    CW -->|requests review| CRQ
-    CRT -->|finds issues| DB
-    TW -->|validates| VR
+    style D fill:#e1f5fe
+    style SP fill:#fff3e0
+    style CP fill:#e8f5e9
+    style QA fill:#fce4ec
+    style RE fill:#f3e5f5
+    style UT fill:#eceff1
 ```
+
+<details>
+<summary><b>Strategy & Planning</b> — 9 agents</summary>
+
+```mermaid
+graph LR
+    subgraph "HEAVY"
+        PT[planner-thorough]
+        AR[architect]
+        PB[project-builder]
+        PLR[plan-reviewer]
+    end
+    subgraph "MEDIUM"
+        PQ[planner-quick]
+        SP[sprint-planner]
+        PR[project-roadmapper]
+        PV[prompt-validator]
+    end
+    subgraph "LOW"
+        TM[todo-manager]
+    end
+
+    PT -->|breaks into sprints| SP
+    AR -->|selects files for| PB
+    PLR -->|validates| PT
+
+    style PT fill:#fff3e0
+    style AR fill:#fff3e0
+    style PB fill:#fff3e0
+    style PLR fill:#fff3e0
+```
+
+</details>
+
+<details>
+<summary><b>Code Production</b> — 9 agents</summary>
+
+```mermaid
+graph LR
+    subgraph "HEAVY"
+        CW[code-writer]
+        CWH[code-writer-hard]
+        CT[creative-thinker]
+        FS[frontend-specialist]
+        RA[refactoring-agent]
+        DB[debugger]
+    end
+    subgraph "MEDIUM"
+        CWQ[code-writer-quick]
+        FB[file-builder]
+        TW[test-writer]
+    end
+
+    CW -->|complex tasks| CWH
+    DB -->|fixes issues from| CW
+    TW -->|tests code from| CW
+
+    style CW fill:#e8f5e9
+    style CWH fill:#e8f5e9
+    style CT fill:#e8f5e9
+    style FS fill:#e8f5e9
+    style RA fill:#e8f5e9
+    style DB fill:#e8f5e9
+```
+
+</details>
+
+<details>
+<summary><b>Quality Assurance</b> — 8 agents</summary>
+
+```mermaid
+graph LR
+    subgraph "HEAVY"
+        CRT[code-reviewer-thorough]
+        VR[verifier]
+    end
+    subgraph "MEDIUM"
+        CRQ[code-reviewer-quick]
+        SCR[spec-compliance-reviewer]
+        RK[risk-assessor]
+        MC[merge-coordinator]
+        IC[integration-checker]
+    end
+    subgraph "LOW"
+        LC[license-checker]
+    end
+
+    CRQ -->|escalates to| CRT
+    CRT -->|validates with| VR
+    RK -->|informs| MC
+
+    style CRT fill:#fce4ec
+    style VR fill:#fce4ec
+```
+
+</details>
+
+<details>
+<summary><b>Research & Exploration</b> — 4 agents</summary>
+
+```mermaid
+graph LR
+    subgraph "MEDIUM"
+        CE[code-explorer]
+        WR[web-researcher]
+        BA[browser-agent]
+        CM[codebase-mapper]
+    end
+
+    CM -->|maps structure for| CE
+    WR -->|finds docs, BA browses| BA
+
+    style CE fill:#f3e5f5
+    style WR fill:#f3e5f5
+    style BA fill:#f3e5f5
+    style CM fill:#f3e5f5
+```
+
+</details>
+
+<details>
+<summary><b>Utility</b> — 8 agents</summary>
+
+```mermaid
+graph LR
+    subgraph "MEDIUM"
+        LT[long-task-runner]
+        GO[git-operator]
+        GHO[github-operator]
+        DO[devops-operator]
+    end
+    subgraph "LOW"
+        SU[summarizer]
+        CWR[commit-writer]
+        NM[namer]
+        IW[issue-writer]
+    end
+
+    GO -->|commits with msg from| CWR
+    GHO -->|creates issues via| IW
+
+    style SU fill:#eceff1
+    style CWR fill:#eceff1
+    style NM fill:#eceff1
+    style IW fill:#eceff1
+```
+
+</details>
+
+See [ADR-004](docs/adr/adr-004-agent-roster-3-tiers.md) and [ADR-040](docs/adr/adr-040-tool-based-agent-discovery.md).
 
 ### Safety Architecture
 
