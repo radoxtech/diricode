@@ -8,7 +8,11 @@ describe("fileWriteTool", () => {
   let workspaceRoot: string;
   const emittedEvents: { event: string; payload: unknown }[] = [];
 
-  const makeContext = () => ({
+  const makeContext = (): {
+    workspaceRoot: string;
+    emit: (event: string, payload: unknown) => void;
+    workspace: string;
+  } => ({
     workspaceRoot,
     emit: (event: string, payload: unknown) => {
       emittedEvents.push({ event, payload });
