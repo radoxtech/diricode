@@ -224,7 +224,7 @@ graph LR
     D --> AC[auto-continue]
 ```
 
-<details>
+<details open>
 <summary><b>Strategy & Planning</b> — 9 agents</summary>
 
 ```mermaid
@@ -252,7 +252,7 @@ graph LR
 
 </details>
 
-<details>
+<details open>
 <summary><b>Code Production</b> — 9 agents</summary>
 
 ```mermaid
@@ -278,7 +278,7 @@ graph LR
 
 </details>
 
-<details>
+<details open>
 <summary><b>Quality Assurance</b> — 8 agents</summary>
 
 ```mermaid
@@ -305,7 +305,7 @@ graph LR
 
 </details>
 
-<details>
+<details open>
 <summary><b>Research & Exploration</b> — 4 agents</summary>
 
 ```mermaid
@@ -323,7 +323,7 @@ graph LR
 
 </details>
 
-<details>
+<details open>
 <summary><b>Utility</b> — 8 agents</summary>
 
 ```mermaid
