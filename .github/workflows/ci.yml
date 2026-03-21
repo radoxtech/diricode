@@ -3,9 +3,6 @@
 # Turborepo local cache is persisted via actions/cache on the .turbo directory.
 name: CI
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   push:
     branches:
@@ -28,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # fetch-depth: 0 required for turborepo to correctly determine
           # which packages/tasks need to be rebuilt. Shallow clones break
@@ -41,14 +38,14 @@ jobs:
           version: 9.15.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: pnpm
 
       # Persist Turborepo local cache (.turbo) between runs.
       - name: Cache Turborepo artifacts
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .turbo
           key: turbo-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml', '**/turbo.json', '**/tsconfig*.json', '**/eslint.config.*') }}
