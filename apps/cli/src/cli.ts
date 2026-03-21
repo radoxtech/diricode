@@ -19,16 +19,18 @@ cli
 
 cli
   .command("[...args]", "Start interactive REPL (default)")
-  .action(async (_args: string[], options: Record<string, unknown>) => {
+  .action((_args: string[], options: Record<string, unknown>) => {
     try {
       const flags = validateFlags(options);
       if (flags.json !== true) {
+        // eslint-disable-next-line no-console
         console.log(`diricode v${pkg.version}`);
       }
-      const config = await resolveConfig(flags);
-      await startRepl(config, { session: flags.session });
+      const config = resolveConfig(flags);
+      startRepl(config, { session: flags.session });
     } catch (err) {
       if (err instanceof Error) {
+        // eslint-disable-next-line no-console
         console.error(`Error: ${err.message}`);
       }
       process.exit(1);
@@ -37,16 +39,18 @@ cli
 
 cli
   .command("run <prompt>", "Run a one-shot prompt and exit")
-  .action(async (prompt: string, options: Record<string, unknown>) => {
+  .action((prompt: string, options: Record<string, unknown>) => {
     try {
       const flags = validateFlags(options);
       if (flags.json !== true) {
+        // eslint-disable-next-line no-console
         console.log(`diricode v${pkg.version}`);
       }
-      const config = await resolveConfig(flags);
-      await runOnce(config, prompt, { json: flags.json, session: flags.session });
+      const config = resolveConfig(flags);
+      runOnce(config, prompt, { json: flags.json, session: flags.session });
     } catch (err) {
       if (err instanceof Error) {
+        // eslint-disable-next-line no-console
         console.error(`Error: ${err.message}`);
       }
       process.exit(1);
@@ -60,6 +64,7 @@ try {
   cli.parse();
 } catch (err) {
   if (err instanceof Error) {
+    // eslint-disable-next-line no-console
     console.error(`Usage error: ${err.message}`);
   }
   process.exit(2);

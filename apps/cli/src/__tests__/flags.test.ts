@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { validateFlags, flagsToConfigOverlay } from "../flags.js";
 
 describe("validateFlags", () => {
@@ -86,7 +86,7 @@ describe("flagsToConfigOverlay", () => {
 
   it("maps --model to agents.default.model", () => {
     const overlay = flagsToConfigOverlay({ model: "claude-3-5-sonnet" });
-    expect(overlay.agents?.["default"]?.model).toBe("claude-3-5-sonnet");
+    expect(overlay.agents?.default?.model).toBe("claude-3-5-sonnet");
   });
 
   it("maps --mode safe to correct workMode dimensions", () => {

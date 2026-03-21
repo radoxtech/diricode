@@ -33,12 +33,12 @@ export function validateFlags(raw: Record<string, unknown>): CLIFlags {
 
 type WorkModeVerbosity = DiriCodeConfig["workMode"]["verbosity"];
 
-type WorkModePartial = {
+interface WorkModePartial {
   autonomy?: DiriCodeConfig["workMode"]["autonomy"];
   verbosity?: WorkModeVerbosity;
   riskTolerance?: DiriCodeConfig["workMode"]["riskTolerance"];
   creativity?: DiriCodeConfig["workMode"]["creativity"];
-};
+}
 
 const MODE_PRESETS: Record<ModePreset, WorkModePartial> = {
   safe: {
@@ -61,11 +61,11 @@ const MODE_PRESETS: Record<ModePreset, WorkModePartial> = {
   },
 };
 
-type ConfigOverlay = {
+interface ConfigOverlay {
   providers?: Partial<DiriCodeConfig["providers"]>;
   workMode?: WorkModePartial;
   agents?: Record<string, { model?: string }>;
-};
+}
 
 export function flagsToConfigOverlay(flags: CLIFlags): ConfigOverlay {
   const overlay: ConfigOverlay = {};
