@@ -221,6 +221,84 @@ See [ADR-012](docs/adr/adr-012-4-dimension-work-mode-system.md).
 
 The dispatcher selects agents dynamically via `search_agents()` — it searches by capability tags, not a hardcoded list. See [ADR-004](docs/adr/adr-004-agent-roster-3-tiers.md) and [ADR-040](docs/adr/adr-040-tool-based-agent-discovery.md).
 
+```mermaid
+graph TD
+    subgraph "Command & Control"
+        D[dispatcher — HEAVY]
+        AC[auto-continue — MEDIUM]
+    end
+
+    subgraph "Strategy & Planning"
+        PT[planner-thorough — HEAVY]
+        PQ[planner-quick — MEDIUM]
+        AR[architect — HEAVY]
+        SP[sprint-planner — MEDIUM]
+        PB[project-builder — HEAVY]
+        PR[project-roadmapper — MEDIUM]
+        PV[prompt-validator — MEDIUM]
+        PLR[plan-reviewer — HEAVY]
+        TM[todo-manager — LOW]
+    end
+
+    subgraph "Code Production"
+        CW[code-writer — HEAVY]
+        CWH[code-writer-hard — HEAVY]
+        CWQ[code-writer-quick — MEDIUM]
+        FB[file-builder — MEDIUM]
+        CT[creative-thinker — HEAVY]
+        FS[frontend-specialist — HEAVY]
+        RA[refactoring-agent — HEAVY]
+        DB[debugger — HEAVY]
+        TW[test-writer — MEDIUM]
+    end
+
+    subgraph "Quality Assurance"
+        CRT[code-reviewer-thorough — HEAVY]
+        CRQ[code-reviewer-quick — MEDIUM]
+        SCR[spec-compliance-reviewer — MEDIUM]
+        VR[verifier — HEAVY]
+        RK[risk-assessor — MEDIUM]
+        MC[merge-coordinator — MEDIUM]
+        LC[license-checker — LOW]
+        IC[integration-checker — MEDIUM]
+    end
+
+    subgraph "Research & Exploration"
+        CE[code-explorer — MEDIUM]
+        WR[web-researcher — MEDIUM]
+        BA[browser-agent — MEDIUM]
+        CM[codebase-mapper — MEDIUM]
+    end
+
+    subgraph "Utility"
+        SU[summarizer — LOW]
+        CWR[commit-writer — LOW]
+        NM[namer — LOW]
+        IW[issue-writer — LOW]
+        LT[long-task-runner — MEDIUM]
+        GO[git-operator — MEDIUM]
+        GHO[github-operator — MEDIUM]
+        DO[devops-operator — MEDIUM]
+    end
+
+    D -->|delegates| PT
+    D -->|delegates| PQ
+    D -->|delegates| CW
+    D -->|delegates| CWH
+    D -->|delegates| DB
+    D -->|delegates| CRT
+    D -->|delegates| CE
+    D -->|delegates| SU
+
+    AR -->|selects files| CW
+    AR -->|selects files| TW
+    PT -->|creates plan| SP
+    CW -->|requests review| CRT
+    CW -->|requests review| CRQ
+    CRT -->|finds issues| DB
+    TW -->|validates| VR
+```
+
 ### Safety Architecture
 
 Three layers of protection that are always on, even at Autonomy level 5:
