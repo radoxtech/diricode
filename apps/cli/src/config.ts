@@ -4,7 +4,7 @@ import type { DiriCodeConfig } from "@diricode/core";
 import { flagsToConfigOverlay } from "./flags.js";
 import type { CLIFlags } from "./flags.js";
 
-export async function resolveConfig(flags: CLIFlags): Promise<DiriCodeConfig> {
+export function resolveConfig(flags: CLIFlags): DiriCodeConfig {
   const layer1 = DiriCodeConfigSchema.parse({});
 
   // TODO: load from ~/.config/dc/config.jsonc via c12
@@ -15,20 +15,20 @@ export async function resolveConfig(flags: CLIFlags): Promise<DiriCodeConfig> {
 
   const envOverlay: Record<string, unknown> = {};
 
-  const dcProvider = process.env["DC_PROVIDER"];
-  const dcModel = process.env["DC_MODEL"];
-  const dcVerbose = process.env["DC_VERBOSE"];
+  const dcProvider = process.env.DC_PROVIDER;
+  const dcModel = process.env.DC_MODEL;
+  const dcVerbose = process.env.DC_VERBOSE;
 
   if (dcProvider != null && dcProvider !== "") {
-    envOverlay["providers"] = { [dcProvider]: {} };
+    envOverlay.providers = { [dcProvider]: {} };
   }
 
   if (dcModel != null && dcModel !== "") {
-    envOverlay["agents"] = { default: { model: dcModel } };
+    envOverlay.agents = { default: { model: dcModel } };
   }
 
   if (dcVerbose === "1" || dcVerbose === "true") {
-    envOverlay["workMode"] = { verbosity: "verbose" };
+    envOverlay.workMode = { verbosity: "verbose" };
   }
 
   const layer4 = defu(flagsToConfigOverlay(flags), envOverlay);
