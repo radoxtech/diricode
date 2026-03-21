@@ -1,5 +1,5 @@
 ---
-description: Complete work in worktree, create PR, merge, and cleanup (validates quality, updates issue status, removes worktree)
+description: Complete work in worktree, create PR, merge code, and return to main (validates quality, updates issue status, leaves worktree intact)
 ---
 
 # /finish-work Command
@@ -47,7 +47,7 @@ delegate_task({
 8. **Update** issue status: `Review` → `Done` (or `Blocked` on failure)
 9. **Update** epic progress (close sub-issue checkbox if applicable)
 10. **Return** to main repo and pull latest changes
-11. **Remove** worktree directory
+11. **Leave** worktree intact (do NOT remove)
 12. **Delete** local branch reference
 
 ---
@@ -318,26 +318,12 @@ echo "✅ Main branch up to date"
 
 ---
 
-## Step 11: Remove Worktree
+## Step 11: Leave Worktree Intact
 
 ```bash
-echo "🗑️  Removing worktree: $WORKTREE_PATH"
-git worktree remove "$WORKTREE_PATH"
-
-if [ $? -ne 0 ]; then
-  echo "⚠️  Standard removal failed. Trying force removal..."
-  git worktree remove --force "$WORKTREE_PATH"
-
-  if [ $? -ne 0 ]; then
-    echo "❌ Force removal also failed. Manual cleanup:"
-    echo "   rm -rf $WORKTREE_PATH"
-    echo "   git worktree prune"
-  else
-    echo "✅ Worktree force-removed"
-  fi
-else
-  echo "✅ Worktree removed"
-fi
+echo "ℹ️  Leaving worktree intact: $WORKTREE_PATH"
+echo "   Worktree preserved for future reference or additional work"
+echo "✅ Worktree NOT removed (per user request)"
 ```
 
 ---
@@ -373,6 +359,7 @@ echo ""
 echo "✅ Work finished successfully!"
 echo "   Issue #$ISSUE_NUMBER → Done"
 echo "   PR #$PR_NUMBER merged into main"
+echo "   Worktree preserved at: $WORKTREE_PATH"
 echo ""
 echo "Ready for next task: /start-work"
 ```
@@ -544,13 +531,14 @@ git worktree list  # Confirm clean
 # Step 10 — Return to main
 # ✅ On main, pulled latest
 
-# Step 11 — Remove worktree
-# ✅ Removed: /Users/{USER}/repos/{REPO}-#42
+# Step 11 — Leave worktree intact
+# ℹ️  Preserved: /Users/{USER}/repos/{REPO}-#42
 
 # Step 12 — Clean branch refs
 # ✅ git fetch --prune complete
 
 echo "✅ Work finished! Issue #42: Done | PR #15: Merged"
+echo "   Worktree preserved for future reference"
 echo "Ready for next task: /start-work"
 ```
 
