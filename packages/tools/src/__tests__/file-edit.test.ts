@@ -3,16 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ToolError, fileEditTool } from "../index.js";
+import type { ToolContext } from "@diricode/core";
 
 describe("fileEditTool", () => {
   let workspaceRoot: string;
   const emittedEvents: { event: string; payload: unknown }[] = [];
 
-  const makeContext = (): {
-    workspaceRoot: string;
-    emit: (event: string, payload: unknown) => void;
-    workspace: string;
-  } => ({
+  const makeContext = (): ToolContext => ({
     workspaceRoot,
     emit: (event: string, payload: unknown) => {
       emittedEvents.push({ event, payload });
