@@ -6,7 +6,7 @@ import { ToolError, fileEditTool } from "../index.js";
 
 describe("fileEditTool", () => {
   let workspaceRoot: string;
-  const emittedEvents: Array<{ event: string; payload: unknown }> = [];
+  const emittedEvents: { event: string; payload: unknown }[] = [];
 
   const makeContext = () => ({
     workspaceRoot,
