@@ -17,7 +17,9 @@
     "dev": "bun run --watch src/cli.ts",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -27,6 +29,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "vitest": "^4.1.0"
   }
 }
