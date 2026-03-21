@@ -35,25 +35,26 @@ Project constants:
 
 ## Live DiriCode GitHub Model
 
-The **live GitHub project model** uses the **4-level hierarchy** as defined in `.ai/knowledge/epic-hierarchy.md`:
+The **live GitHub project model** uses issues with `**Iteration**` body markers to denote sprint assignments:
 
-| Level | Label | Description |
-|-------|-------|-------------|
-| Level 1 | `level:meta-epic` | Strategic goal (quarter/year span) |
-| Level 2 | `level:epic` | Feature or capability (sprint/milestone span) |
-| Level 3 | `level:sub-epic` | Component or module (days/week span) |
-| Level 4 | `level:task` | Atomic implementation unit (hours/day span) |
+| Iteration | Sprint | Period |
+|-----------|--------|--------|
+| POC | Sprint 1 | Week 1-2 |
+| MVP-1 | Sprint 2 | Week 3-4 |
+| MVP-2 | Sprint 3 | Week 5-6 |
+| MVP-3 | Sprint 4 | Week 7-8 |
 
-**Current Implementation:**
+**Issue Structure:**
 
-- Issues labeled `level:epic` are the parent planning issues
-- Issues labeled `level:task` are the atomic implementation units
-- For the current sprint, focus on `level:task` issues as implementation candidates
-- Use `level:epic` linkage for context and rollup
+- `level:epic` — parent planning issues (DO NOT implement)
+- `level:task` — atomic implementation units (implement these)
+- `**Iteration**: X` — sprint assignment marker in issue body
+
+---
 
 ### Label Taxonomy (Required for Parallel Routing)
 
-Every `level:task` issue **must** have:
+Every `level:task` issue should have:
 
 - `component:*` — broad subsystem ownership (e.g., `component:tools`, `component:agents`)
 - `area:*` — narrow implementation surface (e.g., `area:file-read`, `area:agent-dispatcher`)
@@ -61,45 +62,35 @@ Every `level:task` issue **must** have:
 Optional routing labels:
 
 - `conflict:*` — shared collision domain (e.g., `conflict:workspace-structure`)
-- `execution:*` — operational hints (`execution:parallel-safe`, `execution:coordination-needed`, `execution:blocked`)
+- `execution:*` — operational hints (`execution:parallel-safe`, `execution:blocked`)
 
 ---
 
 ## Dependency + Conflict Model
 
-This command must distinguish:
-
 ### 1. Dependency
 
-The feature must wait for another issue.
-
-Treat a feature as **blocked** if any of these is true:
+The feature must wait for another issue. Treat as **blocked** if:
 
 - Project Status = `Blocked`
-- label `status:blocked` is present
-- label `execution:blocked` is present
-- body contains a machine-readable dependency line, e.g. `**Depends on**: #34, #41`
-- GitHub-native dependency data is available in the MCP response and shows unresolved blockers
+- label `status:blocked` or `execution:blocked` is present
+- body contains `**Depends on**: #N`
+- GitHub-native dependency data shows unresolved blockers
 
 ### 2. Conflict
 
-The feature may be technically startable, but should not run in parallel with another active feature.
+Features should not run in parallel if they share:
 
-Treat two features as **conflicting** if any of these is true:
-
-- they share any `conflict:*` label
-- they share any `area:*` label
-- one blocks the other
-- both belong to a high-risk shared surface with no finer labels, especially:
-  - `component:repo`
-  - `component:config`
-  - `component:eventstream`
+- any `conflict:*` label
+- any `area:*` label
+- high-risk shared surface without finer labels:
+  - `component:repo`, `component:config`, `component:eventstream`
 
 ---
 
 ## Selection Rules
 
-### Candidate pool
+### Candidate Pool
 
 Only consider issues that are:
 
@@ -108,95 +99,102 @@ Only consider issues that are:
 - labeled `level:task`
 - status `Todo` or `Ready`
 
-Exclude:
+**Exclude:** `level:epic` issues, closed issues, `In Progress`, `Review`, `Done`, `Blocked`
 
-- `level:epic`, `level:sub-epic`, `level:meta-epic` issues (planning, not implementation)
-- closed issues
-- `In Progress`, `Review`, `Done`, `Blocked`
+### Active Work Set
 
-### Active work set
+Features in `In Progress` or `Review` occupy their conflict domains.
 
-Build an **active work set** from sprint features in:
+### Safe vs Coordination-Needed
 
-- `In Progress`
-- `Review`
-
-These occupy their conflict domains.
-
-### Safe parallel candidate
-
-A feature is **safe** only if:
-
-- it is not blocked
-- it does not conflict with any active feature
-- it does not conflict with another already-selected safe candidate in the same bundle
-
-### Coordination-needed candidate
-
-A feature is **coordination-needed** if:
-
-- it is not blocked
-- but it shares `area:*`, `conflict:*`, or a high-risk component with active work or another top candidate
+- **Safe**: Not blocked, no conflicts with active work or other candidates
+- **Coordination-needed**: Shares area/conflict with other candidates
 
 ---
 
-## Active Sprint Resolution
+## Sprint Resolution (CRITICAL)
 
 ### Step 1 — Discover project fields
 
-Use `github_projects_list(method="list_project_fields")` and record:
+```javascript
+github_projects_list(method="list_project_fields")
+```
 
-- Sprint / Iteration field id
-- Status field id
+Record the Sprint/Iteration field id and Status field id.
 
 ### Step 2 — Fetch project items
 
-Use `github_projects_list(method="list_project_items")` with pagination and include the Sprint + Status field ids.
+```javascript
+github_projects_list(method="list_project_items")
+```
 
-### Step 3 — Resolve active sprint
+### Step 3 — Resolve sprint (TWO METHODS)
 
-If the project uses an iteration field:
+#### Method A: GitHub Projects Sprint Field (Preferred)
+
+If project items have Sprint field values populated:
 
 - active sprint = iteration where `startDate <= today < startDate + duration`
+- Filter items by current sprint iteration id
 
-If there is **no Sprint / Iteration field**:
+#### Method B: **Iteration** Body Marker (Fallback)
 
-- clearly state that sprint planning is not configured
-- switch to **degraded mode**:
-  - analyze open `level:task` issues in `Todo` / `Ready`
-  - still compute safe candidates and bundles
-  - clearly mark the result as `No active sprint configured`
+If Sprint field is NOT populated on items (common case), parse from issue body:
+
+```
+**Iteration**: POC       → Sprint 1
+**Iteration**: MVP-1     → Sprint 2
+**Iteration**: MVP-2    → Sprint 3
+**Iteration**: MVP-3    → Sprint 4
+```
+
+Patterns like `POC → MVP-1` or `MVP-1 → MVP-2` indicate an issue spans sprints.
+
+**Rules:**
+- Extract `**Iteration**: ` value until newline
+- `POC` alone → Sprint 1
+- `MVP-1` or `POC → MVP-1` → Sprint 2
+- `MVP-2` or `MVP-1 → MVP-2` or `POC → MVP-2` → Sprint 3
+- `MVP-3` or `MVP-2 → MVP-3` → Sprint 4
+
+### Step 4 — Determine Active Sprint
+
+Today's date determines active sprint:
+
+| Date Range | Active Sprint | Iteration |
+|------------|--------------|-----------|
+| 2026-03-15 to 2026-03-28 | Sprint 1 | POC |
+| 2026-03-29 to 2026-04-11 | Sprint 2 | MVP-1 |
+| 2026-04-12 to 2026-04-25 | Sprint 3 | MVP-2 |
+| 2026-04-26 to 2026-05-09 | Sprint 4 | MVP-3 |
 
 ---
 
 ## Epic Context Resolution
 
-For every candidate feature, resolve its parent epic using:
+For each candidate, resolve parent epic via:
 
-1. native sub-issue linkage (preferred)
-2. deterministic `**Epic**: #N` body reference
+1. Native sub-issue linkage (preferred)
+2. `**Epic**: #N` body reference
 
-If the parent epic cannot be resolved, mark the feature as orphaned and reduce readiness.
+Mark orphaned features (no epic) with reduced readiness.
 
 ---
 
 ## Scoring
 
-Score each feature 0–100.
-
-| Factor                | Weight | Notes                            |
-| --------------------- | -----: | -------------------------------- |
-| Status readiness      |     25 | `Ready` > `Todo`                 |
-| Priority              |     20 | Critical > High > Medium > Low   |
-| Dependency freedom    |     20 | blocked = 0                      |
-| Parallel safety       |     20 | no active conflicts = full score |
-| Epic context resolved |      5 | parent epic known                |
-| Size / atomicity      |     10 | smaller, isolated work preferred |
+| Factor | Weight | Notes |
+|--------|-------:|-------|
+| Status readiness | 25 | `Ready` > `Todo` |
+| Priority | 20 | Critical > High > Medium > Low |
+| Dependency freedom | 20 | blocked = 0 |
+| Parallel safety | 20 | no active conflicts = full score |
+| Epic context resolved | 5 | parent epic known |
+| Size / atomicity | 10 | smaller, isolated work preferred |
 
 ### Tiebreakers
 
 Prefer features that:
-
 1. unblock other issues
 2. have `execution:parallel-safe`
 3. have both `component:*` and `area:*`
@@ -206,97 +204,76 @@ Prefer features that:
 
 ## Bundle Generation
 
-After ranking, generate **2–5 suggested bundles**.
+Generate **2–5 bundles** using greedy strategy:
 
-Each bundle must:
+1. Sort by score descending
+2. Pick highest feature
+3. Add next only if no `area:*`, `conflict:*`, or high-risk component overlap
 
-- contain only safe feature candidates
-- contain no pair sharing `area:*`
-- contain no pair sharing `conflict:*`
-- contain no blocker/dependent pair
-
-Use a greedy strategy:
-
-1. sort by score descending
-2. pick highest feature
-3. add next feature only if it does not conflict with any feature already in the bundle
+**Bundle rules:**
+- Only safe candidates
+- No `area:*` overlap within bundle
+- No `conflict:*` overlap within bundle
+- No blocker/dependent pairs
 
 ---
 
 ## Required Output Sections
 
-The report must include all of the following:
-
 ### 1. Sprint Overview
 
-- sprint name or degraded-mode note
-- issue counts by status
-- feature count considered for execution
+- sprint name and period
+- issue counts by status and iteration
+- feature count considered
 
 ### 2. Active Conflict Domains
 
-- currently occupied `component:*`
-- currently occupied `area:*`
-- currently occupied `conflict:*`
+- occupied `component:*`
+- occupied `area:*`
+- occupied `conflict:*`
 
 ### 3. Blocked Features
 
-- feature
-- blocker reason
-- parsed `Depends on` references if present
+- feature, blocker reason, `Depends on` references
 
 ### 4. Ready Now — Safe Parallel Features
 
-Only features safe to start in separate worktrees now.
-
-For each feature show:
-
-- issue number / title
-- status / priority
-- labels summary
-- parent epic
-- why it is safe
+For each: issue #, title, status, priority, labels, parent epic, why safe
 
 ### 5. Ready Now — Needs Coordination
 
-Features that are startable but not safely parallel.
-
-For each feature show:
-
-- why excluded from safe set
-- which active feature / conflict domain caused it
+For each: why excluded, which conflict domain caused it
 
 ### 6. Suggested Parallel Bundles
 
-Return 2–5 bundles such as:
-
-```text
-Bundle A
-- #41 Bash execution tool
-- #90 SQLite database setup
-- #131 Vite + React project scaffold
-```
+2–5 bundles with rationale
 
 ### 7. Recommended Next Single Feature
 
-Best immediate next feature.
+Best immediate next feature with reasoning
 
 ---
 
 ## Required Machine-Readable Output
 
-Write:
-
+Write to:
 - `.sisyphus/notepads/current-sprint/report.json`
 - `.sisyphus/notepads/current-sprint/summary.md`
 
-`report.json` must include at least:
+### report.json Schema
 
 ```json
 {
   "generated_at": "ISO-8601",
-  "mode": "active-sprint or degraded-no-sprint",
+  "mode": "active-sprint | degraded-no-sprint",
   "active_sprint": "Sprint name or null",
+  "sprint_period": "ISO date range or null",
+  "sprint_note": "How sprint was resolved",
+  "sprint_overview": {
+    "total_open": 0,
+    "total_closed": 0,
+    "by_iteration": {}
+  },
   "active_conflicts": {
     "components": [],
     "areas": [],
@@ -314,13 +291,11 @@ Write:
 
 ## Best-Practice Guardrails
 
-Validated against current GitHub/GitLab issue dependency practices:
-
 - use hierarchy for ownership/scope
 - use dependencies for true blockers
 - use labels/fields for conflict surfaces
-- never suggest blocked work as ready work
-- never recommend two implementation issues together if they share the same narrow implementation surface
+- never suggest blocked work as ready
+- never recommend two issues together sharing same narrow surface
 
 ---
 
@@ -331,4 +306,4 @@ Validated against current GitHub/GitLab issue dependency practices:
 
 ---
 
-**Version:** 3.0.0 (4-level hierarchy)
+**Version:** 4.0.0 (Iteration body marker resolution)
