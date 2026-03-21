@@ -6,7 +6,7 @@ import { ToolError, grepTool } from "../index.js";
 
 describe("grepTool", () => {
   let workspaceRoot: string;
-  const emittedEvents: Array<{ event: string; payload: unknown }> = [];
+  const emittedEvents: { event: string; payload: unknown }[] = [];
 
   const makeContext = () => ({
     workspaceRoot,

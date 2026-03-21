@@ -6,7 +6,7 @@ import { ToolError, fileWriteTool } from "../index.js";
 
 describe("fileWriteTool", () => {
   let workspaceRoot: string;
-  const emittedEvents: Array<{ event: string; payload: unknown }> = [];
+  const emittedEvents: { event: string; payload: unknown }[] = [];
 
   const makeContext = () => ({
     workspaceRoot,
