@@ -214,7 +214,7 @@ The dispatcher selects agents dynamically via `search_agents()` — it searches 
 
 ```mermaid
 graph LR
-    D[🎯 Dispatcher]
+    D[Dispatcher]
 
     D --> SP[Strategy & Planning\n9 agents]
     D --> CP[Code Production\n9 agents]
@@ -222,13 +222,6 @@ graph LR
     D --> RE[Research & Exploration\n4 agents]
     D --> UT[Utility\n8 agents]
     D --> AC[auto-continue]
-
-    style D fill:#e1f5fe
-    style SP fill:#fff3e0
-    style CP fill:#e8f5e9
-    style QA fill:#fce4ec
-    style RE fill:#f3e5f5
-    style UT fill:#eceff1
 ```
 
 <details>
@@ -255,11 +248,6 @@ graph LR
     PT -->|breaks into sprints| SP
     AR -->|selects files for| PB
     PLR -->|validates| PT
-
-    style PT fill:#fff3e0
-    style AR fill:#fff3e0
-    style PB fill:#fff3e0
-    style PLR fill:#fff3e0
 ```
 
 </details>
@@ -286,13 +274,6 @@ graph LR
     CW -->|complex tasks| CWH
     DB -->|fixes issues from| CW
     TW -->|tests code from| CW
-
-    style CW fill:#e8f5e9
-    style CWH fill:#e8f5e9
-    style CT fill:#e8f5e9
-    style FS fill:#e8f5e9
-    style RA fill:#e8f5e9
-    style DB fill:#e8f5e9
 ```
 
 </details>
@@ -320,9 +301,6 @@ graph LR
     CRQ -->|escalates to| CRT
     CRT -->|validates with| VR
     RK -->|informs| MC
-
-    style CRT fill:#fce4ec
-    style VR fill:#fce4ec
 ```
 
 </details>
@@ -341,11 +319,6 @@ graph LR
 
     CM -->|maps structure for| CE
     WR -->|finds docs, BA browses| BA
-
-    style CE fill:#f3e5f5
-    style WR fill:#f3e5f5
-    style BA fill:#f3e5f5
-    style CM fill:#f3e5f5
 ```
 
 </details>
@@ -370,11 +343,6 @@ graph LR
 
     GO -->|commits with msg from| CWR
     GHO -->|creates issues via| IW
-
-    style SU fill:#eceff1
-    style CWR fill:#eceff1
-    style NM fill:#eceff1
-    style IW fill:#eceff1
 ```
 
 </details>
