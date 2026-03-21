@@ -33,7 +33,7 @@ export class Registry {
     return entry.provider;
   }
 
-  list(): ReadonlyArray<{ name: string; priority: ProviderPriority }> {
+  list(): readonly { name: string; priority: ProviderPriority }[] {
     return Array.from(this.#entries.values())
       .sort((a, b) => a.priority - b.priority)
       .map(({ provider, priority }) => ({ name: provider.name, priority }));
@@ -49,7 +49,10 @@ export class Registry {
         best = entry;
       }
     }
-    return (best as ProviderEntry).provider;
+    if (best === undefined) {
+      throw new Error("No providers are registered");
+    }
+    return best.provider;
   }
 
   has(name: string): boolean {

@@ -13,9 +13,9 @@ function makeProvider(name: string, modelId = "test-model"): Provider {
     name,
     defaultModel,
     isAvailable: () => true,
-    generate: (_options: GenerateOptions): Promise<string> =>
-      Promise.resolve(`${name}:response`),
+    generate: (_options: GenerateOptions): Promise<string> => Promise.resolve(`${name}:response`),
     stream: (_options: GenerateOptions): AsyncIterable<StreamChunk> => {
+      // eslint-disable-next-line @typescript-eslint/require-await -- Async generator needed for AsyncIterable return type
       async function* gen() {
         yield { delta: `${name}:chunk`, done: false };
         yield { delta: "", done: true };
@@ -45,17 +45,17 @@ describe("Registry", () => {
     it("throws ProviderAlreadyRegisteredError on duplicate name", () => {
       const reg = new Registry();
       reg.register(makeProvider("copilot"), ProviderPriorities.COPILOT);
-      expect(() =>
-        reg.register(makeProvider("copilot"), ProviderPriorities.COPILOT),
-      ).toThrow(ProviderAlreadyRegisteredError);
+      expect(() => reg.register(makeProvider("copilot"), ProviderPriorities.COPILOT)).toThrow(
+        ProviderAlreadyRegisteredError,
+      );
     });
 
     it("ProviderAlreadyRegisteredError message includes provider name", () => {
       const reg = new Registry();
       reg.register(makeProvider("copilot"), ProviderPriorities.COPILOT);
-      expect(() =>
-        reg.register(makeProvider("copilot"), ProviderPriorities.COPILOT),
-      ).toThrow(/copilot/);
+      expect(() => reg.register(makeProvider("copilot"), ProviderPriorities.COPILOT)).toThrow(
+        /copilot/,
+      );
     });
   });
 
