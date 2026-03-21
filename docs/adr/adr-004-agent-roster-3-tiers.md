@@ -91,9 +91,9 @@ The agent roster was designed through analysis of 8 reference tools (Aider, Clin
 
 | Tier | Count | Model Class | Use Case |
 |------|-------|-------------|----------|
-| HEAVY | 7 | Best available (e.g., Claude Sonnet, GPT-4) | Complex reasoning, architecture, thorough review |
-| MEDIUM | 20 | Mid-range (e.g., GPT-4o-mini, Claude Haiku) | Standard tasks, quick operations |
-| LOW | 13 | Cheapest available | Utility tasks, simple generation |
+| HEAVY | 7 | Best available (e.g., Opus 4.6, GPT-5.4) | Complex reasoning, architecture, thorough review |
+| MEDIUM | 20 | Mid-range (e.g., Sonnet 4.6, Kimi 2.5) | Standard tasks, quick operations |
+| LOW | 13 | Cheapest available (e.g., Haiku 4.5, DeepSeek V3.2) | Utility tasks, simple generation |
 
 #### Tags (Individual, Not Combined)
 

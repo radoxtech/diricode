@@ -65,7 +65,7 @@ Define core provider abstraction and registry in `@diricode/providers`:
 Implement GitHub Models/Copilot adapter (priority 1) as Provider interface implementation:
 - Integrate via `@ai-sdk/github` when viable; fallback to custom adapter if required by API shape
 - Auth via GitHub token (`DC_*` env convention per config standards)
-- Model mapping table for MVP-required models (e.g. `gpt-4o`, `claude-sonnet` variants exposed through GitHub Models)
+- Model mapping table for MVP-required models (e.g. `gpt-5.4`, `claude-sonnet` variants exposed through GitHub Models)
 - Streaming support normalized to router stream contract
 - Adapter-level error payload preservation for classifier (`raw` error propagation)
 
