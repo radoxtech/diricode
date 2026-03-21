@@ -1,0 +1,25 @@
+{
+  "name": "@diricode/agents",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@diricode/core": "workspace:*",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.0"
+  }
+}
