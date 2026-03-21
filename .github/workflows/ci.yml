@@ -28,10 +28,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+          # fetch-depth: 0 required for turborepo to correctly determine
+          # which packages/tasks need to be rebuilt. Shallow clones break
+          # turbo's cache key calculation and task graph.
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -45,8 +45,6 @@ jobs:
           cache: pnpm
 
       # Persist Turborepo local cache (.turbo) between runs.
-      # Key includes lockfile + turbo.json + root tsconfig + eslint config so the
-      # cache is invalidated whenever dependencies or task configuration change.
       - name: Cache Turborepo artifacts
         uses: actions/cache@v4
         with:
