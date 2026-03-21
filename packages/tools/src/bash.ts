@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
-import { normalize, relative, resolve } from "node:path";
+import { normalize, resolve } from "node:path";
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
 import { ToolError } from "@diricode/core";
@@ -25,8 +26,250 @@ interface BashResult {
 
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 
-function runSafetyCheck(_command: string): void {
-  // DC-SAFE stub
+export type BashSafetyLevel = "off" | "basic" | "standard" | "strict";
+
+export interface BashSafetyConfig {
+  level: BashSafetyLevel;
+}
+
+const DEFAULT_SAFETY_CONFIG: BashSafetyConfig = { level: "standard" };
+
+const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
+  {
+    // :(){:|:&};: fork bomb
+    pattern: /:\s*\(\s*\)\s*\{[^}]*:\s*\|[^}]*:&[^}]*\}/,
+    reason: "fork bomb detected",
+  },
+  {
+    // rm -rf / or rm -fr ~
+    pattern: /\brm\s+(-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*)\s+(\/\s*$|\/\s+|~\s*\/?\s*$|\*\s*$)/,
+    reason: "rm -rf on root/home/glob is not allowed",
+  },
+  {
+    pattern: /\brm\s+--no-preserve-root/,
+    reason: "rm --no-preserve-root is not allowed",
+  },
+  {
+    // dd of=/dev/sdX writes directly to a block device
+    pattern: /\bdd\b.*\bof\s*=\s*\/dev\//,
+    reason: "dd writing to a device is not allowed",
+  },
+  {
+    pattern: /\bmkfs(\.\w+)?\b/,
+    reason: "mkfs commands are not allowed",
+  },
+  {
+    pattern: /\bshred\b.*\/dev\//,
+    reason: "shred on block device is not allowed",
+  },
+  {
+    pattern: /\bwipefs\b/,
+    reason: "wipefs is not allowed",
+  },
+  {
+    // sgdisk -Z wipes partition tables
+    pattern: /\bsgdisk\b.*-Z/,
+    reason: "partition table wipe is not allowed",
+  },
+  {
+    // overwriting /etc/passwd, /etc/shadow, /etc/sudoers
+    pattern: />\s*(\/etc\/passwd|\/etc\/shadow|\/etc\/sudoers)/,
+    reason: "overwriting system auth files is not allowed",
+  },
+  {
+    pattern: /\b(insmod|rmmod|modprobe)\b/,
+    reason: "kernel module commands are not allowed",
+  },
+];
+
+const PATH_ALLOWLIST_PREFIXES = [
+  "/tmp/",
+  "/var/tmp/",
+  "/dev/null",
+  "/proc/",
+  "/sys/",
+  "/usr/",
+  "/bin/",
+  "/sbin/",
+  "/lib/",
+  "/opt/",
+  "/home/",
+];
+
+function extractPaths(command: string): string[] {
+  const paths: string[] = [];
+  const pathRegex = /(\/[^\s'"`;|&><(){}$\\]+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = pathRegex.exec(command)) !== null) {
+    if (match[1] !== undefined) paths.push(match[1]);
+  }
+  return paths;
+}
+
+interface TreeSitterLike {
+  parse(source: string): { rootNode: AstNode };
+}
+
+interface AstNode {
+  type: string;
+  text: string;
+  children: AstNode[];
+  childCount: number;
+}
+
+let treeSitterReady = false;
+let treeSitterFactoryPromise: Promise<(() => TreeSitterLike) | null> | null = null;
+
+async function getParserFactory(): Promise<(() => TreeSitterLike) | null> {
+  if (treeSitterFactoryPromise) return treeSitterFactoryPromise;
+
+  treeSitterFactoryPromise = (async () => {
+    try {
+      const TreeSitter = await import("web-tree-sitter");
+      const _require = createRequire(import.meta.url);
+      const wasmPath = _require.resolve("tree-sitter-bash/tree-sitter-bash.wasm");
+
+      await TreeSitter.Parser.init();
+      const BashLanguage = await TreeSitter.Language.load(wasmPath);
+
+      treeSitterReady = true;
+      return () => {
+        const parser = new TreeSitter.Parser();
+        parser.setLanguage(BashLanguage);
+        return parser as unknown as TreeSitterLike;
+      };
+    } catch {
+      return null;
+    }
+  })();
+
+  return treeSitterFactoryPromise;
+}
+
+function checkAst(node: AstNode): string | null {
+  if (node.type === "command") {
+    const nameNode = node.children.find((c) => c.type === "command_name");
+    if (nameNode) {
+      const cmd = nameNode.text.trim();
+
+      const blockedExact = new Set([
+        "mkfs", "mkfs.ext4", "mkfs.ext3", "mkfs.xfs", "mkfs.vfat", "mkfs.btrfs",
+        "wipefs", "insmod", "rmmod", "modprobe",
+        "shred", "fdisk", "gdisk", "sgdisk", "parted",
+      ]);
+
+      if (blockedExact.has(cmd)) {
+        return `command '${cmd}' is not allowed`;
+      }
+
+      if (cmd === "dd") {
+        for (const child of node.children) {
+          if (child.type === "word" && /\bof\s*=\s*\/dev\//.test(child.text)) {
+            return "dd writing to a device is not allowed";
+          }
+        }
+      }
+
+      if (cmd === "rm") {
+        let hasRecursive = false;
+        let hasForce = false;
+        let hasDangerousPath = false;
+
+        for (const child of node.children) {
+          const t = child.text;
+          if (/^-[a-zA-Z]*r/.test(t) || t === "--recursive") hasRecursive = true;
+          if (/^-[a-zA-Z]*f/.test(t) || t === "--force") hasForce = true;
+          if (t === "/" || t === "~" || t === "*" || t === "/*") hasDangerousPath = true;
+          if (t === "--no-preserve-root") return "rm --no-preserve-root is not allowed";
+        }
+
+        if (hasRecursive && hasForce && hasDangerousPath) {
+          return "rm -rf on root/home/glob is not allowed";
+        }
+      }
+    }
+  }
+
+  if (node.type === "function_definition") {
+    const nameNode = node.children.find((c) => c.type === "word");
+    if (nameNode?.text === ":") {
+      return "fork bomb pattern detected";
+    }
+  }
+
+  for (const child of node.children) {
+    const result = checkAst(child);
+    if (result !== null) return result;
+  }
+
+  return null;
+}
+
+export function runSafetyCheck(
+  command: string,
+  config: BashSafetyConfig = DEFAULT_SAFETY_CONFIG,
+  workspaceRoot?: string,
+): void {
+  if (config.level === "off") return;
+
+  if (/\bsudo\b/.test(command)) {
+    throw new ToolError(
+      "SUDO_NOT_ALLOWED",
+      "sudo is not allowed",
+    );
+  }
+
+  for (const { pattern, reason } of DANGEROUS_PATTERNS) {
+    if (pattern.test(command)) {
+      throw new ToolError("DANGEROUS_COMMAND", reason);
+    }
+  }
+
+  if (config.level === "basic") return;
+
+  if (workspaceRoot) {
+    const resolvedRoot = resolve(workspaceRoot);
+    for (const p of extractPaths(command)) {
+      let resolved: string;
+      try {
+        resolved = resolve(p);
+      } catch {
+        continue;
+      }
+
+      if (
+        resolved.startsWith("/") &&
+        !resolved.startsWith(resolvedRoot + "/") &&
+        resolved !== resolvedRoot &&
+        !PATH_ALLOWLIST_PREFIXES.some((prefix) => resolved.startsWith(prefix))
+      ) {
+        throw new ToolError(
+          "PATH_OUTSIDE_WORKSPACE",
+          `command references path '${p}' outside the workspace root '${resolvedRoot}'`,
+        );
+      }
+    }
+  }
+}
+
+export async function runSafetyCheckAsync(
+  command: string,
+  config: BashSafetyConfig = DEFAULT_SAFETY_CONFIG,
+  workspaceRoot?: string,
+): Promise<void> {
+  runSafetyCheck(command, config, workspaceRoot);
+
+  if (config.level !== "strict") return;
+
+  const parserFactory = await getParserFactory();
+  if (!parserFactory) return;
+
+  const parser = parserFactory();
+  const tree = parser.parse(command);
+  const violation = checkAst(tree.rootNode as unknown as AstNode);
+  if (violation !== null) {
+    throw new ToolError("DANGEROUS_COMMAND", `AST analysis: ${violation}`);
+  }
 }
 
 function truncateOutput(output: string): { value: string; truncated: boolean } {
@@ -77,7 +320,11 @@ export const bashTool: Tool<BashParams, BashResult> = {
       workdir = context.workspaceRoot;
     }
 
-    runSafetyCheck(params.command);
+    const safetyConfig: BashSafetyConfig =
+      (context as ToolContext & { bashSafety?: BashSafetyConfig }).bashSafety ??
+      DEFAULT_SAFETY_CONFIG;
+
+    await runSafetyCheckAsync(params.command, safetyConfig, context.workspaceRoot);
 
     const startTime = Date.now();
 
