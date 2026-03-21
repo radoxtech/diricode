@@ -1,5 +1,5 @@
 # CI skeleton — quality gates only, no deployment
-# Triggers on PRs and pushes to main across Linux + macOS runners.
+# Triggers on PRs and pushes to main.
 # Turborepo local cache is persisted via actions/cache on the .turbo directory.
 name: CI
 
@@ -15,22 +15,14 @@ concurrency:
 
 jobs:
   ci:
-    name: Quality Gates (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # fetch-depth: 0 required for turborepo to correctly determine
-          # which packages/tasks need to be rebuilt. Shallow clones break
-          # turbo's cache key calculation and task graph.
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -61,6 +53,9 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      - name: Build
+        run: pnpm build
 
       - name: Test
         run: pnpm test

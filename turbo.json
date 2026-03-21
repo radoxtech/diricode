@@ -17,7 +17,6 @@
       "inputs": ["src/**", "*.config.*", "eslint.config.js", "../../eslint.config.js"]
     },
     "typecheck": {
-      "dependsOn": ["build"],
       "cache": true,
       "inputs": ["src/**", "tsconfig.json", "*.config.ts"]
     },
