@@ -43,9 +43,9 @@ describe("grepTool", () => {
     expect(result.data.matches).toHaveLength(1);
     const m = result.data.matches[0];
     expect(m?.file).toContain("a.txt");
-    expect(m.line).toBe(2);
-    expect(m.column).toBe(1);
-    expect(m.content).toBe("TODO: fix this");
+    expect(m?.line).toBe(2);
+    expect(m?.column).toBe(1);
+    expect(m?.content).toBe("TODO: fix this");
     expect(result.data.count).toBe(1);
     expect(result.data.truncated).toBe(false);
   });

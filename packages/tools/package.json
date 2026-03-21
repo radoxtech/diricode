@@ -18,6 +18,8 @@
   "dependencies": {
     "@diricode/core": "workspace:*",
     "tinyglobby": "^0.2.15",
+    "tree-sitter-bash": "^0.25.1",
+    "web-tree-sitter": "^0.26.7",
     "zod": "^3.24.0"
   },
   "devDependencies": {

@@ -53,8 +53,7 @@ function matchesInclude(filename: string, include: string): boolean {
     return filename.endsWith(ext);
   }
 
-  const braceRegex = /^\*\.\{(.+)\}$/;
-  const braceMatch = braceRegex.exec(include);
+  const braceMatch = /^\*\.\{(.+)\}$/.exec(include);
   if (braceMatch?.[1]) {
     const exts = braceMatch[1].split(",").map((e) => `.${e.trim()}`);
     return exts.some((ext) => filename.endsWith(ext));
@@ -147,9 +146,10 @@ export const grepTool: Tool<GrepParams, GrepResult> = {
     }
 
     if (params.include) {
+      const includePattern = params.include;
       filePaths = filePaths.filter((fp) => {
         const basename = fp.split("/").pop() ?? fp;
-        return matchesInclude(basename, params.include);
+        return matchesInclude(basename, includePattern);
       });
     }
 
