@@ -3,6 +3,9 @@
 # Turborepo local cache is persisted via actions/cache on the .turbo directory.
 name: CI
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches:
@@ -23,8 +26,6 @@ jobs:
         os:
           - ubuntu-latest
 
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
