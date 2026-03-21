@@ -12,12 +12,16 @@
     "build": "tsc --build",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13"
+    "@types/better-sqlite3": "^7.6.13",
+    "vitest": "^4.1.0"
   }
 }
