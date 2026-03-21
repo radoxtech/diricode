@@ -12,9 +12,13 @@
     "build": "tsc --build",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
+    "test": "bun test src",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.0"
   }
 }
