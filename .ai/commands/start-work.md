@@ -101,38 +101,21 @@ An epic issue itself **never gets a worktree**. The epic status flip is just boo
 
 ### Step 1 — Validate location
 
+Confirm you are in the main repo, not already inside a worktree:
+
 ```bash
 COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
-CURRENT_BRANCH=$(git branch --show-current)
-
-if [ "$COMMON_DIR" = "$GIT_DIR" ]; then
-  LOCATION="main-repo"
-elif echo "$(pwd)" | grep -qE "diricode-#[0-9]+"; then
-  # Inside a diri worktree
-  if echo "$CURRENT_BRANCH" | grep -qE "^feat/|^fix/|^refactor/|^docs/|^test/|^chore/"; then
-    echo "❌ Already on a feature branch in diricode worktree."
-    echo "   Branch: $CURRENT_BRANCH"
-    echo "   Use /finish-work to close this issue first."
-    exit 1
-  fi
-  LOCATION="diri-worktree-non-feat"
-else
-  # OpenCode scratch worktree (random name)
-  LOCATION="opencode-scratch"
-fi
+[ "$COMMON_DIR" != "$GIT_DIR" ] && echo "❌ Already in worktree" && exit 1
 ```
 
-- `main-repo`: proceed with worktree creation
-- `opencode-scratch`: proceed WITHOUT creating a worktree — just checkout/create the proper branch
-- `diri-worktree-non-feat`: proceed without creating a worktree — just checkout/create the proper branch
-
-If uncommitted changes exist, refuse until committed/stashed.
+If uncommitted changes exist (`git status --porcelain` non-empty), stop and ask the user to stash or commit.
 
 ### Step 2 — Pull latest main
 
 ```bash
-git pull origin main
+# Run git pull in main repo context
+cd "$MAIN_REPO" && git pull origin main
 ```
 
 ### Step 3 — Detect issue type and select candidate
@@ -160,20 +143,10 @@ git pull origin main
 
 Apply conflict refusal rules (see below) against the chosen feature before continuing.
 
-### Step 5 — Create or checkout feature branch
+### Step 5 — Create worktree
 
 ```bash
-BRANCH_NAME="<prefix>/<slug>-#<issue>"
-
-if [ "$LOCATION" = "main-repo" ]; then
-  # Create new worktree with proper branch
-  git worktree add "../diricode-#<issue>" -b "$BRANCH_NAME"
-elif echo "$BRANCH_NAME" | grep -q "^feat/|^fix/|^refactor/|^docs/|^test/|^chore/"; then
-  # OpenCode scratch or diri non-feat worktree — create the proper branch here
-  git checkout -b "$BRANCH_NAME"
-fi
-
-echo "✅ Branch: $BRANCH_NAME"
+git worktree add "../diricode-#<issue>" -b "<type>/<slug>-#<issue>"
 ```
 
 ### Step 6 — Update feature project status
