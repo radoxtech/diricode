@@ -1,7 +1,7 @@
 # DiriCode — Architecture Decision Records
 
 > All ADRs in English. Consistent with all 13 analysis documents and user decisions.
-> Last updated: 2026-03-18
+> Last updated: 2026-03-21
 
 ## Index
 
@@ -48,6 +48,7 @@
 | [039](adr-039-async-subagent-pattern.md) | Async Subagent Pattern | Draft | v2 |
 | [040](adr-040-tool-based-agent-discovery.md) | Tool-Based Agent Discovery | Draft | v2 |
 | [041](adr-041-mcp-web-research-servers.md) | MCP Web Research Server Selection | Accepted | MVP |
+| [042](adr-042-multi-subscription-management.md) | Multi-Subscription Model Management | MVP-2+v2+v3 | Router |
 
 ## Template
 

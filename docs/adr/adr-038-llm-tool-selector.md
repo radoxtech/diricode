@@ -95,7 +95,7 @@ Example configurations:
 # High-traffic dispatcher agent
 agents:
   dispatcher:
-    modelId: gpt-4o
+    modelId: gpt-5.4
     tool_selector:
       max_tools: 10
       always_include: ["delegate_task", "ask_user", "escalate"]
@@ -104,7 +104,7 @@ agents:
 # Specialized agent with few tools (no selector needed)
 agents:
   commit_writer:
-    modelId: gpt-4o-mini
+    modelId: haiku-4.5
     # No tool_selector: passes all 3 tools directly
 ```
 

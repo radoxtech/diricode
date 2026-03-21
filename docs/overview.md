@@ -1,8 +1,8 @@
 # DiriCode — Implementation Plan Overview
 
 > Comprehensive implementation roadmap spanning MVP (4 iterations), v2, v3, v4.
-> Generated from: 2 surveys, 13 analyses, 32 ADRs, MVP spec, and original wishlist.
-> Date: 2026-03-11
+> Generated from: 42 ADRs, MVP spec, and design decisions.
+> Date: 2026-03-21
 
 ---
 
@@ -324,13 +324,9 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 | Source | File | Role |
 |--------|------|------|
 | MVP Spec | spec-mvp-diricode.md | Primary technical reference |
-| ADRs (32) | docs/adr/ | Architecture decisions |
-| Survey 1 | ankieta-wyniki.md | 14 decision blocks |
-| Survey 2 | ankieta-features-ekosystem.md | 60+ feature decisions |
-| Wishlist | zyczenia-codewroc.md | Non-negotiable requirements |
-| Iron Guidelines | analizy-todo.md | 10 governing principles (UX-001..ARCH-004) |
-| Agent Roster | analiza-agent-roster.md | 40 agents, 3 tiers, 6 categories |
-| Lean Mode | analiza-lean-mode.md | 4-dimension work system |
-| Hooks | analiza-hookow.md | 20 hook types roadmap |
-| Observability | analiza-observability.md | EventStream + UI components |
-| Old Plan | plan-implementacji-diricode.md | Previous backlog (CORE-01..WEB-05) |
+| ADRs (42) | docs/adr/ | Architecture decisions |
+| Agent Roster | ADR-004 | 40 agents, 3 tiers, 6 categories |
+| Work Modes | ADR-012 | 4-dimension work system |
+| Hooks | ADR-024 | 20 hook types roadmap |
+| Observability | ADR-031 | EventStream + UI components |
+| Multi-Subscription | ADR-042 | Subscription rotation, quality scoring, A/B testing |
