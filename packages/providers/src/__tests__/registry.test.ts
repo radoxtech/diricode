@@ -15,8 +15,8 @@ function makeProvider(name: string, modelId = "test-model"): Provider {
     isAvailable: () => true,
     generate: (_options: GenerateOptions): Promise<string> => Promise.resolve(`${name}:response`),
     stream: (_options: GenerateOptions): AsyncIterable<StreamChunk> => {
-      // eslint-disable-next-line @typescript-eslint/require-await -- Async generator needed for AsyncIterable return type
-      async function* gen() {
+      async function* gen(): AsyncGenerator<StreamChunk> {
+        await Promise.resolve();
         yield { delta: `${name}:chunk`, done: false };
         yield { delta: "", done: true };
       }

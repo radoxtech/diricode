@@ -43,15 +43,8 @@ export class Registry {
     if (this.#entries.size === 0) {
       throw new Error("No providers are registered");
     }
-    let best: ProviderEntry | undefined;
-    for (const entry of this.#entries.values()) {
-      if (best === undefined || entry.priority < best.priority) {
-        best = entry;
-      }
-    }
-    if (best === undefined) {
-      throw new Error("No providers are registered");
-    }
+    const entries = Array.from(this.#entries.values());
+    const best = entries.reduce((a, b) => (a.priority < b.priority ? a : b));
     return best.provider;
   }
 
