@@ -163,12 +163,12 @@ describe("DiriCodeConfigSchema", () => {
 
     it("defaults agent tools to empty array", () => {
       const result = DiriCodeConfigSchema.parse({ agents: { coder: {} } });
-      expect(result.agents["coder"]?.tools).toEqual([]);
+      expect(result.agents.coder?.tools).toEqual([]);
     });
 
     it("defaults agent maxTurns to 50", () => {
       const result = DiriCodeConfigSchema.parse({ agents: { coder: {} } });
-      expect(result.agents["coder"]?.maxTurns).toBe(50);
+      expect(result.agents.coder?.maxTurns).toBe(50);
     });
   });
 
