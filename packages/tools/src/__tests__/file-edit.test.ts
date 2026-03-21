@@ -2,13 +2,13 @@ import { chmod, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ToolError, fileEditTool } from "../index.js";
+import { type ToolContext, ToolError, fileEditTool } from "../index.js";
 
 describe("fileEditTool", () => {
   let workspaceRoot: string;
   const emittedEvents: { event: string; payload: unknown }[] = [];
 
-  const makeContext = () => ({
+  const makeContext = (): ToolContext => ({
     workspaceRoot,
     emit: (event: string, payload: unknown) => {
       emittedEvents.push({ event, payload });

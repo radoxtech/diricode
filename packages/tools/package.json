@@ -13,7 +13,7 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "test": "bun test"
+    "test": "vitest run"
   },
   "dependencies": {
     "@diricode/core": "workspace:*",
