@@ -126,11 +126,11 @@ cd "$MAIN_REPO" && git pull origin main
 - **If labeled `epic`** → Epic path:
   1. Update epic project item to `In Progress` via `github_projects_write`.
   2. Parse the epic body for child `#<number>` references (format: `- [ ] #N` or bare `#N`).
-  3. For each child, call `github_issue_read(method="get")` — keep only issues that are `OPEN` + labeled `feature` + not labeled `status:blocked` + project status is not `In Progress`/`Done`.
+  3. For each child, call `github_issue_read(method="get")` — keep only issues that are `OPEN` + labeled `feature` or `bug` + not labeled `status:blocked` + project status is not `In Progress`/`Done`.
   4. Display the eligible feature list and ask the user to pick one.
   5. Continue with the chosen feature from Step 4.
-- **If labeled `feature`** → proceed directly to Step 4.
-- **Any other label** → reject: only `feature` or `epic` issues are accepted.
+  - **If labeled `feature` or `bug`** → proceed directly to Step 4.
+  - **Any other label** → reject: only `feature`, `bug`, or `epic` issues are accepted.
 
 **If no issue number was passed:**
 
@@ -167,11 +167,11 @@ Emit the required output block (see below).
 
 ---
 
-## Feature Eligibility Rules
+## Issue Eligibility Rules
 
 An issue is eligible only if:
 
-- it has label `feature`
+- it has label `feature` or `bug`
 - it is `OPEN`
 - it is **not** labeled `status:blocked`
 - project status is **not** `In Progress`, `Review`, or `Done`
@@ -325,4 +325,4 @@ User: /start-work #11
 
 ---
 
-**Version:** 3.2.0
+**Version:** 3.3.0

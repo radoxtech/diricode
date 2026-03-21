@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { normalize, relative, resolve } from "node:path";
+import { normalize, resolve } from "node:path";
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
 import { ToolError } from "@diricode/core";
@@ -47,10 +47,7 @@ export const bashTool: Tool<BashParams, BashResult> = {
     destructiveHint: true,
     idempotentHint: false,
   },
-  async execute(
-    params: BashParams,
-    context: ToolContext,
-  ): Promise<ToolResult<BashResult>> {
+  async execute(params: BashParams, context: ToolContext): Promise<ToolResult<BashResult>> {
     context.emit("tool.start", { tool: "bash", params });
 
     let workdir: string;
@@ -58,10 +55,7 @@ export const bashTool: Tool<BashParams, BashResult> = {
       const resolvedWorkdir = resolve(context.workspaceRoot, normalize(params.workdir));
       const normalizedRoot = resolve(context.workspaceRoot);
 
-      if (
-        !resolvedWorkdir.startsWith(normalizedRoot + "/") &&
-        resolvedWorkdir !== normalizedRoot
-      ) {
+      if (!resolvedWorkdir.startsWith(normalizedRoot + "/") && resolvedWorkdir !== normalizedRoot) {
         throw new ToolError(
           "WORKDIR_OUTSIDE_WORKSPACE",
           `workdir "${params.workdir}" resolves outside workspace root`,
@@ -97,8 +91,8 @@ export const bashTool: Tool<BashParams, BashResult> = {
         }, 5000);
       }, params.timeout);
 
-      child.stdout?.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
-      child.stderr?.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
+      child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
+      child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
 
       child.on("close", (exitCode, signal) => {
         clearTimeout(timeoutId);
@@ -129,7 +123,11 @@ export const bashTool: Tool<BashParams, BashResult> = {
       });
     });
 
-    context.emit("tool.end", { tool: "bash", exitCode: result.exitCode, duration: result.duration });
+    context.emit("tool.end", {
+      tool: "bash",
+      exitCode: result.exitCode,
+      duration: result.duration,
+    });
 
     return { success: true, data: result };
   },

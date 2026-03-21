@@ -33,7 +33,7 @@ export class Registry {
     return entry.provider;
   }
 
-  list(): ReadonlyArray<{ name: string; priority: ProviderPriority }> {
+  list(): readonly { name: string; priority: ProviderPriority }[] {
     return Array.from(this.#entries.values())
       .sort((a, b) => a.priority - b.priority)
       .map(({ provider, priority }) => ({ name: provider.name, priority }));
@@ -43,13 +43,9 @@ export class Registry {
     if (this.#entries.size === 0) {
       throw new Error("No providers are registered");
     }
-    let best: ProviderEntry | undefined;
-    for (const entry of this.#entries.values()) {
-      if (best === undefined || entry.priority < best.priority) {
-        best = entry;
-      }
-    }
-    return (best as ProviderEntry).provider;
+    const entries = Array.from(this.#entries.values());
+    const best = entries.reduce((a, b) => (a.priority < b.priority ? a : b));
+    return best.provider;
   }
 
   has(name: string): boolean {

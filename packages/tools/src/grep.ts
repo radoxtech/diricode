@@ -1,4 +1,5 @@
 import { readdir, readFile, stat } from "node:fs/promises";
+import type { Dirent } from "node:fs";
 import { normalize, relative, resolve } from "node:path";
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
@@ -52,7 +53,8 @@ function matchesInclude(filename: string, include: string): boolean {
     return filename.endsWith(ext);
   }
 
-  const braceMatch = include.match(/^\*\.\{(.+)\}$/);
+  const braceRegex = /^\*\.\{(.+)\}$/;
+  const braceMatch = braceRegex.exec(include);
   if (braceMatch?.[1]) {
     const exts = braceMatch[1].split(",").map((e) => `.${e.trim()}`);
     return exts.some((ext) => filename.endsWith(ext));
@@ -64,19 +66,19 @@ function matchesInclude(filename: string, include: string): boolean {
 async function walkDirectory(dir: string): Promise<string[]> {
   const results: string[] = [];
 
-  let entries: import("node:fs").Dirent[];
+  let entries: Dirent[];
   try {
-    entries = await readdir(dir, { withFileTypes: true }) as import("node:fs").Dirent[];
+    entries = await readdir(dir, { withFileTypes: true });
   } catch {
     return results;
   }
 
   for (const entry of entries) {
-    if (DEFAULT_EXCLUDE_DIRS.has(entry.name as string)) {
+    if (DEFAULT_EXCLUDE_DIRS.has(entry.name)) {
       continue;
     }
 
-    const fullPath = resolve(dir, entry.name as string);
+    const fullPath = resolve(dir, entry.name);
 
     if (entry.isDirectory()) {
       const nested = await walkDirectory(fullPath);
@@ -147,7 +149,7 @@ export const grepTool: Tool<GrepParams, GrepResult> = {
     if (params.include) {
       filePaths = filePaths.filter((fp) => {
         const basename = fp.split("/").pop() ?? fp;
-        return matchesInclude(basename, params.include!);
+        return matchesInclude(basename, params.include);
       });
     }
 
@@ -188,8 +190,8 @@ export const grepTool: Tool<GrepParams, GrepResult> = {
           column: match.index + 1,
           content: line,
           context: {
-            before: lines.slice(beforeStart, lineIdx) as string[],
-            after: lines.slice(lineIdx + 1, afterEnd + 1) as string[],
+            before: lines.slice(beforeStart, lineIdx),
+            after: lines.slice(lineIdx + 1, afterEnd + 1),
           },
         });
 
