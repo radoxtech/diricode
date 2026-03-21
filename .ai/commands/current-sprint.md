@@ -35,61 +35,33 @@ Project constants:
 
 ## Live DiriCode GitHub Model
 
-The **live GitHub project model** currently uses:
+The **live GitHub project model** uses the **4-level hierarchy** as defined in `.ai/knowledge/epic-hierarchy.md`:
 
-- parent issues labeled `epic`
-- implementation issues labeled `feature`
+| Level | Label | Description |
+|-------|-------|-------------|
+| Level 1 | `level:meta-epic` | Strategic goal (quarter/year span) |
+| Level 2 | `level:epic` | Feature or capability (sprint/milestone span) |
+| Level 3 | `level:sub-epic` | Component or module (days/week span) |
+| Level 4 | `level:task` | Atomic implementation unit (hours/day span) |
 
-This command must therefore:
+**Current Implementation:**
 
-- include only `feature` issues as implementation candidates
-- exclude `epic` issues from candidate output
-- use epic linkage only for context and rollup
+- Issues labeled `level:epic` are the parent planning issues
+- Issues labeled `level:task` are the atomic implementation units
+- For the current sprint, focus on `level:task` issues as implementation candidates
+- Use `level:epic` linkage for context and rollup
 
-### Important note
+### Label Taxonomy (Required for Parallel Routing)
 
-Repo knowledge docs describe a deeper `Meta-Epic → Epic → Sub-Epic → Task` model.
-However, the live GitHub board currently operates as `epic → feature`.
+Every `level:task` issue **must** have:
 
-`/current-sprint` must use the **live GitHub model**, not the aspirational hierarchy model.
+- `component:*` — broad subsystem ownership (e.g., `component:tools`, `component:agents`)
+- `area:*` — narrow implementation surface (e.g., `area:file-read`, `area:agent-dispatcher`)
 
----
+Optional routing labels:
 
-## Required Inputs Per Candidate
-
-For every sprint issue considered as a candidate, collect:
-
-- issue number
-- title
-- state
-- labels
-- body
-- project status
-- sprint value
-- parent epic context (native sub-issue linkage or `**Epic**: #N` body reference)
-
-### Label Taxonomy
-
-### Live canonical labels currently used on GitHub
-
-- `epic`
-- `feature`
-
-### Additional routing labels supported by this command
-
-These are used for safer parallel work selection:
-
-- `component:*` — broad subsystem ownership
-- `area:*` — narrow implementation surface
-- `conflict:*` — shared collision domain
-- `execution:*` — operational routing hints
-
-Examples:
-
-- `component:web`
-- `area:event-schema`
-- `conflict:api-contract`
-- `execution:parallel-safe`
+- `conflict:*` — shared collision domain (e.g., `conflict:workspace-structure`)
+- `execution:*` — operational hints (`execution:parallel-safe`, `execution:coordination-needed`, `execution:blocked`)
 
 ---
 
@@ -133,12 +105,12 @@ Only consider issues that are:
 
 - open
 - in the active sprint
-- labeled `feature`
+- labeled `level:task`
 - status `Todo` or `Ready`
 
 Exclude:
 
-- `epic` issues
+- `level:epic`, `level:sub-epic`, `level:meta-epic` issues (planning, not implementation)
 - closed issues
 - `In Progress`, `Review`, `Done`, `Blocked`
 
@@ -191,7 +163,7 @@ If there is **no Sprint / Iteration field**:
 
 - clearly state that sprint planning is not configured
 - switch to **degraded mode**:
-  - analyze open `feature` issues in `Todo` / `Ready`
+  - analyze open `level:task` issues in `Todo` / `Ready`
   - still compute safe candidates and bundles
   - clearly mark the result as `No active sprint configured`
 
@@ -201,7 +173,7 @@ If there is **no Sprint / Iteration field**:
 
 For every candidate feature, resolve its parent epic using:
 
-1. native sub-issue linkage
+1. native sub-issue linkage (preferred)
 2. deterministic `**Epic**: #N` body reference
 
 If the parent epic cannot be resolved, mark the feature as orphaned and reduce readiness.
@@ -359,4 +331,4 @@ Validated against current GitHub/GitLab issue dependency practices:
 
 ---
 
-**Version:** 2.2.0
+**Version:** 3.0.0 (4-level hierarchy)
