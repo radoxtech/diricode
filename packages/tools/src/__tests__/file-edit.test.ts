@@ -45,14 +45,20 @@ describe("fileEditTool", () => {
   it("AC2: returns ToolError NO_MATCH when oldString not found", async () => {
     await writeWorkspaceFile("f.txt", "hello world");
     await expect(
-      fileEditTool.execute({ path: "f.txt", oldString: "missing", newString: "x", replaceAll: false }, makeContext()),
+      fileEditTool.execute(
+        { path: "f.txt", oldString: "missing", newString: "x", replaceAll: false },
+        makeContext(),
+      ),
     ).rejects.toMatchObject({ code: "NO_MATCH" });
   });
 
   it("AC3: returns ToolError MULTIPLE_MATCHES when >1 occurrence and replaceAll is false", async () => {
     await writeWorkspaceFile("f.txt", "dup dup dup");
     await expect(
-      fileEditTool.execute({ path: "f.txt", oldString: "dup", newString: "x", replaceAll: false }, makeContext()),
+      fileEditTool.execute(
+        { path: "f.txt", oldString: "dup", newString: "x", replaceAll: false },
+        makeContext(),
+      ),
     ).rejects.toMatchObject({ code: "MULTIPLE_MATCHES" });
   });
 
@@ -137,7 +143,10 @@ describe("fileEditTool", () => {
     await writeFile(binPath, Buffer.from([0x00, 0x01, 0x02, 0x03, 0x61, 0x62, 0x63]));
 
     await expect(
-      fileEditTool.execute({ path: "binary.bin", oldString: "abc", newString: "x", replaceAll: false }, makeContext()),
+      fileEditTool.execute(
+        { path: "binary.bin", oldString: "abc", newString: "x", replaceAll: false },
+        makeContext(),
+      ),
     ).rejects.toMatchObject({ code: "BINARY_FILE" });
   });
 

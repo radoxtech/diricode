@@ -30,10 +30,7 @@ const DEFAULT_IGNORE = [
   "**/.DS_Store",
 ];
 
-async function resolveAndValidatePath(
-  rawPath: string,
-  workspaceRoot: string,
-): Promise<string> {
+function resolveAndValidatePath(rawPath: string, workspaceRoot: string): string {
   const normalizedRoot = resolve(workspaceRoot);
   const resolvedPath = resolve(normalizedRoot, normalize(rawPath));
 
@@ -70,7 +67,7 @@ export const globTool: Tool<GlobParams, GlobResult> = {
     let pathPrefix: string | undefined;
 
     if (params.path !== undefined) {
-      cwd = await resolveAndValidatePath(params.path, workspaceRoot);
+      cwd = resolveAndValidatePath(params.path, workspaceRoot);
       pathPrefix = params.path;
     } else {
       cwd = workspaceRoot;
@@ -113,7 +110,12 @@ export const globTool: Tool<GlobParams, GlobResult> = {
       pattern: params.pattern,
     };
 
-    context.emit("tool.end", { tool: "glob", pattern: params.pattern, count: files.length, truncated });
+    context.emit("tool.end", {
+      tool: "glob",
+      pattern: params.pattern,
+      count: files.length,
+      truncated,
+    });
 
     return { success: true, data: result };
   },

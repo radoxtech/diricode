@@ -34,7 +34,7 @@ export interface BashSafetyConfig {
 
 const DEFAULT_SAFETY_CONFIG: BashSafetyConfig = { level: "standard" };
 
-const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
+const DANGEROUS_PATTERNS: { pattern: RegExp; reason: string }[] = [
   {
     // :(){:|:&};: fork bomb
     pattern: /:\s*\(\s*\)\s*\{[^}]*:\s*\|[^}]*:&[^}]*\}/,
@@ -42,7 +42,8 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
   },
   {
     // rm -rf / or rm -fr ~
-    pattern: /\brm\s+(-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*)\s+(\/\s*$|\/\s+|~\s*\/?\s*$|\*\s*$)/,
+    pattern:
+      /\brm\s+(-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*)\s+(\/\s*$|\/\s+|~\s*\/?\s*$|\*\s*$)/,
     reason: "rm -rf on root/home/glob is not allowed",
   },
   {
@@ -117,7 +118,6 @@ interface AstNode {
   childCount: number;
 }
 
-let treeSitterReady = false;
 let treeSitterFactoryPromise: Promise<(() => TreeSitterLike) | null> | null = null;
 
 async function getParserFactory(): Promise<(() => TreeSitterLike) | null> {
@@ -132,7 +132,6 @@ async function getParserFactory(): Promise<(() => TreeSitterLike) | null> {
       await TreeSitter.Parser.init();
       const BashLanguage = await TreeSitter.Language.load(wasmPath);
 
-      treeSitterReady = true;
       return () => {
         const parser = new TreeSitter.Parser();
         parser.setLanguage(BashLanguage);
@@ -153,9 +152,21 @@ function checkAst(node: AstNode): string | null {
       const cmd = nameNode.text.trim();
 
       const blockedExact = new Set([
-        "mkfs", "mkfs.ext4", "mkfs.ext3", "mkfs.xfs", "mkfs.vfat", "mkfs.btrfs",
-        "wipefs", "insmod", "rmmod", "modprobe",
-        "shred", "fdisk", "gdisk", "sgdisk", "parted",
+        "mkfs",
+        "mkfs.ext4",
+        "mkfs.ext3",
+        "mkfs.xfs",
+        "mkfs.vfat",
+        "mkfs.btrfs",
+        "wipefs",
+        "insmod",
+        "rmmod",
+        "modprobe",
+        "shred",
+        "fdisk",
+        "gdisk",
+        "sgdisk",
+        "parted",
       ]);
 
       if (blockedExact.has(cmd)) {
@@ -213,10 +224,7 @@ export function runSafetyCheck(
   if (config.level === "off") return;
 
   if (/\bsudo\b/.test(command)) {
-    throw new ToolError(
-      "SUDO_NOT_ALLOWED",
-      "sudo is not allowed",
-    );
+    throw new ToolError("SUDO_NOT_ALLOWED", "sudo is not allowed");
   }
 
   for (const { pattern, reason } of DANGEROUS_PATTERNS) {
@@ -290,10 +298,7 @@ export const bashTool: Tool<BashParams, BashResult> = {
     destructiveHint: true,
     idempotentHint: false,
   },
-  async execute(
-    params: BashParams,
-    context: ToolContext,
-  ): Promise<ToolResult<BashResult>> {
+  async execute(params: BashParams, context: ToolContext): Promise<ToolResult<BashResult>> {
     context.emit("tool.start", { tool: "bash", params });
 
     let workdir: string;
@@ -301,10 +306,7 @@ export const bashTool: Tool<BashParams, BashResult> = {
       const resolvedWorkdir = resolve(context.workspaceRoot, normalize(params.workdir));
       const normalizedRoot = resolve(context.workspaceRoot);
 
-      if (
-        !resolvedWorkdir.startsWith(normalizedRoot + "/") &&
-        resolvedWorkdir !== normalizedRoot
-      ) {
+      if (!resolvedWorkdir.startsWith(normalizedRoot + "/") && resolvedWorkdir !== normalizedRoot) {
         throw new ToolError(
           "WORKDIR_OUTSIDE_WORKSPACE",
           `workdir "${params.workdir}" resolves outside workspace root`,
@@ -344,8 +346,8 @@ export const bashTool: Tool<BashParams, BashResult> = {
         }, 5000);
       }, params.timeout);
 
-      child.stdout?.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
-      child.stderr?.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
+      child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
+      child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
 
       child.on("close", (exitCode, signal) => {
         clearTimeout(timeoutId);
@@ -376,7 +378,11 @@ export const bashTool: Tool<BashParams, BashResult> = {
       });
     });
 
-    context.emit("tool.end", { tool: "bash", exitCode: result.exitCode, duration: result.duration });
+    context.emit("tool.end", {
+      tool: "bash",
+      exitCode: result.exitCode,
+      duration: result.duration,
+    });
 
     return { success: true, data: result };
   },

@@ -1,4 +1,5 @@
 import { readdir, readFile, stat } from "node:fs/promises";
+import type { Dirent } from "node:fs";
 import { normalize, relative, resolve } from "node:path";
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
@@ -64,7 +65,7 @@ function matchesInclude(filename: string, include: string): boolean {
 async function walkDirectory(dir: string): Promise<string[]> {
   const results: string[] = [];
 
-  let entries: import("node:fs").Dirent[];
+  let entries: Dirent[];
   try {
     entries = await readdir(dir, { withFileTypes: true });
   } catch {
@@ -145,9 +146,10 @@ export const grepTool: Tool<GrepParams, GrepResult> = {
     }
 
     if (params.include) {
+      const includePattern = params.include;
       filePaths = filePaths.filter((fp) => {
         const basename = fp.split("/").pop() ?? fp;
-        return matchesInclude(basename, params.include!);
+        return matchesInclude(basename, includePattern);
       });
     }
 

@@ -127,7 +127,10 @@ export const fileEditTool: Tool<FileEditParams, FileEditResult> = {
 
     const rawBuffer = await readFile(resolvedPath);
     if (isBinaryBuffer(rawBuffer)) {
-      throw new ToolError("BINARY_FILE", `File "${params.path}" appears to be a binary file and cannot be edited as text`);
+      throw new ToolError(
+        "BINARY_FILE",
+        `File "${params.path}" appears to be a binary file and cannot be edited as text`,
+      );
     }
 
     const original = rawBuffer.toString("utf-8");
@@ -155,13 +158,16 @@ export const fileEditTool: Tool<FileEditParams, FileEditResult> = {
     const matchCount = countOccurrences(original, params.oldString);
 
     if (matchCount === 0) {
-      throw new ToolError("NO_MATCH", `String not found in "${params.path}": ${JSON.stringify(params.oldString)}`);
+      throw new ToolError(
+        "NO_MATCH",
+        `String not found in "${params.path}": ${JSON.stringify(params.oldString)}`,
+      );
     }
 
     if (matchCount > 1 && !params.replaceAll) {
       throw new ToolError(
         "MULTIPLE_MATCHES",
-        `Found ${matchCount} occurrences of the search string in "${params.path}". ` +
+        `Found ${String(matchCount)} occurrences of the search string in "${params.path}". ` +
           `Use replaceAll: true to replace all, or make oldString more specific.`,
       );
     }

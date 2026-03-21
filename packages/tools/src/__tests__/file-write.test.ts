@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ToolError, fileWriteTool } from "../index.js";
 
 describe("fileWriteTool", () => {
@@ -37,7 +37,10 @@ describe("fileWriteTool", () => {
 
   it("overwrites an existing file and returns created: false", async () => {
     const ctx = makeContext();
-    await fileWriteTool.execute({ path: "existing.txt", content: "first", createParents: true }, ctx);
+    await fileWriteTool.execute(
+      { path: "existing.txt", content: "first", createParents: true },
+      ctx,
+    );
 
     const result = await fileWriteTool.execute(
       { path: "existing.txt", content: "second content", createParents: true },
@@ -85,18 +88,21 @@ describe("fileWriteTool", () => {
     ).rejects.toMatchObject({ code: "PATH_OUTSIDE_WORKSPACE" });
   });
 
-  it("rejects invalid params: missing path", async () => {
+  it("rejects invalid params: missing path", () => {
     const parseResult = fileWriteTool.parameters.safeParse({ content: "data" });
     expect(parseResult.success).toBe(false);
   });
 
-  it("rejects invalid params: missing content", async () => {
+  it("rejects invalid params: missing content", () => {
     const parseResult = fileWriteTool.parameters.safeParse({ path: "file.txt" });
     expect(parseResult.success).toBe(false);
   });
 
   it("emits tool.start and tool.end events", async () => {
-    await fileWriteTool.execute({ path: "events.txt", content: "data", createParents: true }, makeContext());
+    await fileWriteTool.execute(
+      { path: "events.txt", content: "data", createParents: true },
+      makeContext(),
+    );
 
     expect(emittedEvents[0]?.event).toBe("tool.start");
     expect(emittedEvents[1]?.event).toBe("tool.end");
