@@ -177,8 +177,23 @@ describe("grepTool", () => {
     expect(result.success).toBe(true);
     expect(result.data.matches).toHaveLength(1);
     const m = result.data.matches[0];
+    expect(m?.context.before).toEqual(["before2", "before1"]);
+    expect(m?.context.after).toEqual(["after1", "after2"]);
+  });
+
+  it("AC8: contextLines:0 returns empty before/after arrays", async () => {
+    await writeWorkspaceFile("h.txt", "before\nmatch me\nafter\n");
+
+    const result = await grepTool.execute(
+      { pattern: "match me", caseSensitive: true, maxResults: 500, contextLines: 0 },
+      makeContext(),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.matches).toHaveLength(1);
+    const m = result.data.matches[0];
     expect(m?.context.before).toEqual([]);
-    expect(m?.context.after).toHaveLength(2);
+    expect(m?.context.after).toEqual([]);
   });
 
   it("AC9: binary files are skipped silently", async () => {
