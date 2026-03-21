@@ -177,7 +177,7 @@ describe("grepTool", () => {
     expect(result.success).toBe(true);
     expect(result.data.matches).toHaveLength(1);
     const m = result.data.matches[0];
-    expect(m?.context.before).toEqual([]);
+    expect(m?.context.before).toEqual(["before2", "before1"]);
     expect(m?.context.after).toHaveLength(2);
   });
 
