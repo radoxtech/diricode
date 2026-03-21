@@ -1,8 +1,14 @@
 import { readFile, stat, writeFile } from "node:fs/promises";
-import { normalize, relative, resolve } from "node:path";
+import { normalize, resolve } from "node:path";
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
 import { ToolError } from "@diricode/core";
+import {
+  type FileWriteSafetyConfig,
+  DEFAULT_FILE_SAFETY_CONFIG,
+  runFileWriteSafetyCheck,
+  checkSymlinkSafety,
+} from "./file-safety.js";
 
 const parametersSchema = z.object({
   path: z.string().min(1),
@@ -109,14 +115,13 @@ export const fileEditTool: Tool<FileEditParams, FileEditResult> = {
     context.emit("tool.start", { tool: "file-edit", params });
 
     const resolvedPath = resolve(context.workspaceRoot, normalize(params.path));
-    const normalizedRoot = resolve(context.workspaceRoot);
 
-    if (!resolvedPath.startsWith(normalizedRoot + "/") && resolvedPath !== normalizedRoot) {
-      throw new ToolError(
-        "PATH_OUTSIDE_WORKSPACE",
-        `Path "${params.path}" resolves outside workspace root (resolved: ${relative(normalizedRoot, resolvedPath)})`,
-      );
-    }
+    const safetyConfig: FileWriteSafetyConfig =
+      (context as ToolContext & { fileWriteSafety?: FileWriteSafetyConfig }).fileWriteSafety ??
+      DEFAULT_FILE_SAFETY_CONFIG;
+
+    runFileWriteSafetyCheck(resolvedPath, context.workspaceRoot, safetyConfig);
+    await checkSymlinkSafety(resolvedPath, context.workspaceRoot, safetyConfig);
 
     let fileStat: Awaited<ReturnType<typeof stat>>;
     try {
