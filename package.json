@@ -1,7 +1,8 @@
 {
   "name": "diricode",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
+  "license": "MIT",
   "packageManager": "pnpm@9.15.0",
   "type": "module",
   "scripts": {

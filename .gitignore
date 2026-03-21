@@ -1,5 +1,6 @@
 example-repos/
 .sisyphus/
+.dc/
 .env
 .github-token
 
