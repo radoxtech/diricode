@@ -48,6 +48,8 @@
       "@diricode/github-mcp/*": ["./packages/github-mcp/src/*"],
       "@diricode/tools": ["./packages/tools/src/index.ts"],
       "@diricode/tools/*": ["./packages/tools/src/*"],
+      "@diricode/agents": ["./packages/agents/src/index.ts"],
+      "@diricode/agents/*": ["./packages/agents/src/*"],
       "@diricode/cli": ["./apps/cli/src/index.ts"],
       "@diricode/cli/*": ["./apps/cli/src/*"]
     }
