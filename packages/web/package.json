@@ -15,11 +15,12 @@
   },
   "dependencies": {
     "@diricode/core": "workspace:*",
+    "@hookform/resolvers": "^3.4.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@xyflow/react": "^12.4.0",
-    "@hookform/resolvers": "^3.4.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "dagre": "^0.8.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.52.0",
@@ -28,11 +29,13 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@types/dagre": "^0.7.54",
     "@types/node": "^20.11.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.17",
+    "jsdom": "^29.0.1",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",

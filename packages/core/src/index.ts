@@ -19,6 +19,9 @@ export type {
 
 export { SkillDefinitionSchema } from "./skills/index.js";
 export type { SkillDefinition, SkillManifest, SkillLoadResult } from "./skills/index.js";
+export { SkillRegistry } from "./skills/index.js";
+export { SkillRouter } from "./skills/index.js";
+export type { SkillRouterProvider, SkillRouterOptions } from "./skills/index.js";
 
 export {
   SubscriptionSchema,
