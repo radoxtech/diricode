@@ -16,3 +16,23 @@ export type {
   AgentResult,
   AgentTier,
 } from "./agents/types.js";
+
+export { SkillDefinitionSchema } from "./skills/index.js";
+export type { SkillDefinition, SkillManifest, SkillLoadResult } from "./skills/index.js";
+
+export {
+  SubscriptionSchema,
+  SubscriptionLimitsSchema,
+  SubscriptionHealthSchema,
+  ModelScoreSchema,
+  ABExperimentSchema,
+  ComparisonSchema,
+} from "./providers/index.js";
+export type {
+  Subscription,
+  SubscriptionLimits,
+  SubscriptionHealth,
+  ModelScore,
+  ABExperiment,
+  Comparison,
+} from "./providers/index.js";
