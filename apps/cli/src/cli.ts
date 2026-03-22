@@ -19,14 +19,14 @@ cli
 
 cli
   .command("[...args]", "Start interactive REPL (default)")
-  .action((_args: string[], options: Record<string, unknown>) => {
+  .action(async (_args: string[], options: Record<string, unknown>) => {
     try {
       const flags = validateFlags(options);
       if (flags.json !== true) {
         // eslint-disable-next-line no-console
         console.log(`diricode v${pkg.version}`);
       }
-      const config = resolveConfig(flags);
+      const config = await resolveConfig(flags);
       startRepl(config, { session: flags.session });
     } catch (err) {
       if (err instanceof Error) {
@@ -39,14 +39,14 @@ cli
 
 cli
   .command("run <prompt>", "Run a one-shot prompt and exit")
-  .action((prompt: string, options: Record<string, unknown>) => {
+  .action(async (prompt: string, options: Record<string, unknown>) => {
     try {
       const flags = validateFlags(options);
       if (flags.json !== true) {
         // eslint-disable-next-line no-console
         console.log(`diricode v${pkg.version}`);
       }
-      const config = resolveConfig(flags);
+      const config = await resolveConfig(flags);
       runOnce(config, prompt, { json: flags.json, session: flags.session });
     } catch (err) {
       if (err instanceof Error) {
