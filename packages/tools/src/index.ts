@@ -9,6 +9,17 @@ export {
   runFileWriteSafetyCheck,
   checkSymlinkSafety,
 } from "./file-safety.js";
+export {
+  type GitSafetyConfig,
+  type GitSafetyLevel,
+  DEFAULT_GIT_SAFETY_CONFIG,
+  runGitSafetyCheck,
+  runGitSafetyCheckAsync,
+  validateGitCommand,
+  getProtectedBranches,
+  addProtectedBranch,
+  removeProtectedBranch,
+} from "./git-safety.js";
 export { globTool } from "./glob.js";
 export { grepTool } from "./grep.js";
 export type { Tool, ToolAnnotations, ToolContext, ToolResult } from "@diricode/core";
