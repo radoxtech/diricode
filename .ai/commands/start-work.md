@@ -16,6 +16,33 @@ It must refuse to start work that is:
 
 ---
 
+## ⛔ CRITICAL: Worktree Preservation Rule — NEVER DELETE WORKTREES
+
+**⚠️ THIS RULE MUST NEVER BE VIOLATED:**
+
+When you finish work in a worktree (via `/finish-work` or similar):
+
+1. The worktree branch **MUST be merged to `main`**
+2. The PR **MUST be created and merged**
+3. **BUT THE WORKTREE ITSELF MUST NEVER BE DELETED**
+
+**Why?** Worktrees in opencode are persistent coding environments reused across multiple sessions. Deleting a worktree destroys the developer's workspace and context for future sessions.
+
+**If you are already inside a worktree:**
+
+- You CANNOT run `/start-work` (only from main repo)
+- When you finish work here, merge to main via PR, then return to main repo to run `/start-work` for the next issue
+- **Never delete this worktree** — leave it for reuse in future sessions
+
+**The `/finish-work` command MUST:**
+
+- Create the PR
+- Merge the PR to main
+- Checkout back to the main repo
+- **Never run `git worktree remove`**
+
+---
+
 ## ⛔ CRITICAL: Live GitHub Uses Features as Implementation Units
 
 For the live GitHub board, the implementation unit is currently:
