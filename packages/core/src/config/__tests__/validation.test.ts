@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { z, type ZodType } from "zod";
+import { z } from "zod";
 import {
   zodErrorToValidationErrors,
   sanitizeValue,
@@ -7,10 +7,10 @@ import {
   formatWarnings,
 } from "../validation.js";
 import { ConfigValidator } from "../validator.js";
-import { DiriCodeConfigSchema, type DiriCodeConfig } from "../schema.js";
+import { DiriCodeConfigSchema } from "../schema.js";
 
-function createTestValidator() {
-  return new ConfigValidator(DiriCodeConfigSchema as ZodType<DiriCodeConfig>);
+function createTestValidator(options?: { warnOnUnknownKeys?: boolean }): ConfigValidator {
+  return new ConfigValidator(DiriCodeConfigSchema, options);
 }
 
 describe("validation", () => {
@@ -48,7 +48,7 @@ describe("validation", () => {
 
     it("should use 'unknown' layer when path not in layer map", () => {
       const schema = z.object({ name: z.string() });
-      const layerMap = new Map();
+      const layerMap = new Map<string, "project" | "defaults" | "global" | "runtime">();
 
       const result = schema.safeParse({ name: 123 });
       expect(result.success).toBe(false);
@@ -190,27 +190,19 @@ describe("ConfigValidator", () => {
   });
 
   it("should warn about unknown keys when enabled", () => {
-    const simpleSchema = z.object({
-      knownKey: z.string().optional(),
-    });
-
-    const validator = new ConfigValidator(simpleSchema as ZodType<{ knownKey?: string }>, {
-      warnOnUnknownKeys: true,
-    });
+    const validator = createTestValidator();
 
     const result = validator.validate({
-      unknownKey: "value",
-      knownKey: "valid",
-    });
+      unknownTopLevelKey: "value",
+      providers: {},
+    } as Record<string, unknown>);
 
     expect(result.warnings.length).toBeGreaterThan(0);
-    expect(result.warnings[0]?.key).toBe("unknownKey");
+    expect(result.warnings[0]?.key).toBe("unknownTopLevelKey");
   });
 
   it("should not warn about unknown keys when disabled", () => {
-    const validator = new ConfigValidator(DiriCodeConfigSchema as ZodType<DiriCodeConfig>, {
-      warnOnUnknownKeys: false,
-    });
+    const validator = createTestValidator({ warnOnUnknownKeys: false });
 
     const result = validator.validate({
       unknownKey: "value",

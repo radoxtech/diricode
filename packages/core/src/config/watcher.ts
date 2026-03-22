@@ -1,4 +1,4 @@
-import { watch, type FSWatcher, type WatchOptions } from "node:fs";
+import { watch, type FSWatcher } from "node:fs";
 import { EventEmitter } from "node:events";
 import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
@@ -69,7 +69,7 @@ export class ConfigWatcher extends EventEmitter {
   /**
    * Starts watching config files.
    */
-  async start(): Promise<void> {
+  start(): void {
     if (this.isClosed) {
       throw new Error("ConfigWatcher has been closed and cannot be restarted");
     }
@@ -163,7 +163,7 @@ export class ConfigWatcher extends EventEmitter {
    * Returns the list of paths being watched.
    */
   get watchedPaths(): string[] {
-    return this.watchers.map((w) => {
+    return this.watchers.map(() => {
       // FSWatcher doesn't expose the path directly, but we can infer it
       // from the internal state or track it ourselves
       return "(watching)";
@@ -196,14 +196,14 @@ export class ConfigWatcher extends EventEmitter {
    */
   private getGlobalConfigDir(): string | null {
     const platform = process.platform;
-    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    const homeDir = process.env.HOME ?? process.env.USERPROFILE;
 
     if (!homeDir) {
       return null;
     }
 
     if (platform === "win32") {
-      return join(process.env.APPDATA || homeDir, "diricode");
+      return join(process.env.APPDATA ?? homeDir, "diricode");
     }
 
     if (platform === "darwin") {
@@ -211,7 +211,7 @@ export class ConfigWatcher extends EventEmitter {
     }
 
     // Linux and others
-    return join(process.env.XDG_CONFIG_HOME || join(homeDir, ".config"), "diricode");
+    return join(process.env.XDG_CONFIG_HOME ?? join(homeDir, ".config"), "diricode");
   }
 }
 

@@ -1,7 +1,7 @@
 import { loadConfig, type LoadConfigOptions, type LoadConfigResult } from "./loader.js";
 import { ConfigValidator, type ConfigValidatorOptions } from "./validator.js";
 import { ConfigWatcher, type ConfigWatcherOptions } from "./watcher.js";
-import type { DiriCodeConfig } from "./schema.js";
+import { DiriCodeConfigSchema, type DiriCodeConfig } from "./schema.js";
 import type { ValidationResult } from "./validation.js";
 
 /**
@@ -41,8 +41,6 @@ export class ReloadableConfig {
       ...options,
     };
 
-    // Import schema dynamically to avoid circular dependency
-    const { DiriCodeConfigSchema } = require("./schema.js");
     this.validator = new ConfigValidator(DiriCodeConfigSchema, options.validatorOptions);
   }
 
@@ -66,7 +64,7 @@ export class ReloadableConfig {
 
       // Start watching if in dev mode
       if (this.options.devMode) {
-        await this.startWatching();
+        this.startWatching();
       }
 
       return validation;
@@ -146,7 +144,7 @@ export class ReloadableConfig {
   /**
    * Starts watching for file changes.
    */
-  private async startWatching(): Promise<void> {
+  private startWatching(): void {
     if (this.watcher) {
       return;
     }
@@ -159,17 +157,17 @@ export class ReloadableConfig {
       ...this.options.watcherOptions,
     });
 
-    this.watcher.on("change", async () => {
-      await this.reload();
+    this.watcher.on("change", () => {
+      void this.reload();
     });
 
-    this.watcher.on("error", (err) => {
+    this.watcher.on("error", (err: Error) => {
       if (this.options.onError) {
         this.options.onError(err);
       }
     });
 
-    await this.watcher.start();
+    this.watcher.start();
   }
 }
 

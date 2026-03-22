@@ -49,11 +49,11 @@ export interface ValidationResult {
 /**
  * Maps a Zod issue path array to a dot-notation string.
  */
-function pathToString(path: Array<string | number>): string {
+function pathToString(path: (string | number)[]): string {
   return path
     .map((segment, index) => {
       if (typeof segment === "number") {
-        return `[${segment}]`;
+        return `[${String(segment)}]`;
       }
       if (index === 0) {
         return segment;
@@ -81,54 +81,56 @@ function formatZodIssue(issue: ZodIssue): { message: string; expected?: string }
     case "too_small":
       if (issue.type === "string") {
         return {
-          message: `String must contain at least ${issue.minimum} character(s)`,
-          expected: `min ${issue.minimum} chars`,
+          message: `String must contain at least ${String(issue.minimum)} character(s)`,
+          expected: `min ${String(issue.minimum)} chars`,
         };
       }
       if (issue.type === "number") {
         return {
-          message: `Number must be greater than or equal to ${issue.minimum}`,
-          expected: `>= ${issue.minimum}`,
+          message: `Number must be greater than or equal to ${String(issue.minimum)}`,
+          expected: `>= ${String(issue.minimum)}`,
         };
       }
       if (issue.type === "array") {
         return {
-          message: `Array must contain at least ${issue.minimum} element(s)`,
-          expected: `min ${issue.minimum} items`,
+          message: `Array must contain at least ${String(issue.minimum)} element(s)`,
+          expected: `min ${String(issue.minimum)} items`,
         };
       }
       return {
-        message: `Value must be at least ${issue.minimum}`,
-        expected: `>= ${issue.minimum}`,
+        message: `Value must be at least ${String(issue.minimum)}`,
+        expected: `>= ${String(issue.minimum)}`,
       };
     case "too_big":
       if (issue.type === "string") {
         return {
-          message: `String must contain at most ${issue.maximum} character(s)`,
-          expected: `max ${issue.maximum} chars`,
+          message: `String must contain at most ${String(issue.maximum)} character(s)`,
+          expected: `max ${String(issue.maximum)} chars`,
         };
       }
       if (issue.type === "number") {
         return {
-          message: `Number must be less than or equal to ${issue.maximum}`,
-          expected: `<= ${issue.maximum}`,
+          message: `Number must be less than or equal to ${String(issue.maximum)}`,
+          expected: `<= ${String(issue.maximum)}`,
         };
       }
       if (issue.type === "array") {
         return {
-          message: `Array must contain at most ${issue.maximum} element(s)`,
-          expected: `max ${issue.maximum} items`,
+          message: `Array must contain at most ${String(issue.maximum)} element(s)`,
+          expected: `max ${String(issue.maximum)} items`,
         };
       }
       return {
-        message: `Value must be at most ${issue.maximum}`,
-        expected: `<= ${issue.maximum}`,
+        message: `Value must be at most ${String(issue.maximum)}`,
+        expected: `<= ${String(issue.maximum)}`,
       };
-    case "invalid_string":
+    case "invalid_string": {
+      const validationStr = typeof issue.validation === "string" ? issue.validation : "format";
       return {
-        message: `Invalid ${issue.validation}`,
-        expected: issue.validation as string,
+        message: `Invalid ${validationStr}`,
+        expected: validationStr,
       };
+    }
     case "invalid_enum_value":
       return {
         message: `Invalid enum value. Expected: ${issue.options.join(", ")}`,
@@ -201,7 +203,7 @@ export function formatValidationErrors(errors: ConfigValidationError[]): string 
   }
 
   const lines: string[] = [];
-  lines.push(`Config validation failed with ${errors.length} error(s):\n`);
+  lines.push(`Config validation failed with ${String(errors.length)} error(s):\n`);
 
   for (const error of errors) {
     const layerBadge = `[${error.layer}]`;
@@ -226,7 +228,7 @@ export function formatWarnings(warnings: ConfigWarning[]): string {
   }
 
   const lines: string[] = [];
-  lines.push(`Config warnings (${warnings.length}):\n`);
+  lines.push(`Config warnings (${String(warnings.length)}):\n`);
 
   for (const warning of warnings) {
     const layerBadge = `[${warning.layer}]`;

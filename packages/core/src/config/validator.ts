@@ -1,25 +1,15 @@
-import { z, type ZodSchema, type ZodError } from "zod";
+import { type ZodType } from "zod";
 import {
-  type ConfigValidationError,
   type ConfigWarning,
   type ValidationResult,
   zodErrorToValidationErrors,
 } from "./validation.js";
-import type { DiriCodeConfig } from "./schema.js";
+import { DiriCodeConfigSchema } from "./schema.js";
 
 /**
  * Tracks which config layer each value came from.
  */
 export type ConfigLayer = "defaults" | "global" | "project" | "runtime";
-
-/**
- * Entry in the layer map tracking provenance of config values.
- */
-interface LayerEntry {
-  path: string;
-  layer: ConfigLayer;
-  value: unknown;
-}
 
 /**
  * Options for the ConfigValidator.
@@ -40,17 +30,17 @@ export interface ConfigValidatorOptions {
  * - Layer provenance tracking for each config value
  */
 export class ConfigValidator {
-  private schema: ZodSchema<DiriCodeConfig>;
+  private schema: ZodType<unknown>;
   private options: ConfigValidatorOptions;
   private layerMap: Map<string, ConfigLayer>;
 
-  constructor(schema: ZodSchema<DiriCodeConfig>, options: ConfigValidatorOptions = {}) {
+  constructor(schema: ZodType<unknown>, options: ConfigValidatorOptions = {}) {
     this.schema = schema;
     this.options = {
       warnOnUnknownKeys: true,
       ...options,
     };
-    this.layerMap = options.layerMap ?? new Map();
+    this.layerMap = options.layerMap ?? new Map<string, ConfigLayer>();
   }
 
   /**
@@ -86,7 +76,7 @@ export class ConfigValidator {
    */
   validateWithLayers(
     rawConfig: unknown,
-    layers: Array<{ source: ConfigLayer; config: Record<string, unknown> }>,
+    layers: { source: ConfigLayer; config: Record<string, unknown> }[],
   ): ValidationResult {
     // Build layer map from the provided layers
     this.layerMap.clear();
@@ -129,7 +119,7 @@ export class ConfigValidator {
 
     for (const key of Object.keys(config)) {
       if (!knownKeys.has(key)) {
-        const layer = (this.layerMap.get(key) as ConfigLayer | undefined) ?? "unknown";
+        const layer = this.layerMap.get(key) ?? "unknown";
         warnings.push({
           path: key,
           key,
@@ -151,10 +141,11 @@ export class ConfigValidator {
   private getKnownKeys(): Set<string> {
     // The schema has strict() so it will reject unknown keys at validation time.
     // For warning purposes, we extract the shape keys.
-    const shape = (
-      this.schema as unknown as { _def: { shape: () => Record<string, unknown> } }
-    )._def.shape?.();
-    return new Set(shape ? Object.keys(shape) : []);
+    const typedSchema = this.schema as unknown as {
+      _def: { shape: () => Record<string, unknown> };
+    };
+    const shape = typedSchema._def.shape();
+    return new Set(Object.keys(shape));
   }
 
   /**
@@ -182,7 +173,7 @@ export class ConfigValidator {
         const nestedObj = value as Record<string, unknown>;
         for (const nestedKey of Object.keys(nestedObj)) {
           const nestedPath = `${fullPath}.${nestedKey}`;
-          const nestedLayer = (this.layerMap.get(nestedPath) as ConfigLayer | undefined) ?? layer;
+          const nestedLayer = this.layerMap.get(nestedPath) ?? layer;
 
           // Check if this is a .strict() schema by looking for _def.unknownKeys
           const isStrict = this.isStrictSchemaAtPath(fullPath);
@@ -227,7 +218,5 @@ export class ConfigValidator {
  * Creates a validator with the DiriCode config schema.
  */
 export function createValidator(options?: ConfigValidatorOptions): ConfigValidator {
-  // Import schema dynamically to avoid circular dependency
-  const { DiriCodeConfigSchema } = require("./schema.js");
   return new ConfigValidator(DiriCodeConfigSchema, options);
 }
