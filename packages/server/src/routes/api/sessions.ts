@@ -18,6 +18,16 @@ export interface SessionMessage {
   createdAt: Date;
 }
 
+interface CreateSessionBody {
+  metadata?: Record<string, unknown>;
+}
+
+interface CreateMessageBody {
+  role: "user" | "assistant" | "system";
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
 const sessions = new Map<string, Session>();
 const sessionMessages = new Map<string, SessionMessage[]>();
 
@@ -28,7 +38,7 @@ function generateId(): string {
 export const sessionsRouter = new Hono();
 
 sessionsRouter.post("/", async (c) => {
-  const body = await c.req.json().catch(() => ({}));
+  const body = (await c.req.json().catch(() => ({}))) as CreateSessionBody;
   const id = generateId();
   const now = new Date();
 
@@ -83,7 +93,7 @@ sessionsRouter.post("/:id/messages", async (c) => {
     return c.json(envelope, 404);
   }
 
-  const body = await c.req.json().catch(() => null);
+  const body = (await c.req.json().catch(() => null)) as CreateMessageBody | null;
 
   if (!body || typeof body.content !== "string" || !body.role) {
     const envelope: ApiEnvelope<never> = {
@@ -97,7 +107,7 @@ sessionsRouter.post("/:id/messages", async (c) => {
     return c.json(envelope, 400);
   }
 
-  const validRoles = ["user", "assistant", "system"];
+  const validRoles = ["user", "assistant", "system"] as const;
   if (!validRoles.includes(body.role)) {
     const envelope: ApiEnvelope<never> = {
       success: false,
