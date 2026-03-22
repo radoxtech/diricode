@@ -95,13 +95,12 @@ sessionsRouter.post("/:id/messages", async (c) => {
 
   const body = (await c.req.json().catch(() => null)) as CreateMessageBody | null;
 
-  if (!body || typeof body.content !== "string" || !body.role) {
+  if (!body?.content) {
     const envelope: ApiEnvelope<never> = {
       success: false,
       error: {
         code: "INVALID_REQUEST",
-        message:
-          "Request body must include 'content' (string) and 'role' ('user' | 'assistant' | 'system')",
+        message: "Request body must include 'content' (string)",
       },
     };
     return c.json(envelope, 400);
