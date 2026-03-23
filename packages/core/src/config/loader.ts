@@ -5,6 +5,7 @@ import { defu } from "defu";
 import { DiriCodeConfigSchema } from "./schema.js";
 import type { DiriCodeConfig } from "./schema.js";
 import { getGlobalConfigDir } from "./paths.js";
+import type { ConfigLayer } from "./validator.js";
 import { join } from "node:path";
 
 type DeepPartial<T> = {
@@ -19,7 +20,7 @@ export interface LoadConfigOptions {
 export interface LoadConfigResult {
   config: DiriCodeConfig;
   configFile?: string;
-  layers: { source: string; config: Record<string, unknown> }[];
+  layers: { source: ConfigLayer; config: Record<string, unknown> }[];
 }
 
 function mapDcEnvVars(): Record<string, unknown> {
@@ -68,7 +69,7 @@ function loadGlobalJsonc(): Record<string, unknown> {
 
 export async function loadConfig(options?: LoadConfigOptions): Promise<LoadConfigResult> {
   const cwd = options?.cwd ?? process.cwd();
-  const layers: { source: string; config: Record<string, unknown> }[] = [];
+  const layers: { source: ConfigLayer; config: Record<string, unknown> }[] = [];
 
   const zodDefaults = DiriCodeConfigSchema.parse({});
   layers.push({ source: "defaults", config: zodDefaults as unknown as Record<string, unknown> });
