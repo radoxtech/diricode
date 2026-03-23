@@ -6,26 +6,27 @@
 
 ## Summary
 
-Adds GitLab Issues as an alternative plan management backend alongside the existing GitHub Issues integration (built in MVP as `@diricode/github-mcp`). Users on GitLab can store plans, epics, and issues in their GitLab projects — using the same pipeline and memory abstractions that GitHub users enjoy.
+Adds GitLab as a sync adapter — a write target that pushes DiriCode's runtime state (issues, tasks, epics) from the local SQLite system to GitLab Projects for external visibility and team collaboration. Users on GitLab can export their plans and track progress in their GitLab projects while DiriCode's agents work with the local SQLite source of truth.
 
-This fulfills the user decision from survey 11.1: "GitHub first, GitLab v2/v3, Jira v4" — DiriCode progressively supports more issue backends.
+This fulfills the user decision from survey 11.1: "GitHub first, GitLab v2/v3, Jira v4" — DiriCode progressively supports more sync targets/adapters for external visibility (GitHub, GitLab, Jira) alongside the local SQLite runtime backend.
 
 Source: Survey decision 11.1 (plan storage backends), `overview.md` v3 "GitLab Issues backend"
 Ecosystem references: GitLab REST API v4 / GraphQL API, GitLab Epics (Premium feature), GitLab Issues + Labels + Milestones
 
 ## Architectural Baseline
 
-- MVP: `@diricode/github-mcp` provides GitHub Issues/Epics as plan backend via MCP protocol
-- MVP: Pipeline (`DC-PIPE-001..008`) operates on abstract plan/issue objects — not GitHub-specific
-- MVP: Memory (`@diricode/memory`) stores session data in SQLite — plan references are stored as URLs/IDs
-- The plan backend is accessed through a `PlanBackend` interface (or MCP server protocol) — adding GitLab means implementing a second backend behind the same interface
-- User selects backend via config: `"planBackend": "github" | "gitlab" | "local"`
+- MVP: `@diricode/memory` provides the SQLite source of truth for all runtime state — issues, epics, tasks, and relationships (ADR-048)
+- MVP: Pipeline (`DC-PIPE-001..008`) operates on abstract plan/issue objects backed by SQLite
+- v2: `@diricode/github-mcp` provides GitHub Projects as a sync adapter — a write-only target that receives state pushes from SQLite for external visibility
+- v3: GitLab sync adapter allows users to push DiriCode runtime state to GitLab Projects on equal footing with GitHub
+- Sync adapters are accessed through a `SyncTarget` interface (or MCP server protocol) — implementing GitLab means supporting a second adapter behind the same interface
+- User selects sync targets via config: `"syncTargets": ["github"] | ["gitlab"] | ["github", "gitlab"]` — multiple targets can be active simultaneously
 
 ## Issues
 
 ### DC-GL-001 — GitLab API client and authentication
 
-**Goal**: Create a GitLab API client supporting personal access tokens and OAuth, covering the API surface needed for plan management (issues, labels, milestones, and optionally epics).
+**Goal**: Create a GitLab API client supporting personal access tokens and OAuth, covering the API surface needed for plan synchronization (issues, labels, milestones, and optionally epics).
 
 **Scope**
 - GitLab API client:
@@ -38,7 +39,7 @@ Ecosystem references: GitLab REST API v4 / GraphQL API, GitLab Epics (Premium fe
 - Configuration in `.dc/config.jsonc`:
   ```jsonc
   {
-    "planBackend": "gitlab",
+    "syncTargets": ["gitlab"],
     "gitlab": {
       "host": "https://gitlab.com",    // or self-hosted
       "project": "user/repo",
@@ -48,21 +49,22 @@ Ecosystem references: GitLab REST API v4 / GraphQL API, GitLab Epics (Premium fe
   ```
 - Self-hosted GitLab support: configurable `host` URL (not just gitlab.com)
 - Rate limit handling: respect GitLab rate limits (default 300 req/min for PAT), exponential backoff
-- Error mapping: GitLab API errors → DiriCode typed errors (same error types as GitHub backend)
+- Error mapping: GitLab API errors → DiriCode typed errors (same error types as GitHub sync adapter)
 
 **Acceptance criteria**
 - [ ] GitLab REST API v4 client implemented with authenticated requests
 - [ ] PAT authentication works with `DC_GITLAB_TOKEN` env var or config
 - [ ] Self-hosted GitLab URL configurable via `gitlab.host`
 - [ ] Rate limit handling with exponential backoff
-- [ ] Error responses mapped to DiriCode typed errors (consistent with GitHub backend)
+- [ ] Error responses mapped to DiriCode typed errors (consistent with GitHub sync adapter)
 - [ ] Connection test: `dc config test-gitlab` verifies API access and permissions
 
 **References**
+- MVP `epic-memory.md` (SQLite as runtime state source, ADR-048)
 - MVP `epic-pipeline.md` DC-PIPE-001..008 (plan execution abstractions)
 - Survey 11.1: "GitHub first, GitLab v2/v3, Jira v4"
 - GitLab REST API v4: https://docs.gitlab.com/ee/api/rest/
-- MVP `@diricode/github-mcp` pattern (to mirror for GitLab)
+- MVP `@diricode/github-mcp` pattern (to mirror for GitLab sync adapter)
 
 ---
 
@@ -89,13 +91,13 @@ Ecosystem references: GitLab REST API v4 / GraphQL API, GitLab Epics (Premium fe
 **Acceptance criteria**
 - [ ] Create, update, close, list, search operations for GitLab Issues
 - [ ] Label auto-creation with DiriCode label scheme (status, priority, type, agent)
-- [ ] Issue description follows same Markdown template as GitHub backend
+- [ ] Issue description follows same Markdown template as GitHub sync adapter
 - [ ] Filter by label, milestone, status, assignee works correctly
 - [ ] Issue ID prefix (`DC-*`) is preserved in titles for searchability
 - [ ] Bulk label creation on first project setup
 
 **References**
-- MVP GitHub backend: label scheme and issue template (to maintain consistency)
+- MVP GitHub sync adapter: label scheme and issue template (to maintain consistency)
 - GitLab Issues API: https://docs.gitlab.com/ee/api/issues.html
 - GitLab Labels API: https://docs.gitlab.com/ee/api/labels.html
 
@@ -136,15 +138,15 @@ Ecosystem references: GitLab REST API v4 / GraphQL API, GitLab Epics (Premium fe
 
 ### DC-GL-004 — GitLab MCP server packaging
 
-**Goal**: Package the GitLab integration as an MCP server (`@diricode/gitlab-mcp`), following the same pattern as the existing `@diricode/github-mcp` — making it discoverable, loadable per-agent, and independently testable.
+**Goal**: Package the GitLab sync adapter as an MCP server (`@diricode/gitlab-mcp`), following the same pattern as the existing `@diricode/github-mcp` — making it discoverable, loadable per-agent, and independently testable.
 
 **Scope**
 - MCP server implementation:
   - Tools: `gitlab_create_issue`, `gitlab_update_issue`, `gitlab_close_issue`, `gitlab_list_issues`, `gitlab_search_issues`, `gitlab_create_milestone`, `gitlab_create_epic` (if available)
   - Resources: `gitlab://project/{project}/issues`, `gitlab://project/{project}/milestones`
   - Tool annotations: all write operations marked `destructiveHint: false`, `idempotentHint: false`; list/search marked `readOnlyHint: true`
-- Agent loading: GitLab MCP loaded for agents that need plan management (dispatcher, planner, verifier) — not globally
-- Startup: MCP server starts when `planBackend: "gitlab"` is configured
+- Agent loading: GitLab MCP loaded for agents that synchronize state (dispatcher, planner, verifier) — not globally
+- Startup: MCP server starts when `syncTargets: ["gitlab"]` is configured
 - Graceful degradation: if GitLab is unreachable, queue operations and retry (offline resilience)
 
 **Acceptance criteria**
@@ -152,7 +154,7 @@ Ecosystem references: GitLab REST API v4 / GraphQL API, GitLab Epics (Premium fe
 - [ ] MCP tools for issue CRUD, milestone CRUD, epic CRUD (conditional)
 - [ ] MCP resources for browsing issues and milestones
 - [ ] Tool annotations present on all tools
-- [ ] MCP server starts only when `planBackend: "gitlab"` is configured
+- [ ] MCP server starts only when `syncTargets: ["gitlab"]` is configured
 - [ ] Agent-scoped loading (only relevant agents receive GitLab tools)
 - [ ] Offline queue: operations queued when GitLab unreachable, retried on reconnect
 
@@ -163,33 +165,36 @@ Ecosystem references: GitLab REST API v4 / GraphQL API, GitLab Epics (Premium fe
 
 ---
 
-### DC-GL-005 — Backend switcher and migration tooling
+### DC-GL-005 — Sync target switcher and migration tooling
 
-**Goal**: Allow users to switch between GitHub and GitLab backends (and future backends like Local/Jira), with optional migration of existing issues between platforms.
+**Goal**: Allow users to switch between GitLab and GitHub sync targets (and future targets like Jira), with optional migration of existing issues between platforms.
 
 **Scope**
-- Backend switcher:
-  - `dc config set planBackend gitlab` — change active backend
-  - Validation: test connection to new backend before switching
-  - Warning: "Existing issues in GitHub won't be migrated automatically. Use `dc migrate` to transfer."
+- Sync target switcher:
+  - `dc config set syncTargets gitlab` — change active sync target(s)
+  - `dc config set syncTargets "[github,gitlab]"` — enable multiple targets simultaneously
+  - Validation: test connection to new sync target before switching
+  - Warning: "Existing issues in SQLite are the source of truth. Use `dc migrate` to import existing platform issues or initialize a new project."
 - Migration command:
-  - `dc migrate --from github --to gitlab` — copy issues, labels, milestones/epics
+  - `dc migrate --from github --to gitlab` — copy existing GitHub Issues into SQLite, then push to GitLab
   - Dry-run mode: `dc migrate --dry-run` — show what would be migrated without executing
   - Mapping report: after migration, produce mapping table (old GitHub issue URL → new GitLab issue URL)
   - Status preservation: issue status (open/closed) and labels transferred
   - Limitation: comments and assignees NOT migrated in v3 (too complex, v4 consideration)
-- Backend abstraction verification: ensure pipeline/memory code truly doesn't depend on GitHub-specific APIs
+- Sync adapter abstraction verification: ensure pipeline/memory code truly doesn't depend on any specific sync target API
 
 **Acceptance criteria**
-- [ ] `dc config set planBackend gitlab` switches backend with validation
-- [ ] Connection test runs before backend switch
-- [ ] `dc migrate --from github --to gitlab` migrates issues, labels, milestones
+- [ ] `dc config set syncTargets gitlab` switches active target(s) with validation
+- [ ] Connection test runs before target switch
+- [ ] `dc migrate --from github --to gitlab` imports GitHub Issues and pushes to GitLab
 - [ ] Dry-run mode shows migration plan without executing
 - [ ] Mapping report generated after migration (old URL → new URL)
 - [ ] Issue status and labels preserved in migration
-- [ ] Pipeline/memory code works identically with GitHub and GitLab backends
+- [ ] Pipeline/memory code works identically with different sync targets
+- [ ] Multiple sync targets can be active simultaneously (state pushed to all)
 
 **References**
 - Survey 11.1: "GitHub first, GitLab v2/v3, Jira v4"
-- MVP pipeline abstraction (backend-agnostic plan interface)
-- v4 `epic-jira.md` (future: third backend using same abstraction)
+- ADR-048: SQLite as source of truth for runtime state
+- MVP pipeline abstraction (backend-agnostic sync interface)
+- v4 `epic-jira.md` (future: third sync target using same abstraction)
