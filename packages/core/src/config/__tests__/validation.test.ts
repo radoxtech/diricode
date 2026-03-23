@@ -190,15 +190,24 @@ describe("ConfigValidator", () => {
   });
 
   it("should warn about unknown keys when enabled", () => {
-    const validator = createTestValidator();
+    const simpleSchema = z.object({
+      knownKey: z.string().optional(),
+    });
+
+    const validator = new ConfigValidator(
+      simpleSchema as unknown as import("zod").ZodType<unknown>,
+      {
+        warnOnUnknownKeys: true,
+      },
+    );
 
     const result = validator.validate({
-      unknownTopLevelKey: "value",
-      providers: {},
-    } as Record<string, unknown>);
+      unknownKey: "value",
+      knownKey: "valid",
+    });
 
     expect(result.warnings.length).toBeGreaterThan(0);
-    expect(result.warnings[0]?.key).toBe("unknownTopLevelKey");
+    expect(result.warnings[0]?.key).toBe("unknownKey");
   });
 
   it("should not warn about unknown keys when disabled", () => {
