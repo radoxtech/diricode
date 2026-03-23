@@ -78,15 +78,20 @@ describe("API Versioning", () => {
 
   it("openapi.json path items have summary fields", async () => {
     const res = await fetchRes("/api/v1/openapi.json");
-    expect(res.body.paths["/sessions"].post?.summary).toBe("Create a new session");
-    expect(res.body.paths["/sessions/{id}"].get?.summary).toBe("Get a session by ID");
-    expect(res.body.paths["/sessions/{id}/messages"].post?.summary).toBe(
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(res.body.paths["/sessions"]!.post?.summary).toBe("Create a new session");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(res.body.paths["/sessions/{id}"]!.get?.summary).toBe("Get a session by ID");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(res.body.paths["/sessions/{id}/messages"]!.post?.summary).toBe(
       "Add a message to a session",
     );
-    expect(res.body.paths["/sessions/{id}/messages"].get?.summary).toBe(
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(res.body.paths["/sessions/{id}/messages"]!.get?.summary).toBe(
       "Get all messages for a session",
     );
-    expect(res.body.paths["/events"].get?.summary).toBe("SSE event stream");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(res.body.paths["/events"]!.get?.summary).toBe("SSE event stream");
   });
 
   it("health endpoint does NOT have API-Version header", async () => {
