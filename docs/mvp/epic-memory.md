@@ -1,12 +1,13 @@
 # Epic: Memory and Project State Backbone (MVP-1)
 
-> Package: `@diricode/memory` (+ `@diricode/github-mcp` for GitHub Issues client)
+> Package: `@diricode/memory`
 > Iteration: **MVP-1**
 > Issue IDs: **DC-MEM-001..DC-MEM-007**
+> Sync adapters (GitHub, GitLab, Jira) are optional output targets planned for v2+ — not part of MVP.
 
 ## Summary
 
-This epic delivers durable, queryable project memory for DiriCode MVP-1 using SQLite (project-local `.dc/memory.db`) with timeline-first storage, FTS5 search, token/cost telemetry, and multi-project isolation. It operationalizes ADR-022 (project memory), ADR-018 (FTS/indexing), and cross-cutting boundaries: no direct DB access outside `@diricode/memory`, no direct GitHub API usage outside the dedicated abstraction layer.
+This epic delivers durable, queryable project memory for DiriCode MVP-1 using SQLite (project-local `.dc/memory.db`) with timeline-first storage, FTS5 search, token/cost telemetry, and multi-project isolation. It operationalizes ADR-048 (SQLite Issue System), ADR-018 (FTS/indexing), and cross-cutting boundaries: no direct DB access outside `@diricode/memory`, local-first issue management with optional sync adapters for external visibility.
 
 Memory is designed as the state spine for pipeline checkpoints, observability, and issue-driven planning. MVP-1 prioritizes deterministic schema evolution (migrations), low-latency retrieval, and strict project separation, while explicitly tracking technical risk around Bun + SQLite FTS5 with a mandatory POC spike.
 
@@ -219,45 +220,46 @@ Track per-turn and aggregated token/cost usage for guardrails and observability.
 
 ---
 
-## Issue: DC-MEM-006 — GitHub Issues API client
+## Issue: DC-MEM-006 — Local Issue System Client
 
 ### Goal
 
-Deliver backend-agnostic issue tracking interface with GitHub REST implementation and epic support.
+Deliver a local-first issue management interface backed by SQLite for managing tasks, epics, and their relationships.
 
 ### Package boundary
 
-- Implement in **`@diricode/github-mcp`**.
-- Expose abstraction consumed by memory/core through interface contracts.
+- Implement in **`@diricode/memory`**.
+- Expose abstraction consumed by core and pipeline through interface contracts.
 
 ### Scope
 
-- Define interface: `IGitHubIssueClient` (backend-agnostic)
-- Implement GitHub REST adapter with methods:
-  - create issue
-  - update issue
-  - close issue
-  - list issues
-  - search issues
+- Define interface: `IIssueClient` (backend-agnostic)
+- Implement SQLite-native adapter with methods:
+  - create issue (INSERT into local SQLite)
+  - update issue (UPDATE local SQLite row)
+  - close issue (UPDATE status in local SQLite)
+  - list issues (SELECT from local SQLite with filters)
+  - search issues (FTS5 full-text search over issue titles and descriptions)
 - Epic support:
-  - parent issue + checklist of child issues
-  - traceability-friendly metadata conventions
-- Rate limit handling:
-  - detect quota responses
-  - retry/backoff strategy
-  - surfaced typed errors and telemetry
+  - parent issue + child issue relationships via foreign keys
+  - parent-child traceability via `parent_id` column (not checklist text)
+- Offline-first guarantees:
+  - all operations write and read only from local SQLite
+  - no network connection is required or checked for any state operation
+- Sync adapter note:
+  - Sync adapters (GitHub, GitLab, Jira) are output targets — they receive state changes from the local issue system. Adapters are planned for v2+ (see ADR-048).
 
 ### Acceptance criteria
 
-- [ ] `IGitHubIssueClient` abstraction is provider-agnostic and testable via mocks.
-- [ ] GitHub adapter supports full CRUD/list/search coverage.
-- [ ] Epic parent-child checklist workflow is supported.
-- [ ] Rate limit handling is resilient and observable.
-- [ ] No non-abstract direct GitHub API calls leak into other packages.
+- [ ] `IIssueClient` abstraction is backend-agnostic and testable via mocks.
+- [ ] SQLite adapter supports full CRUD/list/search coverage.
+- [ ] Epic parent-child relationships are supported via foreign keys.
+- [ ] All operations are local-only (no network dependency).
+- [ ] No non-abstract direct SQL calls leak into other packages.
 
 ### References
 
-- `spec-mvp-diricode.md` (GitHub Issues as state/plan backend)
+- `ADR-048` (SQLite Issue System)
 - `plan-implementacji-diricode.md` (legacy MEM-05/06 lineage)
 - `cross-cutting.md` (package boundary rules)
 
@@ -307,7 +309,7 @@ Ensure strict per-project memory isolation with optional global cross-project me
 - Must NOT implement embeddings/vector DB in MVP (deferred to v2).
 - Must NOT skip migration versioning or use ad-hoc schema mutation.
 - Must NOT break project isolation by default (cross-project is opt-in only).
-- Must NOT hardwire GitHub logic inside memory repositories; use abstraction boundary.
+- Must NOT hardwire sync adapter logic inside memory repositories; use abstraction boundary.
 
 ## Dependencies
 
@@ -330,4 +332,4 @@ Ensure strict per-project memory isolation with optional global cross-project me
 3. DC-MEM-004 (search)
 4. DC-MEM-005 (usage telemetry)
 5. DC-MEM-007 (isolation/global routing)
-6. DC-MEM-006 (GitHub client abstraction + adapter)
+6. DC-MEM-006 (Local issue system client)
