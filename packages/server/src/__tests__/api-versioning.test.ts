@@ -2,6 +2,32 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { Hono } from "hono";
 import { v1Router } from "../routes/api/v1.js";
 
+interface OpenApiPathItem {
+  summary?: string;
+  description?: string;
+  tags?: string[];
+  [key: string]: unknown;
+}
+
+interface OpenApiOperation {
+  get?: OpenApiPathItem;
+  post?: OpenApiPathItem;
+  put?: OpenApiPathItem;
+  delete?: OpenApiPathItem;
+  patch?: OpenApiPathItem;
+}
+
+interface OpenApiSchema {
+  openapi: string;
+  info: {
+    title: string;
+    version: string;
+    [key: string]: unknown;
+  };
+  paths: Record<string, OpenApiOperation>;
+  [key: string]: unknown;
+}
+
 describe("API Versioning", () => {
   let app: Hono;
 
@@ -10,9 +36,13 @@ describe("API Versioning", () => {
     app.route("/api/v1", v1Router);
   });
 
-  async function fetchRes(path: string) {
+  async function fetchRes(path: string): Promise<{
+    status: number;
+    headers: Headers;
+    body: OpenApiSchema;
+  }> {
     const res = await app.request(path, { method: "GET" });
-    const body = await res.clone().json();
+    const body = (await res.clone().json()) as OpenApiSchema;
     return { status: res.status, headers: res.headers, body };
   }
 
@@ -48,15 +78,15 @@ describe("API Versioning", () => {
 
   it("openapi.json path items have summary fields", async () => {
     const res = await fetchRes("/api/v1/openapi.json");
-    expect(res.body.paths["/sessions"]["post"]["summary"]).toBe("Create a new session");
-    expect(res.body.paths["/sessions/{id}"]["get"]["summary"]).toBe("Get a session by ID");
-    expect(res.body.paths["/sessions/{id}/messages"]["post"]["summary"]).toBe(
+    expect(res.body.paths["/sessions"].post?.summary).toBe("Create a new session");
+    expect(res.body.paths["/sessions/{id}"].get?.summary).toBe("Get a session by ID");
+    expect(res.body.paths["/sessions/{id}/messages"].post?.summary).toBe(
       "Add a message to a session",
     );
-    expect(res.body.paths["/sessions/{id}/messages"]["get"]["summary"]).toBe(
+    expect(res.body.paths["/sessions/{id}/messages"].get?.summary).toBe(
       "Get all messages for a session",
     );
-    expect(res.body.paths["/events"]["get"]["summary"]).toBe("SSE event stream");
+    expect(res.body.paths["/events"].get?.summary).toBe("SSE event stream");
   });
 
   it("health endpoint does NOT have API-Version header", async () => {
