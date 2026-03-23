@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { resolve } from "node:path";
 
 export default defineConfig({
   resolve: {
@@ -8,9 +9,9 @@ export default defineConfig({
     },
     preserveSymlinks: true,
   },
-  root: "/tmp/diricode-24/packages/core",
+  root: resolve(__dirname),
   test: {
-    root: "/tmp/diricode-24/packages/core",
+    root: resolve(__dirname),
     pool: "forks",
     environment: "node",
     include: ["src/**/__tests__/**/*.test.ts"],
