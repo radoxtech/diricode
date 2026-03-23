@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { z } from "zod";
+import { z, type ZodType } from "zod";
 import {
   zodErrorToValidationErrors,
   sanitizeValue,
@@ -194,12 +194,9 @@ describe("ConfigValidator", () => {
       knownKey: z.string().optional(),
     });
 
-    const validator = new ConfigValidator(
-      simpleSchema as unknown as import("zod").ZodType<unknown>,
-      {
-        warnOnUnknownKeys: true,
-      },
-    );
+    const validator = new ConfigValidator(simpleSchema as unknown as ZodType<unknown>, {
+      warnOnUnknownKeys: true,
+    });
 
     const result = validator.validate({
       unknownKey: "value",
