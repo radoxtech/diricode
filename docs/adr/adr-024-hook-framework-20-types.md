@@ -5,7 +5,7 @@
 | Status      | Accepted                                      |
 | Date        | 2026-03-09                                    |
 | Scope       | MVP + v2 + v3                                 |
-| References  | analiza-hookow.md (ARCH-003: 15-20 hook types) |
+| References  | analiza-hookow.md (ARCH-003: 15-20 hook types), Survey Decision A1, ADR-045 |
 
 ### Context
 
@@ -89,3 +89,12 @@ The 20 hook types are now classified into two execution models:
 
 **`jump_to` Mechanism**
 Hooks can now redirect execution: `jump_to("end")`, `jump_to("tools")`, `jump_to("model")`.
+
+### Addendum — Hook-Based Learning Integration (Survey Decision A1, 2026-03-23)
+
+Two new hook integration points connect the Hook Framework to the ReasoningBank (ADR-045):
+
+- **`post-agent`** (Phase 3, v3): Captures agent reasoning after task completion — extracts problem, approach, outcome, and confidence into ReasoningBank records.
+- **`pre-agent`** (Phase 2, v2): Injects relevant prior reasoning before agent execution — queries ReasoningBank for similar past problems and provides them as context.
+
+These hooks enable closed-loop learning: agents benefit from prior reasoning without manual knowledge curation. The hooks follow the existing Interceptor pattern (sequential, state modification).
