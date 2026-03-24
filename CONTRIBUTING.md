@@ -2,6 +2,8 @@
 
 DiriCode is in active development. Contributions are welcome — open an issue, discuss a design idea, or submit a PR.
 
+> **Note: This document is for contributing to DiriCode itself.** The workflow described here uses GitHub Projects for tracking DiriCode's development. When you use DiriCode to build your own applications, your plans and tasks are stored locally in SQLite — not in GitHub Issues. See the main [README](README.md) for how end-user projects work.
+
 Before diving in, read this document end-to-end. It covers how work is planned, how branches are managed, how AI commands fit into the workflow, and when you need an ADR.
 
 ---

@@ -4,7 +4,7 @@
 [![CI Status](https://img.shields.io/github/actions/workflow/status/radoxtech/diricode/ci.yml?branch=main)](https://github.com/radoxtech/diricode/actions)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-green.svg)](https://nodejs.org/)
 
-An autonomous AI coding framework that keeps all runtime state — issues, tasks, epics, progress — in a local SQLite database. DiriCode runs sprints, delegates to 40 specialized agents, works in parallel across git worktrees, and reports progress back to you — while you review from your phone.
+An autonomous AI coding framework that helps you build applications — from POC to production — using a team of 40 specialized AI agents. Whether you're a developer, product manager, or product owner, you describe what you want to build, and DiriCode interviews you, challenges your assumptions, builds a detailed plan, and implements it maximally autonomously. Questions are queued and asked in batches (never blocking), while the orchestrator continues working on everything else. All runtime state lives in a local SQLite database, so agents work offline at full speed, and you can review progress from your phone.
 
 > **Status: Pre-MVP (v0.0.0)**. Active early development. Core subsystems are functional, but the full pipeline is not yet wired end-to-end.
 
