@@ -115,8 +115,8 @@ export class GeminiProvider implements Provider {
       });
 
       const text = response.text;
-      if (text === null || text === undefined) {
-        throw new Error("Gemini API returned null or undefined response text");
+      if (!text) {
+        throw new Error("Gemini API returned empty response");
       }
 
       return text;

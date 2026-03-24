@@ -148,7 +148,7 @@ describe("GeminiProvider", () => {
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow(
-        "returned null or undefined response text",
+        "returned empty response",
       );
     });
 
@@ -189,6 +189,7 @@ describe("GeminiProvider", () => {
     it("streams content with default model", async () => {
       const { GoogleGenAI } = await import("@google/genai");
       const mockStream = {
+        // eslint-disable-next-line @typescript-eslint/require-await
         async *[Symbol.asyncIterator]() {
           yield { text: "Chunk 1" };
           yield { text: "Chunk 2" };
@@ -205,7 +206,7 @@ describe("GeminiProvider", () => {
       );
 
       const provider = new GeminiProvider(mockApiKey);
-      const chunks: Array<{ delta: string; done: boolean }> = [];
+      const chunks: { delta: string; done: boolean }[] = [];
 
       for await (const chunk of provider.stream({ prompt: "Hello" })) {
         chunks.push(chunk);
@@ -220,6 +221,7 @@ describe("GeminiProvider", () => {
     it("handles empty chunks", async () => {
       const { GoogleGenAI } = await import("@google/genai");
       const mockStream = {
+        // eslint-disable-next-line @typescript-eslint/require-await
         async *[Symbol.asyncIterator]() {
           yield { text: null };
           yield { text: undefined };
@@ -237,7 +239,7 @@ describe("GeminiProvider", () => {
       );
 
       const provider = new GeminiProvider(mockApiKey);
-      const chunks: Array<{ delta: string; done: boolean }> = [];
+      const chunks: { delta: string; done: boolean }[] = [];
 
       for await (const chunk of provider.stream({ prompt: "Hello" })) {
         chunks.push(chunk);
@@ -253,6 +255,7 @@ describe("GeminiProvider", () => {
     it("uses custom model config when provided", async () => {
       const { GoogleGenAI } = await import("@google/genai");
       const mockGenerateContentStream = vi.fn().mockResolvedValue({
+        // eslint-disable-next-line @typescript-eslint/require-await
         async *[Symbol.asyncIterator]() {
           yield { text: "Response" };
         },
@@ -273,6 +276,7 @@ describe("GeminiProvider", () => {
         prompt: "Hello",
         model: { modelId: "gemini-pro", temperature: 0.8, maxTokens: 1000 },
       })) {
+        // Intentionally empty: consuming stream to trigger mock
       }
 
       expect(mockGenerateContentStream).toHaveBeenCalledWith({
