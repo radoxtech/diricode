@@ -1,7 +1,7 @@
 # DiriCode — Architecture Decision Records
 
 > All ADRs in English. Consistent with all 13 analysis documents and user decisions.
-> Last updated: 2026-03-21
+> Last updated: 2026-03-23
 
 ## Index
 
@@ -28,7 +28,7 @@
 | [019](adr-019-smart-context-per-subtask.md) | Smart Context per Subtask (Architect Agent) | MVP | Context |
 | [020](adr-020-sub-agent-context-inheritance.md) | Sub-Agent Context Inheritance (toModelOutput) | MVP | Context |
 | [021](adr-021-embeddings-deferred-to-v2.md) | Embeddings Deferred to v2 | v2 | Context |
-| [022](adr-022-github-issues-sqlite-timeline.md) | Project Memory: GitHub Issues + SQLite Timeline | MVP | State |
+| [022](adr-022-github-issues-sqlite-timeline.md) | ~~Project Memory: GitHub Issues + SQLite Timeline~~ (Superseded by 048) | MVP | State |
 | [023](adr-023-no-snapshot-git-recovery.md) | No Snapshot System (Git-Based Recovery) | MVP | State |
 | [024](adr-024-hook-framework-20-types.md) | Hook Framework: 20 Types, 6 MVP, Hybrid Model | MVP+v2+v3 | Hooks |
 | [025](adr-025-native-ts-router-fallback-chain.md) | Native TS Router with Fallback Chain | MVP | Router |
@@ -49,6 +49,12 @@
 | [040](adr-040-tool-based-agent-discovery.md) | Tool-Based Agent Discovery | Draft | v2 |
 | [041](adr-041-mcp-web-research-servers.md) | MCP Web Research Server Selection | Accepted | MVP |
 | [042](adr-042-multi-subscription-management.md) | Multi-Subscription Model Management | MVP-2+v2+v3 | Router |
+| [043](adr-043-llm-skills-loader.md) | LLM-Based Skill Loader and Router | Accepted | MVP |
+| [044](adr-044-elo-scoring-ab-testing.md) | Elo Scoring and A/B Testing | v2+v3 | Router |
+| [045](adr-045-reasoningbank.md) | ReasoningBank System | MVP | Context |
+| [046](adr-046-swarm-coordination.md) | Swarm Coordination | MVP | Architecture |
+| [047](adr-047-governance-policy-engine.md) | Governance & Policy Engine | MVP | Pipeline |
+| [048](adr-048-sqlite-issue-system.md) | SQLite Issue System (supersedes ADR-022) | MVP | State |
 
 ## Template
 

@@ -198,6 +198,31 @@ Persist changes to project config and reflect effective mode in runtime requests
 
 ---
 
+## Issue: DC-WEB-008 — AI Cockpit (React Flow Visualizer)
+
+### Description
+Implement the "AI Cockpit" visualizer using React Flow:
+- represent active agents as nodes in a dynamic graph
+- visualize SSE events as "flowing current" animated edges between nodes
+- neural net style layout that updates as delegation occurs
+- interactive nodes (click to focus agent in chat/logs)
+
+### Acceptance Criteria
+- [ ] React Flow is integrated into the dashboard layout.
+- [ ] Agent nodes appear/disappear based on SSE lifecycle events.
+- [ ] Animated edges visualize the flow of data and control between agents.
+- [ ] Layout remains readable even with complex nested delegation.
+- [ ] Visual style aligns with the "neural net" aesthetic (UX-003 transparency).
+
+### References
+- `spec-mvp-diricode.md` (ADR-031 observability)
+- `docs/mvp/epic-observability.md` (EventStream integration)
+
+### Dependencies
+- Depends on: DC-WEB-002, DC-OBS-001, React Flow library
+
+---
+
 ## Must NOT
 - Must NOT introduce TUI scope into MVP-3 web epic.
 - Must NOT overload first-time users with debug-heavy UI defaults (UX-001).

@@ -5,7 +5,7 @@
 | Status      | Accepted                                      |
 | Date        | 2026-03-09                                    |
 | Scope       | MVP                                           |
-| References  | analiza-context-management.md                 |
+| References  | analiza-context-management.md, Survey Decision B3 |
 
 ### Context
 
@@ -39,3 +39,13 @@ Context management is critical for cost and quality. Models have different conte
 - **Positive:** Efficient token usage. Each layer can evolve independently. Adaptive budgets maximize quality per model.
 - **Negative:** 3 layers add implementation complexity. Budget tuning requires empirical testing.
 - **Inspiration:** OpenHands (pipeline pattern), Aider (repo map), Plandex (context management).
+
+### Addendum — Context Autopilot (Survey Decision B3, 2026-03-23)
+
+Context Autopilot is absorbed into Layer 3 (Context Composer) rather than being a separate system. The Composer auto-detects which context categories are most relevant per task type:
+
+- **Code tasks**: Prioritize active files + symbol index (60% budget)
+- **Planning tasks**: Prioritize conversation history + project state (50% budget)
+- **Review tasks**: Prioritize diff + test results + original spec (55% budget)
+
+This replaces manual context category configuration. The architect agent (ADR-019) still selects specific files per subtask, but the Composer decides how much budget each category receives based on the task type signal.
