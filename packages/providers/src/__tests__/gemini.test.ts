@@ -1,18 +1,20 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { GeminiProvider } from "../providers/gemini.js";
 
-// Mock the @google/genai module with a controllable mock class
-const mockGenerateContent = vi.fn();
-const mockGenerateContentStream = vi.fn();
+const mocks = vi.hoisted(() => ({
+  generateContent: vi.fn(),
+  generateContentStream: vi.fn(),
+}));
 
 vi.mock("@google/genai", () => ({
   GoogleGenAI: vi.fn().mockImplementation(() => ({
     models: {
-      generateContent: mockGenerateContent,
-      generateContentStream: mockGenerateContentStream,
+      generateContent: mocks.generateContent,
+      generateContentStream: mocks.generateContentStream,
     },
   })),
 }));
+
+const { GeminiProvider } = await import("../providers/gemini.js");
 
 describe("GeminiProvider", () => {
   const mockApiKey = "test-api-key-12345";
@@ -76,12 +78,12 @@ describe("GeminiProvider", () => {
 
   describe("generate", () => {
     it("generates content with default model", async () => {
-      mockGenerateContent.mockResolvedValue({ text: "Generated response" });
+      mocks.generateContent.mockResolvedValue({ text: "Generated response" });
 
       const provider = new GeminiProvider(mockApiKey);
       const result = await provider.generate({ prompt: "Hello" });
 
-      expect(mockGenerateContent).toHaveBeenCalledWith({
+      expect(mocks.generateContent).toHaveBeenCalledWith({
         model: "gemini-2.5-flash",
         contents: "Hello",
         config: {
@@ -93,7 +95,7 @@ describe("GeminiProvider", () => {
     });
 
     it("uses custom model when provided", async () => {
-      mockGenerateContent.mockResolvedValue({ text: "Custom model response" });
+      mocks.generateContent.mockResolvedValue({ text: "Custom model response" });
 
       const provider = new GeminiProvider(mockApiKey);
       const result = await provider.generate({
@@ -105,7 +107,7 @@ describe("GeminiProvider", () => {
         },
       });
 
-      expect(mockGenerateContent).toHaveBeenCalledWith({
+      expect(mocks.generateContent).toHaveBeenCalledWith({
         model: "gemini-2.5-pro",
         contents: "Hello",
         config: {
@@ -117,7 +119,7 @@ describe("GeminiProvider", () => {
     });
 
     it("handles null response text", async () => {
-      mockGenerateContent.mockResolvedValue({ text: null });
+      mocks.generateContent.mockResolvedValue({ text: null });
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow(
@@ -126,7 +128,7 @@ describe("GeminiProvider", () => {
     });
 
     it("handles API errors with meaningful messages", async () => {
-      mockGenerateContent.mockRejectedValue(new Error("API key invalid"));
+      mocks.generateContent.mockRejectedValue(new Error("API key invalid"));
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow(
@@ -135,7 +137,7 @@ describe("GeminiProvider", () => {
     });
 
     it("handles rate limit errors", async () => {
-      mockGenerateContent.mockRejectedValue(new Error("rate limit exceeded"));
+      mocks.generateContent.mockRejectedValue(new Error("rate limit exceeded"));
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow("Rate limit exceeded");
@@ -151,7 +153,7 @@ describe("GeminiProvider", () => {
           yield { text: "Chunk 2" };
         },
       };
-      mockGenerateContentStream.mockResolvedValue(mockStream);
+      mocks.generateContentStream.mockResolvedValue(mockStream);
 
       const provider = new GeminiProvider(mockApiKey);
       const chunks: { delta: string; done: boolean }[] = [];
@@ -175,7 +177,7 @@ describe("GeminiProvider", () => {
           yield { text: "" };
         },
       };
-      mockGenerateContentStream.mockResolvedValue(mockStream);
+      mocks.generateContentStream.mockResolvedValue(mockStream);
 
       const provider = new GeminiProvider(mockApiKey);
       const chunks: { delta: string; done: boolean }[] = [];
@@ -198,7 +200,7 @@ describe("GeminiProvider", () => {
           yield { text: "Response" };
         },
       };
-      mockGenerateContentStream.mockResolvedValue(mockStream);
+      mocks.generateContentStream.mockResolvedValue(mockStream);
 
       const provider = new GeminiProvider(mockApiKey);
 
@@ -209,7 +211,7 @@ describe("GeminiProvider", () => {
       })) {
       }
 
-      expect(mockGenerateContentStream).toHaveBeenCalledWith({
+      expect(mocks.generateContentStream).toHaveBeenCalledWith({
         model: "gemini-pro",
         contents: "Hello",
         config: {
@@ -220,7 +222,7 @@ describe("GeminiProvider", () => {
     });
 
     it("handles streaming errors", async () => {
-      mockGenerateContentStream.mockRejectedValue(new Error("Network error"));
+      mocks.generateContentStream.mockRejectedValue(new Error("Network error"));
 
       const provider = new GeminiProvider(mockApiKey);
       const generator = provider.stream({ prompt: "Hello" });
@@ -233,14 +235,14 @@ describe("GeminiProvider", () => {
 
   describe("error handling", () => {
     it("handles model not found errors", async () => {
-      mockGenerateContent.mockRejectedValue(new Error("model not found: invalid-model"));
+      mocks.generateContent.mockRejectedValue(new Error("model not found: invalid-model"));
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow("Invalid model ID");
     });
 
     it("handles unknown errors", async () => {
-      mockGenerateContent.mockRejectedValue("unknown error");
+      mocks.generateContent.mockRejectedValue("unknown error");
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow(
