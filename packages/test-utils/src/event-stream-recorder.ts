@@ -12,6 +12,7 @@ export class EventStreamRecorder {
 
   recordConnected(connectionId: string, lastEventId: string | null = null): void {
     this.connectionId = connectionId;
+    const priorLastId = this.lastEventId;
     this.record({
       id: crypto.randomUUID(),
       event: "connected",
@@ -22,6 +23,7 @@ export class EventStreamRecorder {
         lastEventId,
       },
     });
+    this.lastEventId = lastEventId ?? priorLastId;
   }
 
   recordHeartbeat(): void {
