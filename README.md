@@ -55,9 +55,9 @@ You describe what you want
 
 **Questions Queue:** The orchestrator continuously gathers decision-making questions and doubts. Each is tagged with importance (architectural impact, user experience, technical debt) and blocking-factor (how many other tasks it halts). Queue is sorted automatically — highest impact blockers surface first. You receive batched notifications on mobile and answer when ready. Agents never wait on you unless truly blocked.
 
-### Two-Dimensional Model Selection
+### Three-Dimensional Model Selection
 
-Instead of hardcoding "use GPT for everything," DiriCode classifies AI models along two dimensions:
+Instead of hardcoding "use GPT for everything," DiriCode classifies AI models along three dimensions:
 
 **Tier** — how powerful (and expensive) the model is:
 
@@ -79,9 +79,19 @@ Instead of hardcoding "use GPT for everything," DiriCode classifies AI models al
 | Bulk         | High volume work at minimal cost                 |
 | Agentic      | Tool use, multi-step autonomous execution        |
 
-Each agent requests `{ tier: "heavy", family: "reasoning" }` and the router finds the best available model across all your subscriptions. A single model can belong to multiple families — Opus 4.6 is reasoning + creative + agentic.
+**Context Size** — how much input context the model can handle:
 
-See [ADR-004](docs/adr/adr-004-agent-roster-3-tiers.md) and [ADR-042](docs/adr/adr-042-multi-subscription-management.md).
+| Context Group | Range          | Used For                                            |
+| ------------- | -------------- | --------------------------------------------------- |
+| Standard      | ≤200K tokens   | Most tasks, single-file analysis, standard coding   |
+| Extended      | 200K–1M tokens | Large codebases, multi-file analysis, big documents |
+| Massive       | ≥1M tokens     | Full-repo analysis, massive document processing     |
+
+The same model can appear in different context groups depending on your subscription — for example, Claude Opus via GitHub Copilot (200K, standard) vs Anthropic direct API (1M, massive). The router prefers cheaper subscriptions when smaller context is sufficient.
+
+Each agent requests `{ tier: "heavy", family: "reasoning" }` (and optionally `contextRequired: "standard"`) and the router finds the best available model across all your subscriptions, preferring cheaper subscriptions when smaller context is sufficient. A single model can belong to multiple families — Opus 4.6 is reasoning + creative + agentic.
+
+See [ADR-004](docs/adr/adr-004-agent-roster-3-tiers.md) and [ADR-042](docs/adr/adr-042-multi-subscription-management.md). The 3D classification system is documented in the [ADR-042 addendum](docs/adr/adr-042-multi-subscription-management.md).
 
 ### Multi-Subscription Management
 
