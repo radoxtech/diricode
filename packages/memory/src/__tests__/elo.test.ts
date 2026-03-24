@@ -5,7 +5,7 @@ import { ModelScoreRepository } from "../db/repositories/ModelScoreRepository.js
 import { migration002 } from "../db/migrations/002_ai_intelligence.js";
 import { initSchemaVersions } from "../db/schema/version.js";
 
-function createInMemoryDb() {
+function createInMemoryDb(): Database.Database {
   const db = new Database(":memory:");
   db.pragma("foreign_keys = ON");
   initSchemaVersions(db);
@@ -126,19 +126,19 @@ describe("ModelScoreRepository", () => {
     it("winner Elo increases from default", () => {
       repo.recordMatch("gpt-4o", "claude-3", "code-write");
       const winner = repo.getScore("gpt-4o", "code-write");
-      expect(winner!.elo_rating).toBeGreaterThan(DEFAULT_ELO);
+      expect(winner?.elo_rating).toBeGreaterThan(DEFAULT_ELO);
     });
 
     it("loser Elo decreases from default", () => {
       repo.recordMatch("gpt-4o", "claude-3", "code-write");
       const loser = repo.getScore("claude-3", "code-write");
-      expect(loser!.elo_rating).toBeLessThan(DEFAULT_ELO);
+      expect(loser?.elo_rating).toBeLessThan(DEFAULT_ELO);
     });
 
     it("match_count is incremented to 1 for both after first match", () => {
       repo.recordMatch("gpt-4o", "claude-3", "code-write");
-      expect(repo.getScore("gpt-4o", "code-write")!.match_count).toBe(1);
-      expect(repo.getScore("claude-3", "code-write")!.match_count).toBe(1);
+      expect(repo.getScore("gpt-4o", "code-write")?.match_count).toBe(1);
+      expect(repo.getScore("claude-3", "code-write")?.match_count).toBe(1);
     });
   });
 
@@ -147,17 +147,17 @@ describe("ModelScoreRepository", () => {
       for (let i = 0; i < 5; i++) {
         repo.recordMatch("model-a", "model-b", "code-write");
       }
-      expect(repo.getScore("model-a", "code-write")!.match_count).toBe(5);
-      expect(repo.getScore("model-b", "code-write")!.match_count).toBe(5);
+      expect(repo.getScore("model-a", "code-write")?.match_count).toBe(5);
+      expect(repo.getScore("model-b", "code-write")?.match_count).toBe(5);
     });
 
     it("uses K=16 for winner with >= 30 prior matches", () => {
       for (let i = 0; i < 30; i++) {
-        repo.recordMatch("model-a", `model-x${i}`, "code-write");
+        repo.recordMatch("model-a", `model-x${String(i)}`, "code-write");
       }
-      const scoreBefore = repo.getScore("model-a", "code-write")!.elo_rating;
+      const scoreBefore = repo.getScore("model-a", "code-write")?.elo_rating ?? DEFAULT_ELO;
       repo.recordMatch("model-a", "model-b", "code-write");
-      const scoreAfter = repo.getScore("model-a", "code-write")!.elo_rating;
+      const scoreAfter = repo.getScore("model-a", "code-write")?.elo_rating ?? DEFAULT_ELO;
       const delta = scoreAfter - scoreBefore;
       expect(delta).toBeLessThan(16);
     });
@@ -173,19 +173,27 @@ describe("ModelScoreRepository", () => {
 
   describe("recordMatch — input validation", () => {
     it("throws when winnerId is empty", () => {
-      expect(() => repo.recordMatch("", "claude-3", "code-write")).toThrow();
+      expect(() => {
+        repo.recordMatch("", "claude-3", "code-write");
+      }).toThrow();
     });
 
     it("throws when loserId is empty", () => {
-      expect(() => repo.recordMatch("gpt-4o", "", "code-write")).toThrow();
+      expect(() => {
+        repo.recordMatch("gpt-4o", "", "code-write");
+      }).toThrow();
     });
 
     it("throws when taskType is empty", () => {
-      expect(() => repo.recordMatch("gpt-4o", "claude-3", "")).toThrow();
+      expect(() => {
+        repo.recordMatch("gpt-4o", "claude-3", "");
+      }).toThrow();
     });
 
     it("throws when winnerId === loserId", () => {
-      expect(() => repo.recordMatch("gpt-4o", "gpt-4o", "code-write")).toThrow();
+      expect(() => {
+        repo.recordMatch("gpt-4o", "gpt-4o", "code-write");
+      }).toThrow();
     });
   });
 

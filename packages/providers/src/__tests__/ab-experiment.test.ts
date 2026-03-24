@@ -184,8 +184,9 @@ describe("ABExperimentManager", () => {
 
       await manager.evaluate(makeTask({ estimatedCostUsd: 0.5 }));
 
-      const updated = (await repo.findAll())[0]!;
-      expect(updated.currentSpendUsd).toBeCloseTo(1.5);
+      const experiments = await repo.findAll();
+      const updated = experiments[0];
+      expect(updated?.currentSpendUsd).toBeCloseTo(1.5);
     });
 
     it("does not increment spend when task has no estimatedCostUsd (defaults to 0)", async () => {
@@ -195,8 +196,9 @@ describe("ABExperimentManager", () => {
 
       await manager.evaluate(makeTask());
 
-      const updated = (await repo.findAll())[0]!;
-      expect(updated.currentSpendUsd).toBeCloseTo(2.0);
+      const experiments = await repo.findAll();
+      const updated = experiments[0];
+      expect(updated?.currentSpendUsd).toBeCloseTo(2.0);
     });
   });
 
@@ -220,8 +222,9 @@ describe("ABExperimentManager", () => {
 
       await manager.evaluate(makeTask({ estimatedCostUsd: 0.5 }));
 
-      const updated = (await repo.findAll())[0]!;
-      expect(updated.status).toBe("paused");
+      const experiments = await repo.findAll();
+      const updated = experiments[0];
+      expect(updated?.status).toBe("paused");
     });
 
     it("does NOT increment spend when cap is exceeded", async () => {
@@ -231,8 +234,9 @@ describe("ABExperimentManager", () => {
 
       await manager.evaluate(makeTask({ estimatedCostUsd: 0.5 }));
 
-      const updated = (await repo.findAll())[0]!;
-      expect(updated.currentSpendUsd).toBeCloseTo(0.8);
+      const experiments = await repo.findAll();
+      const updated = experiments[0];
+      expect(updated?.currentSpendUsd).toBeCloseTo(0.8);
     });
 
     it("allows branching when spend exactly equals cap (strict >)", async () => {

@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { migration002 } from "../db/migrations/002_ai_intelligence.js";
 import { initSchemaVersions } from "../db/schema/version.js";
 
-function createInMemoryDb() {
+function createInMemoryDb(): Database.Database {
   const db = new Database(":memory:");
   db.pragma("foreign_keys = ON");
   initSchemaVersions(db);
@@ -115,7 +115,9 @@ describe("migration002 (ai_intelligence)", () => {
 
     it("is idempotent — running up() twice does not throw (IF NOT EXISTS)", () => {
       migration002.up(db);
-      expect(() => migration002.up(db)).not.toThrow();
+      expect(() => {
+        migration002.up(db);
+      }).not.toThrow();
     });
   });
 
@@ -135,7 +137,9 @@ describe("migration002 (ai_intelligence)", () => {
     it("down() is idempotent — running twice does not throw (IF EXISTS)", () => {
       migration002.up(db);
       migration002.down(db);
-      expect(() => migration002.down(db)).not.toThrow();
+      expect(() => {
+        migration002.down(db);
+      }).not.toThrow();
     });
   });
 });
