@@ -37,7 +37,7 @@ class LruCache {
     const node: LruNode = { key, value, prev: null, next: this.head };
     if (this.head) this.head.prev = node;
     this.head = node;
-    if (!this.tail) this.tail = node;
+    this.tail ??= node;
     this.map.set(key, node);
     this.size++;
 
@@ -53,7 +53,7 @@ class LruCache {
     node.prev = null;
     if (this.head) this.head.prev = node;
     this.head = node;
-    if (!this.tail) this.tail = node;
+    this.tail ??= node;
   }
 
   private unlink(node: LruNode): void {
@@ -151,7 +151,7 @@ export class SkillRouter {
     const validIds = new Set(skills.map((s) => s.id));
     let parsed: unknown;
     try {
-      const match = raw.match(/\[[\s\S]*]/);
+      const match = /\[[\s\S]*]/.exec(raw);
       parsed = JSON.parse(match ? match[0] : raw);
     } catch {
       return this.tagFallback("", skills);
@@ -187,7 +187,9 @@ export class SkillRouter {
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Timeout after ${String(ms)}ms`)), ms);
+    const timer = setTimeout(() => {
+      reject(new Error(`Timeout after ${String(ms)}ms`));
+    }, ms);
     promise.then(
       (v) => {
         clearTimeout(timer);
@@ -195,7 +197,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
       },
       (e: unknown) => {
         clearTimeout(timer);
-        reject(e);
+        reject(e instanceof Error ? e : new Error(String(e)));
       },
     );
   });

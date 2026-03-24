@@ -43,14 +43,14 @@ describe("SkillRouter", () => {
     });
 
     it("calls the provider with a prompt containing the task info", async () => {
-      const provider = makeMockProvider('["code-review"]');
+      const mockComplete = vi.fn().mockResolvedValue('["code-review"]');
+      const provider: SkillRouterProvider = { complete: mockComplete };
       const router = new SkillRouter(provider);
 
       await router.route("review this PR", "code-review", "agent-1", skills);
 
-      expect(provider.complete).toHaveBeenCalledOnce();
-      const calls = (provider.complete as ReturnType<typeof vi.fn>).mock.calls;
-      const prompt = calls[0]?.[0] as string | undefined;
+      expect(mockComplete).toHaveBeenCalledOnce();
+      const prompt = mockComplete.mock.calls[0]?.[0] as string | undefined;
       expect(prompt).toBeDefined();
       expect(prompt).toContain("review this PR");
       expect(prompt).toContain("code-review");
@@ -83,54 +83,59 @@ describe("SkillRouter", () => {
       const result = await router.route("find docs", "research", "agent-1", skills);
 
       expect(result).toHaveLength(1);
-      expect(result[0]!.id).toBe("web-research");
-      expect(result[0]!.name).toBe("web-research");
+      expect(result[0]?.id).toBe("web-research");
+      expect(result[0]?.name).toBe("web-research");
     });
   });
 
   describe("route — LRU caching", () => {
     it("uses the LLM on first call and caches the result", async () => {
-      const provider = makeMockProvider('["code-review"]');
+      const mockComplete = vi.fn().mockResolvedValue('["code-review"]');
+      const provider: SkillRouterProvider = { complete: mockComplete };
       const router = new SkillRouter(provider);
 
       await router.route("task 1", "code-write", "agent-1", skills);
 
-      expect(provider.complete).toHaveBeenCalledTimes(1);
+      expect(mockComplete).toHaveBeenCalledTimes(1);
     });
 
     it("hits the cache on identical (taskType, agentId) and skips LLM", async () => {
-      const provider = makeMockProvider('["code-review"]');
+      const mockComplete = vi.fn().mockResolvedValue('["code-review"]');
+      const provider: SkillRouterProvider = { complete: mockComplete };
       const router = new SkillRouter(provider);
 
       const first = await router.route("task 1", "code-write", "agent-1", skills);
       const second = await router.route("different task desc", "code-write", "agent-1", skills);
 
-      expect(provider.complete).toHaveBeenCalledTimes(1);
+      expect(mockComplete).toHaveBeenCalledTimes(1);
       expect(first.map((s) => s.id)).toEqual(second.map((s) => s.id));
     });
 
     it("uses different cache entries for different agentId", async () => {
-      const provider = makeMockProvider('["code-review"]');
+      const mockComplete = vi.fn().mockResolvedValue('["code-review"]');
+      const provider: SkillRouterProvider = { complete: mockComplete };
       const router = new SkillRouter(provider);
 
       await router.route("task", "code-write", "agent-1", skills);
       await router.route("task", "code-write", "agent-2", skills);
 
-      expect(provider.complete).toHaveBeenCalledTimes(2);
+      expect(mockComplete).toHaveBeenCalledTimes(2);
     });
 
     it("uses different cache entries for different taskType", async () => {
-      const provider = makeMockProvider('["code-review"]');
+      const mockComplete = vi.fn().mockResolvedValue('["code-review"]');
+      const provider: SkillRouterProvider = { complete: mockComplete };
       const router = new SkillRouter(provider);
 
       await router.route("task", "code-write", "agent-1", skills);
       await router.route("task", "review", "agent-1", skills);
 
-      expect(provider.complete).toHaveBeenCalledTimes(2);
+      expect(mockComplete).toHaveBeenCalledTimes(2);
     });
 
     it("evicts least-recently-used when cache capacity is exceeded", async () => {
-      const provider = makeMockProvider('["code-review"]');
+      const mockComplete = vi.fn().mockResolvedValue('["code-review"]');
+      const provider: SkillRouterProvider = { complete: mockComplete };
       const router = new SkillRouter(provider, { cacheCapacity: 2 });
 
       await router.route("task", "type-A", "agent-1", skills);
@@ -138,7 +143,7 @@ describe("SkillRouter", () => {
       await router.route("task", "type-C", "agent-1", skills);
       await router.route("task", "type-A", "agent-1", skills);
 
-      expect(provider.complete).toHaveBeenCalledTimes(4);
+      expect(mockComplete).toHaveBeenCalledTimes(4);
     });
   });
 
@@ -148,7 +153,9 @@ describe("SkillRouter", () => {
         complete: vi.fn().mockImplementation(
           () =>
             new Promise<string>((resolve) => {
-              setTimeout(() => resolve('["code-review"]'), 5_000);
+              setTimeout(() => {
+                resolve('["code-review"]');
+              }, 5_000);
             }),
         ),
       };

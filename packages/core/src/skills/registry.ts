@@ -7,7 +7,7 @@ import type { SkillLoadResult, SkillManifest } from "./types.js";
 export class SkillRegistry {
   private readonly manifests = new Map<string, SkillManifest>();
 
-  async loadAll(roots: string[]): Promise<SkillLoadResult[]> {
+  loadAll(roots: string[]): Promise<SkillLoadResult[]> {
     this.manifests.clear();
     const results: SkillLoadResult[] = [];
 
@@ -22,7 +22,7 @@ export class SkillRegistry {
       }
     }
 
-    return results;
+    return Promise.resolve(results);
   }
 
   getAll(): SkillManifest[] {
@@ -123,7 +123,7 @@ function extractFrontmatter(content: string): string | null {
   let end = -1;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!.trimEnd();
+    const line = lines[i]?.trimEnd();
     if (line === "---") {
       if (start === -1) {
         start = i;

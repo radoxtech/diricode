@@ -71,13 +71,14 @@ describe("SkillRegistry", () => {
       const results = await registry.loadAll([tempDir]);
 
       expect(results).toHaveLength(1);
-      expect(results[0]!.success).toBe(true);
-      if (results[0]!.success) {
-        expect(results[0]!.manifest.id).toBe("code-review");
-        expect(results[0]!.manifest.name).toBe("Code Review");
-        expect(results[0]!.manifest.family).toBe("reasoning");
-        expect(results[0]!.manifest.tags).toEqual(["review", "quality"]);
-        expect(results[0]!.manifest.skillMdPath).toContain("SKILL.md");
+      const result = results[0];
+      expect(result?.success).toBe(true);
+      if (result?.success) {
+        expect(result.manifest.id).toBe("code-review");
+        expect(result.manifest.name).toBe("Code Review");
+        expect(result.manifest.family).toBe("reasoning");
+        expect(result.manifest.tags).toEqual(["review", "quality"]);
+        expect(result.manifest.skillMdPath).toContain("SKILL.md");
       }
     });
 
@@ -97,8 +98,8 @@ describe("SkillRegistry", () => {
       expect(results.every((r) => r.success)).toBe(true);
 
       const ids = results
-        .filter((r) => r.success)
-        .map((r) => (r.success ? r.manifest.id : ""))
+        .filter((r): r is typeof r & { success: true } => r.success)
+        .map((r) => r.manifest.id)
         .sort();
       expect(ids).toEqual(["code-review", "web-research"]);
     });
@@ -110,9 +111,10 @@ describe("SkillRegistry", () => {
       const results = await registry.loadAll([tempDir]);
 
       expect(results).toHaveLength(1);
-      expect(results[0]!.success).toBe(false);
-      if (!results[0]!.success) {
-        expect(results[0]!.error).toContain("no YAML frontmatter found");
+      const result = results[0];
+      expect(result?.success).toBe(false);
+      if (result && !result.success) {
+        expect(result.error).toContain("no YAML frontmatter found");
       }
     });
 
@@ -123,9 +125,10 @@ describe("SkillRegistry", () => {
       const results = await registry.loadAll([tempDir]);
 
       expect(results).toHaveLength(1);
-      expect(results[0]!.success).toBe(false);
-      if (!results[0]!.success) {
-        expect(results[0]!.error).toContain("YAML parse error");
+      const result = results[0];
+      expect(result?.success).toBe(false);
+      if (result && !result.success) {
+        expect(result.error).toContain("YAML parse error");
       }
     });
 
@@ -146,9 +149,10 @@ family: unknown-family
       const results = await registry.loadAll([tempDir]);
 
       expect(results).toHaveLength(1);
-      expect(results[0]!.success).toBe(false);
-      if (!results[0]!.success) {
-        expect(results[0]!.error).toContain("schema validation failed");
+      const result = results[0];
+      expect(result?.success).toBe(false);
+      if (result && !result.success) {
+        expect(result.error).toContain("schema validation failed");
       }
     });
 
@@ -206,7 +210,7 @@ family: unknown-family
 
       const manifest = registry.getById("code-review");
       expect(manifest).toBeDefined();
-      expect(manifest!.diskPath).toBe(tempDir);
+      expect(manifest?.diskPath).toBe(tempDir);
     });
   });
 
@@ -245,7 +249,7 @@ family: unknown-family
 
       const manifest = registry.getById("code-review");
       expect(manifest).toBeDefined();
-      expect(manifest!.id).toBe("code-review");
+      expect(manifest?.id).toBe("code-review");
     });
   });
 
@@ -270,7 +274,7 @@ family: unknown-family
 
       const results = registry.findByTags(["review"]);
       expect(results).toHaveLength(1);
-      expect(results[0]!.id).toBe("code-review");
+      expect(results[0]?.id).toBe("code-review");
     });
   });
 
@@ -288,11 +292,11 @@ family: unknown-family
 
       const reasoning = registry.findByFamily("reasoning");
       expect(reasoning).toHaveLength(1);
-      expect(reasoning[0]!.id).toBe("code-review");
+      expect(reasoning[0]?.id).toBe("code-review");
 
       const webResearch = registry.findByFamily("web-research");
       expect(webResearch).toHaveLength(1);
-      expect(webResearch[0]!.id).toBe("web-research");
+      expect(webResearch[0]?.id).toBe("web-research");
     });
   });
 });
