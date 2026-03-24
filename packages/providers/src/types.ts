@@ -17,6 +17,7 @@ export type ProviderPriority = number;
 
 /** Well-known priority constants for MVP providers. */
 export const ProviderPriorities = {
+  GEMINI: 1,
   COPILOT: 1,
   KIMI: 2,
 } as const satisfies Record<string, ProviderPriority>;
