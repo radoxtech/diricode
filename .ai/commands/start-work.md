@@ -16,6 +16,35 @@ It must refuse to start work that is:
 
 ---
 
+## ⛔ CRITICAL: Worktree Preservation Rule — NEVER DELETE WORKTREES
+
+**⚠️ THIS RULE MUST NEVER BE VIOLATED:**
+
+When you finish work in a worktree (via `/finish-work` or similar):
+
+1. The worktree branch **MUST be merged to `main`**
+2. The PR **MUST be created and merged**
+3. **BUT THE WORKTREE ITSELF MUST NEVER BE DELETED**
+
+**Why?** Worktrees in opencode are persistent coding environments reused across multiple sessions. Deleting a worktree destroys the developer's workspace and context for future sessions.
+
+**If you are already inside a worktree:**
+
+- **You CAN run `/start-work`** — it will sync the worktree with latest main and start work in the current worktree
+- When you finish work here, merge to main via PR, then you can either:
+  - Continue in this worktree for the next issue (run `/start-work` again)
+  - Return to main repo and create a new worktree with `/start-work`
+- **Never delete this worktree** — leave it for reuse in future sessions
+
+**The `/finish-work` command MUST:**
+
+- Create the PR
+- Merge the PR to main
+- Checkout back to the main repo
+- **Never run `git worktree remove`**
+
+---
+
 ## ⛔ CRITICAL: Live GitHub Uses Features as Implementation Units
 
 For the live GitHub board, the implementation unit is currently:
@@ -99,23 +128,39 @@ An epic issue itself **never gets a worktree**. The epic status flip is just boo
 
 ## Workflow
 
-### Step 1 — Validate location
+### Step 1 — Detect location mode
 
-Confirm you are in the main repo, not already inside a worktree:
+Check if running from main repo or inside a worktree:
 
 ```bash
 COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
-[ "$COMMON_DIR" != "$GIT_DIR" ] && echo "❌ Already in worktree" && exit 1
+if [ "$COMMON_DIR" != "$GIT_DIR" ]; then
+    echo "📍 Running inside worktree — will sync and use current worktree"
+    MODE="worktree"
+else
+    echo "📍 Running from main repo — will create new worktree"
+    MODE="main"
+fi
 ```
 
 If uncommitted changes exist (`git status --porcelain` non-empty), stop and ask the user to stash or commit.
 
-### Step 2 — Pull latest main
+### Step 2 — Sync with latest main
+
+**If MODE is "main":**
 
 ```bash
 # Run git pull in main repo context
 cd "$MAIN_REPO" && git pull origin main
+```
+
+**If MODE is "worktree":**
+
+```bash
+# Sync current worktree with latest main
+git fetch origin main
+git merge origin/main --no-edit
 ```
 
 ### Step 3 — Detect issue type and select candidate
@@ -143,11 +188,16 @@ cd "$MAIN_REPO" && git pull origin main
 
 Apply conflict refusal rules (see below) against the chosen feature before continuing.
 
-### Step 5 — Create worktree
+### Step 5 — Create worktree (main mode only)
+
+**If MODE is "main":**
 
 ```bash
 git worktree add "../diricode-#<issue>" -b "<type>/<slug>-#<issue>"
 ```
+
+**If MODE is "worktree":**
+Skip this step — worktree already exists. Use current worktree path.
 
 ### Step 6 — Update feature project status
 

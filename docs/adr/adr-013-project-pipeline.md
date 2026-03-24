@@ -5,7 +5,7 @@
 | Status      | Accepted                                      |
 | Date        | 2026-03-09                                    |
 | Scope       | MVP                                           |
-| References  | analiza-plandex-roles.md                      |
+| References  | analiza-plandex-roles.md, ADR-048                |
 
 ### Context
 
@@ -38,3 +38,9 @@ Each phase uses different agents. Dispatcher decides when to invoke the full pip
 
 - **Positive:** Predictable execution flow. Checkpoints enable recovery. Deviation rules balance autonomy with safety.
 - **Negative:** Pipeline overhead for trivial tasks. Mitigated by dispatcher's ability to skip pipeline for simple requests.
+
+### Addendum — Pipeline State Backend Update (2026-03-23)
+
+Pipeline state (plans, tasks, checkpoints) is stored in the DiriCode Issue System — a local SQLite database (ADR-048), not GitHub Issues. GitHub Projects remains an optional sync target for team visibility but is not required for pipeline operation.
+
+This change enables fully offline pipeline execution with no network dependency for any state operation.

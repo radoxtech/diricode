@@ -1,11 +1,11 @@
 # ADR-007 — Hybrid Agent Definition + agentskills.io
 
-| Field       | Value                                         |
-|-------------|-----------------------------------------------|
-| Status      | Accepted                                      |
-| Date        | 2026-03-09                                    |
-| Scope       | MVP                                           |
-| References  | analiza-narzedzi-ekosystem.md                 |
+| Field       | Value                                                         |
+|-------------|---------------------------------------------------------------|
+| Status      | Accepted                                                      |
+| Date        | 2026-03-09                                                    |
+| Scope       | MVP                                                           |
+| References  | analiza-narzedzi-ekosystem.md, Survey Decision C4             |
 
 ### Context
 
@@ -38,3 +38,29 @@ SKILL.md files should include these fields for optimal discovery:
 - `capabilities`: Keywords for capability-based search
 
 The discovery registry indexes both TS hardcoded agents and SKILL.md definitions at startup, providing a unified interface for the dispatcher.
+
+### Addendum — YAML+TS+Zod Hybrid Definitions (Survey Decision C4)
+
+**Triple-Layer Architecture for Agent Configuration**
+Agent definitions now adopt a three-layer hybrid approach that balances human readability, type safety, and runtime validation:
+
+**YAML** — Human-readable metadata layer
+- Agent capability tags, model preferences, and family declarations
+- Tier assignments (LIGHT, MEDIUM, HEAVY) and functional categories
+- Discoverable metadata indexed by the agent registry
+- Edited by non-technical stakeholders, reviewed by code
+
+**TypeScript** — Behavior and logic layer
+- Agent behavior code, tool implementations, and complex orchestration logic
+- Type-safe interfaces ensuring compile-time correctness
+- Direct access to runtime context and execution hooks
+- Maintains DiriCode's stability guarantees for core agents
+
+**Zod** — Validation and contract layer
+- Schema validation for agent YAML configs, tool inputs/outputs, and inter-agent messages
+- Runtime enforcement of constraints before tools are invoked
+- Unified error handling with structured validation results
+- Prevents invalid configurations from reaching execution
+
+**Why This Hybrid**
+A pure TypeScript approach lacks readability and editability for non-developers. A pure YAML approach lacks type safety and complex logic. The YAML+TS+Zod combination ensures agent definitions are simultaneously human-readable (YAML), type-safe (TS), and validated at runtime (Zod), eliminating entire classes of configuration errors and enabling safer community contributions.
