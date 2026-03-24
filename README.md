@@ -4,7 +4,7 @@
 [![CI Status](https://img.shields.io/github/actions/workflow/status/radoxtech/diricode/ci.yml?branch=main)](https://github.com/radoxtech/diricode/actions)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-green.svg)](https://nodejs.org/)
 
-An autonomous AI coding framework that manages your project through GitHub Issues and Projects. DiriCode runs sprints, delegates to 40 specialized agents, works in parallel across git worktrees, and reports progress back to you — while you review from your phone.
+An autonomous AI coding framework that helps you build applications — from POC to production — using a team of 40 specialized AI agents. Whether you're a developer, product manager, or product owner, you describe what you want to build, and DiriCode interviews you, challenges your assumptions, builds a detailed plan, and implements it maximally autonomously. Questions are queued and asked in batches (never blocking), while the orchestrator continues working on everything else. All runtime state lives in a local SQLite database, so agents work offline at full speed, and you can review progress from your phone.
 
 > **Status: Pre-MVP (v0.0.0)**. Active early development. Core subsystems are functional, but the full pipeline is not yet wired end-to-end.
 
@@ -14,7 +14,7 @@ An autonomous AI coding framework that manages your project through GitHub Issue
 
 Most AI coding tools are glorified chatbots — you type, they respond, state disappears. DiriCode is designed to work more like an autonomous development team:
 
-- **GitHub Projects is the brain.** Plans, sprints, tasks, and progress live in GitHub Issues and Projects — not in hidden local files. You can check what agents are doing from your phone, reprioritize tasks on the go, and multiple agent sessions can work on the same project simultaneously without stepping on each other.
+- **SQLite is the brain.** Plans, sprints, tasks, and progress live in a local SQLite database — offline-first, no network required, no rate limits. Agents read and write state at sub-millisecond speed. GitHub sync is optional: when you want external visibility, a sync adapter pushes state out to a GitHub Project. But agents never wait for the network to do their job.
 
 - **Sprint-based execution.** DiriCode doesn't just answer one question at a time. It interviews you to understand the full scope, builds a plan broken into sprints and epics, then executes tasks in parallel across isolated git worktrees. When it hits a blocker, it finishes everything else it can, does a project review, and replans. It only asks you questions when it genuinely gets stuck or when a decision requires your taste.
 
@@ -35,7 +35,7 @@ You describe what you want
         ↓
     Interview Phase — DiriCode asks clarifying questions
         ↓
-    Planning Phase — breaks work into sprints, epics, and tasks (stored in GitHub Issues)
+    Planning Phase — breaks work into sprints, epics, and tasks (stored in local SQLite)
         ↓
     Execution Phase — agents work in parallel across git worktrees
         ↓
@@ -48,7 +48,7 @@ You describe what you want
         ↓
     Sprint Review — evaluates progress, replans, starts next sprint
         ↓
-    You review from GitHub Projects, approve PRs, give feedback
+    You review from the web UI (or optional GitHub sync), approve PRs, give feedback
 ```
 
 ### Two-Dimensional Model Selection
@@ -109,16 +109,20 @@ DiriCode treats transparency as a core feature, not an afterthought:
 
 See [ADR-031](docs/adr/adr-031-observability-eventstream-agent-tree.md).
 
-### GitHub Projects as the Backend
+### Local-First Issue System
 
-This is DiriCode's most unconventional design choice. Instead of storing state in local SQLite databases or hidden config files, DiriCode uses GitHub Issues and Projects as its primary state backend:
+This is DiriCode's most unconventional design choice. Agents are autonomous runtimes — their task state is operational data, not project metadata. Storing operational data in a remote API introduces rate limits, network dependency, and latency that undermine the whole system. So DiriCode doesn't.
 
-- **Plans become Issues.** Each sprint task is a GitHub Issue with acceptance criteria, file lists, and implementation notes.
-- **Progress is visible.** Move to GitHub Projects on your phone to see what's done, what's in progress, and what's blocked.
-- **Multiple sessions, no conflicts.** Two agent sessions can work on different sprints of the same project simultaneously. No merge conflicts on state files because there are no state files — just GitHub Issues.
-- **SQLite as cache.** A local SQLite database with FTS5 full-text search serves as a fast local cache and timeline of events. It syncs with GitHub, not the other way around.
+SQLite is the source of truth for all runtime state — issues, tasks, epics, and their relationships. This is a full reversal from the original design (see [ADR-022](docs/adr/adr-022-github-issues-sqlite-timeline.md), superseded by [ADR-048](docs/adr/adr-048-sqlite-issue-system.md)):
 
-See [ADR-022](docs/adr/adr-022-github-issues-sqlite-timeline.md).
+- **Plans become local records.** Each sprint task is stored in SQLite with acceptance criteria, file lists, and implementation notes. No network call required to read or write task state.
+- **Offline-first.** No network, no problem. Agents work at full capability whether or not they can reach the internet. Creating an issue, updating task status, marking completion — all local I/O.
+- **No rate limits.** Dense agent activity during sprint execution no longer creates API pressure. SQLite reads are sub-millisecond; GitHub API calls have hundreds of milliseconds of round-trip latency.
+- **Sync adapters are output targets, not input sources.** If you want external visibility — for stakeholders, phone review, or team collaboration — a sync adapter pushes state from SQLite to a GitHub Project. The directionality is intentional: SQLite receives writes, GitHub receives exports.
+
+MVP ships with no sync adapters. v2 adds the GitHub sync adapter. v3/v4 add GitLab and Jira.
+
+See [ADR-048](docs/adr/adr-048-sqlite-issue-system.md).
 
 ## Architecture
 
@@ -162,8 +166,8 @@ graph TD
     end
 
     subgraph "@diricode/memory"
-        GH[GitHub Issues + Projects]
-        SQLite[SQLite + FTS5 + PageRank]
+        Issues[Local Issue System — SQLite + FTS5]
+        GHSync[GitHub Sync — optional, v2]
     end
 
     CLI --> Hono
@@ -185,11 +189,11 @@ graph TD
     Medium --> SubRouter
     SubRouter --> Router
     Router --> Redactor
-    Heavy --> SQLite
-    SQLite --> GH
+    Heavy --> Issues
+    Issues -.->|optional sync| GHSync
 ```
 
-Architecture decisions are documented in [42 ADRs](docs/adr/).
+Architecture decisions are documented in [48 ADRs](docs/adr/).
 
 ## Key Design Decisions
 
@@ -223,6 +227,23 @@ graph LR
     D --> UT[Utility\n8 agents]
     D --> AC[auto-continue]
 ```
+
+#### Phase 1 MVP — 8 Agents Shipping First
+
+Phase 1 ships the minimum viable set for the Interview → Plan → Execute → Verify pipeline:
+
+| Agent                  | Tier   | Role                             |
+| ---------------------- | ------ | -------------------------------- |
+| dispatcher             | HEAVY  | Orchestrates all agent execution |
+| planner-thorough       | HEAVY  | Builds detailed execution plans  |
+| architect              | HEAVY  | Selects files per subtask        |
+| code-writer            | HEAVY  | Primary implementation agent     |
+| code-explorer          | MEDIUM | Codebase navigation and search   |
+| code-reviewer-thorough | HEAVY  | Quality gate before merge        |
+| git-operator           | MEDIUM | Git operations with safety rails |
+| issue-writer           | LOW    | Creates and manages issues       |
+
+The full 40-agent roster is the vision. Additional agents are activated as the pipeline matures and new capabilities (swarm coordination, A/B testing) require them. See [ADR-046](docs/adr/adr-046-swarm-coordination.md).
 
 <details open>
 <summary><b>Strategy & Planning</b> — 9 agents</summary>
@@ -359,6 +380,8 @@ Three layers of protection that are always on, even at Autonomy level 5:
 
 Tool actions are categorized as Safe, Risky, or Destructive — each with different approval requirements. See [ADR-014](docs/adr/adr-014-smart-hybrid-approval.md).
 
+Governance policies (file naming, import style, test coverage thresholds) can be declared in `.dc/policies/` YAML files and enforced via the policy engine. See [ADR-047](docs/adr/adr-047-governance-policy-engine.md).
+
 ### Hook Framework
 
 20 hook types across lifecycle, safety, pipeline, and context categories. Two execution models:
@@ -377,6 +400,8 @@ A 3-layer system that keeps agents under 50% of their context window:
 3. **Context Composer** — Adaptive token budgets per category (files, history, tools, system)
 
 The architect agent picks specific files per subtask rather than dumping the whole codebase. See [ADR-016](docs/adr/adr-016-3-layer-context-management.md).
+
+Successful reasoning patterns are captured and stored in the ReasoningBank — a structured SQLite store that surfaces relevant prior approaches when agents tackle similar problems. See [ADR-045](docs/adr/adr-045-reasoningbank.md).
 
 ### Skills and MCP
 
@@ -405,10 +430,10 @@ packages/
   tools/            File ops, grep, glob, bash execution with safety filter
   providers/        Multi-LLM provider interface and registry
   server/           Hono HTTP server with REST API + SSE transport
-  memory/           SQLite database with FTS5 search
+  memory/           SQLite database with FTS5 search and local issue system
   web/              Web UI (planned — Vite + React + shadcn/ui)
 docs/
-  adr/              42 Architecture Decision Records
+  adr/              48 Architecture Decision Records
   mvp/              MVP epic specifications
 ```
 
@@ -425,13 +450,15 @@ docs/
 | CI                  | ✅ Done    | GitHub Actions with Turborepo caching                |
 | Pipeline            | 🏗️ WIP     | Interview → Plan → Execute → Verify                  |
 | Hook Framework      | 🏗️ WIP     | 20 hook types (interceptors + wrappers)              |
-| Agent Roster        | 🏗️ WIP     | 40 agents planned, dispatcher operational            |
+| Agent Roster        | 🏗️ WIP     | 40 agents planned, 8 shipping in Phase 1             |
 | Context Manager     | 🏗️ WIP     | 3-layer system with PageRank indexing                |
+| Local Issue System  | 🏗️ WIP     | SQLite-native issues/tasks/epics (ADR-048)           |
 | Secret Redaction    | ⏳ Planned | Pattern-based masking before LLM dispatch            |
 | Config System       | ⏳ Planned | JSONC + c12, 4-layer hierarchy                       |
 | Skill System        | ⏳ Planned | SKILL.md definitions, agentskills.io compatibility   |
 | Subscription Router | ⏳ Planned | Multi-subscription rotation + health tracking        |
 | Web UI              | ⏳ Planned | Agent tree, event stream, metrics dashboard          |
+| GitHub Sync Adapter | 📋 v2      | Optional push from SQLite to GitHub Project          |
 | Quality Scoring     | 📋 v2      | Elo-based model quality tracking                     |
 | A/B Testing         | 📋 v3      | Structured model comparison experiments              |
 
@@ -441,9 +468,9 @@ docs/
 | --------- | -------------------- | ---------------------------------------------------------------------- |
 | **MVP**   | Core engine + Web UI | Working agent system with pipeline, web interface, real task execution |
 | **MVP-2** | Multi-subscription   | Subscription rotation, health tracking, auto-recovery                  |
-| **v2**    | Ecosystem + Quality  | Quality scoring, embeddings, skill marketplace, TUI                    |
-| **v3**    | Safety + Automation  | A/B testing, sandbox, auto-advance, GitLab backend                     |
-| **v4**    | Enterprise           | Jira backend, multi-user support                                       |
+| **v2**    | Ecosystem + Quality  | GitHub sync adapter, quality scoring, embeddings, skill marketplace    |
+| **v3**    | Safety + Automation  | A/B testing, sandbox, auto-advance, GitLab sync adapter                |
+| **v4**    | Enterprise           | Jira sync adapter, multi-user support                                  |
 
 ## Getting Started
 
@@ -490,7 +517,7 @@ pnpm typecheck      # TypeScript type checking
 
 DiriCode is in early development. Contributions are welcome.
 
-A `CONTRIBUTING.md` is coming soon. Start by reading the [Architecture Decision Records](docs/adr/) to understand the design philosophy.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, GitHub Projects setup, and how to get started. Start by reading the [Architecture Decision Records](docs/adr/) to understand the design philosophy.
 
 ## License
 

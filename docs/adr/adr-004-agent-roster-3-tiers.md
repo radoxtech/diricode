@@ -5,7 +5,7 @@
 | Status      | Accepted                                      |
 | Date        | 2026-03-09                                    |
 | Scope       | MVP                                           |
-| References  | analiza-agent-roster.md, analiza-plandex-roles.md |
+| References  | analiza-agent-roster.md, analiza-plandex-roles.md, Survey Decision D3 |
 
 ### Context
 
@@ -94,6 +94,23 @@ The agent roster was designed through analysis of 8 reference tools (Aider, Clin
 | HEAVY | 7 | Best available (e.g., Opus 4.6, GPT-5.4) | Complex reasoning, architecture, thorough review |
 | MEDIUM | 20 | Mid-range (e.g., Sonnet 4.6, Kimi 2.5) | Standard tasks, quick operations |
 | LOW | 13 | Cheapest available (e.g., Haiku 4.5, DeepSeek V3.2) | Utility tasks, simple generation |
+
+#### Phase 1 — MVP Scope (Survey Decision D3)
+
+Phase 1 ships 8 agents — the minimum viable set for the Interview → Plan → Execute → Verify pipeline:
+
+| Agent | Tier | Rationale |
+|-------|------|-----------|
+| dispatcher | HEAVY | Orchestrates all agent execution |
+| planner-thorough | HEAVY | Builds detailed execution plans |
+| architect | HEAVY | Selects files per subtask |
+| code-writer | HEAVY | Primary implementation agent |
+| code-explorer | MEDIUM | Codebase navigation and search |
+| code-reviewer-thorough | HEAVY | Quality gate before merge |
+| git-operator | MEDIUM | Git operations with safety rails |
+| issue-writer | LOW | Creates and manages issues |
+
+The full 40-agent roster remains the vision. Additional agents are added as the pipeline matures and new capabilities (swarm coordination, A/B testing) require them.
 
 #### Tags (Individual, Not Combined)
 

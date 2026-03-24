@@ -31,7 +31,7 @@ Epics active:
 **Goal**: Real task execution with planning, review, and persistent memory.
 
 Epics active:
-- [epic-memory.md](epic-memory.md) — SQLite + FTS5 + timeline + GitHub Issues
+- [epic-memory.md](epic-memory.md) — SQLite + FTS5 + timeline + local issue system
 - [epic-pipeline.md](epic-pipeline.md) — Basic pipeline (Plan→Execute only)
 - [epic-context.md](epic-context.md) — Layer 1: basic context window management
 - [epic-agents-roster.md](epic-agents-roster.md) — +6 agents (planners, reviewers, verifier)

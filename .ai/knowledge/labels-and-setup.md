@@ -2,6 +2,12 @@
 
 Complete reference for setting up GitHub labels, GitHub Projects custom fields, and initial configuration for the workflow.
 
+> **Development Workflow Only — Not DiriCode's Runtime**
+>
+> This label taxonomy is for **GitHub Project #4**, which tracks the development of DiriCode itself. These labels are used by contributors and AI agents when developing DiriCode's codebase — not by DiriCode at runtime.
+>
+> DiriCode's runtime issue system uses a local SQLite database as its source of truth (see [ADR-048](../../docs/adr/adr-048-sqlite-issue-system.md)). The runtime will have its own separate tag/classification scheme defined independently of this GitHub label set. Do not use this file to understand how DiriCode categorizes runtime issues or tasks.
+
 ---
 
 ## Table of Contents

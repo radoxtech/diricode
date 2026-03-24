@@ -55,31 +55,37 @@ Claude Code hooks: SessionEnd→session-end, TaskCompleted→task-completed, Wor
 
 ### DC-HOOK-014 — `task-completed` hook
 
-**Goal**: Fire when an individual task (agent delegation) completes — for metrics, GitHub Issue updates, and notification.
+**Goal**: Fire when an individual task (agent delegation) completes — for metrics, local issue status updates, and notification.
 
 **Scope**
 - Trigger: agent returns result to dispatcher (success or failure)
 - Category: lifecycle
 - Use cases:
-  - Update GitHub Issue with task summary/status
+  - Update local SQLite issue status with task summary/status
+  - Push status update to configured sync adapter (GitHub/GitLab) if enabled (ADR-048)
   - Track per-task token cost and duration
   - Trigger dependent task scheduling
+  - Feed reasoning data to ReasoningBank for future agent guidance (ADR-045)
   - Send progress notification (e.g., "3/7 tasks completed")
 - Data: task ID, agent name, status (success/failed), duration, tokens, cost, summary, files changed
-- Lean mode: simplified (skip GitHub Issue update, keep metrics)
+- Lean mode: simplified (skip sync adapter push, keep local metrics and ReasoningBank feed)
 - Timeout: 3s
 
 **Acceptance criteria**
 - [ ] Hook fires on task success and failure
-- [ ] GitHub Issue update example hook works
+- [ ] Local SQLite issue status updated with summary
+- [ ] Sync adapter update example hook works (if configured)
 - [ ] Per-task metrics recorded
 - [ ] Progress notification ("N/M tasks done") works
+- [ ] ReasoningBank fed with post-agent data (ADR-045)
 - [ ] 3s timeout enforced
 
 **References**
 - `analiza-hookow.md` Section 3 (#15: task-completed)
 - Claude Code: TaskCompleted hook type
-- Survey 2.3, 3.5 (REQ-IDs in GitHub Issues, summary to GitHub Issue)
+- Survey 2.3, 3.5 (task tracking in local issue system, optional sync to external platforms)
+- ADR-048: SQLite as source of truth for runtime state
+- ADR-045: ReasoningBank (hook-based learning from agent outcomes)
 
 ---
 

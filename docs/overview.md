@@ -1,7 +1,7 @@
 # DiriCode — Implementation Plan Overview
 
 > Comprehensive implementation roadmap spanning MVP (4 iterations), v2, v3, v4.
-> Generated from: 42 ADRs, MVP spec, and design decisions.
+> Generated from: 48 ADRs, MVP spec, and design decisions.
 > Date: 2026-03-21
 
 ---
@@ -33,7 +33,7 @@ graph TD
 
     subgraph "@diricode/memory"
         SQLite[SQLite + FTS5 + Timeline]
-        GitHubClient[GitHub Issues API — abstract backend]
+        SyncAdapter[Sync Adapters — GitHub, GitLab, Jira]
     end
 
     subgraph "@diricode/tools"
@@ -82,7 +82,7 @@ graph TD
 
     SubAgents --> SQLite
     SQLite --> Hono
-    GitHubClient --> GH
+    SyncAdapter -.->|optional push| GH
 
     Router --> Redactor
     Redactor --> Failover
@@ -125,7 +125,7 @@ See [ADR-033: Interceptor/Wrapper Hook Split](adr/adr-033-interceptor-wrapper-ho
 |---------|-------|-----------|-----------------|
 | **MVP** | Core engine + Web UI | POC, MVP-1, MVP-2, MVP-3 | Working agent system with pipeline, web interface, and real task execution |
 | **v2** | Ecosystem + Polish | v2.0, v2.1 | TUI, annotation approval, embeddings, skill marketplace, context monitoring |
-| **v3** | Safety + Automation | v3.0, v3.1 | Sandbox, auto-advance, GitLab backend, advanced hooks |
+| **v3** | Safety + Automation | v3.0, v3.1 | Sandbox, auto-advance, GitLab sync adapter, advanced hooks |
 | **v4** | Enterprise + Scale | v4.0 | Jira backend, multi-user support |
 
 ---
@@ -247,7 +247,7 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 | Vercel AI SDK may lack Copilot/Kimi adapters | Blocks entire provider layer | POC spike: verify @ai-sdk adapters or write custom provider |
 | c12 may not natively support JSONC | Blocks config system | POC spike: test c12 with .jsonc files |
 | SQLite FTS5 on Bun may have limitations | Blocks memory search | POC spike: test bun:sqlite with FTS5 virtual table |
-| GitHub API rate limits during pipeline execution | Blocks wave-based execution with many agents | POC spike: measure rate limits, design batching strategy |
+| Sync adapter latency during critical paths | May degrade agent responsiveness on heavy syncs | Design batching strategy, async-first sync architecture (resolved: SQLite is source of truth, sync is optional) |
 
 ---
 
@@ -308,8 +308,8 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 - [v3/epic-hooks-v3.md](v3/epic-hooks-v3.md) — 7 more hooks
 - [v3/epic-auto-advance.md](v3/epic-auto-advance.md) — Full-auto mode
 - [v3/epic-observability-v3.md](v3/epic-observability-v3.md) — Cost analytics, performance profiling, comparison view
-- [v3/epic-gitlab.md](v3/epic-gitlab.md) — GitLab Issues backend
-- [v3/epic-local-backend.md](v3/epic-local-backend.md) — Local backend (no GitHub)
+- [v3/epic-gitlab.md](v3/epic-gitlab.md) — GitLab sync adapter
+- [v3/epic-local-backend.md](v3/epic-local-backend.md) — SQLite is now the default local issue system
 - [v3/epic-advanced-modes.md](v3/epic-advanced-modes.md) — Named presets, advanced work modes
 
 ### v4 — Enterprise + Scale
@@ -324,7 +324,7 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 | Source | File | Role |
 |--------|------|------|
 | MVP Spec | spec-mvp-diricode.md | Primary technical reference |
-| ADRs (42) | docs/adr/ | Architecture decisions |
+| ADRs (46) | docs/adr/ | Architecture decisions |
 | Agent Roster | ADR-004 | 40 agents, 3 tiers, 6 categories |
 | Work Modes | ADR-012 | 4-dimension work system |
 | Hooks | ADR-024 | 20 hook types roadmap |

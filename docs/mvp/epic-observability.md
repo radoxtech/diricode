@@ -191,6 +191,30 @@ Priority is "what is happening now?" clarity.
 
 ---
 
+## Issue: DC-OBS-007 — AI Cockpit Event Mapping (React Flow Integration)
+
+### Description
+Provide the event mapping and layout logic for the AI Cockpit visualizer:
+- map agent lifecycle events to React Flow nodes
+- calculate "flowing current" edge animations based on SSE throughput
+- manage node position state for a stable "neural net" layout
+- handle event-driven updates to node properties (status, tier, active status)
+
+### Acceptance Criteria
+- [ ] SSE event bus correctly filters data needed for the Cockpit view.
+- [ ] Node state is derived deterministically from the EventStream.
+- [ ] Edges represent active communication or delegation channels.
+- [ ] Data flows (animated current) accurately reflect SSE event density.
+
+### References
+- `analiza-observability.md` (real-time transparency)
+- `docs/mvp/epic-web-ui.md` (DC-WEB-008 Cockpit UI)
+
+### Dependencies
+- Depends on: DC-OBS-001, DC-OBS-002, DC-WEB-008
+
+---
+
 ## Must NOT
 - Must NOT ship v2 observability panels (Detail Panel, Timeline) in MVP scope.
 - Must NOT couple UI state to ad-hoc local logs; EventStream is the single source of truth.

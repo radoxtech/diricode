@@ -1,8 +1,10 @@
 # ADR-022 — Project Memory: GitHub Issues + SQLite Timeline Engine
 
+> **⚠️ SUPERSEDED**: This ADR has been superseded by [ADR-048](adr-048-sqlite-issue-system.md) — SQLite Issue System. DiriCode runtime now uses a local SQLite database as its primary state backend. GitHub Projects is used for developing DiriCode, not as a runtime backend.
+
 | Field       | Value                                         |
 |-------------|-----------------------------------------------|
-| Status      | Accepted                                      |
+| Status      | Superseded by [ADR-048](adr-048-sqlite-issue-system.md) |
 | Date        | 2026-03-09                                    |
 | Scope       | MVP                                           |
 | References  | —                                             |
