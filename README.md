@@ -4,7 +4,7 @@
 [![CI Status](https://img.shields.io/github/actions/workflow/status/radoxtech/diricode/ci.yml?branch=main)](https://github.com/radoxtech/diricode/actions)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-green.svg)](https://nodejs.org/)
 
-An autonomous AI coding framework that helps you build applications — from POC to production — using a team of 40 specialized AI agents. Whether you're a developer, product manager, or product owner, you describe what you want to build, and DiriCode interviews you, challenges your assumptions, builds a detailed plan, and implements it maximally autonomously. Questions are queued and asked in batches (never blocking), while the orchestrator continues working on everything else. All runtime state lives in a local SQLite database, so agents work offline at full speed, and you can review progress from your phone.
+An autonomous AI coding framework that helps you build applications — from POC to production — using a team of 40 specialized AI agents and LLM thought API. Whether you're a developer, product manager, or product owner, you describe what you want to build, and DiriCode interviews you, challenges your assumptions, builds a detailed plan, and implements it maximally autonomously. Questions are queued by importance and blocking-factor — the orchestrator gathers decision-making questions and doubts into a priority queue, sorted by how much they block other tasks, and you can answer them in batches from your mobile when you have time. All runtime state lives in a local SQLite database, so agents work at full speed with full autonomy, and you can review progress from your phone.
 
 > **Status: Pre-MVP (v0.0.0)**. Active early development. Core subsystems are functional, but the full pipeline is not yet wired end-to-end.
 
@@ -14,9 +14,14 @@ An autonomous AI coding framework that helps you build applications — from POC
 
 Most AI coding tools are glorified chatbots — you type, they respond, state disappears. DiriCode is designed to work more like an autonomous development team:
 
+<<<<<<< HEAD
+
+- # **SQLite is the brain.** Plans, sprints, tasks, and progress live in a local SQLite database — autonomous, no rate limits. Agents read and write state at sub-millisecond speed. GitHub sync is optional: when you want external visibility, a sync adapter pushes state out to a GitHub Project. Agents operate with full autonomy — decisions are local, state is instant.
 - **SQLite is the brain.** Plans, sprints, tasks, and progress live in a local SQLite database — offline-first, no network required, no rate limits. Agents read and write state at sub-millisecond speed. GitHub sync is optional: when you want external visibility, a sync adapter pushes state out to a GitHub Project. But agents never wait for the network to do their job.
 
-- **Sprint-based execution.** DiriCode doesn't just answer one question at a time. It interviews you to understand the full scope, builds a plan broken into sprints and epics, then executes tasks in parallel across isolated git worktrees. When it hits a blocker, it finishes everything else it can, does a project review, and replans. It only asks you questions when it genuinely gets stuck or when a decision requires your taste.
+  > > > > > > > origin/main
+
+- **Sprint-based execution.** DiriCode doesn't just answer one question at a time. It interviews you to understand the full scope, builds a plan broken into sprints and epics, then executes tasks in parallel across isolated git worktrees. When it hits a blocker, it finishes everything else it can, does a project review, and replans. It only asks you questions when it genuinely gets stuck or when a decision requires your taste. Questions are queued by importance × blocking-factor — answered from mobile in batches when you have time.
 
 - **Continuous progress reports.** While agents work, you receive real-time reports. If you have time, you can read them and guide the work. If you don't, agents keep going autonomously. You're never blocked, and neither are they.
 
@@ -40,8 +45,10 @@ You describe what you want
     Execution Phase — agents work in parallel across git worktrees
         ↓
     ┌── Agent hits a blocker? → parks it, continues other tasks
-    ├── Agent unsure about a design choice? → buffers the question
-    ├── Enough questions buffered? → asks you all at once
+    ├── Agent encounters decision/doubt → adds to priority queue
+    │   └── Queue sorted by: importance × blocking-factor
+    ├── Time to ask? → batched questions sent to you (mobile-friendly)
+    │   └── You answer when convenient — never blocks agents
     └── All tasks done in this sprint? → runs verification
         ↓
     Verify Phase — automated review, tests, lint checks
@@ -50,6 +57,8 @@ You describe what you want
         ↓
     You review from the web UI (or optional GitHub sync), approve PRs, give feedback
 ```
+
+**Questions Queue:** The orchestrator continuously gathers decision-making questions and doubts. Each is tagged with importance (architectural impact, user experience, technical debt) and blocking-factor (how many other tasks it halts). Queue is sorted automatically — highest impact blockers surface first. You receive batched notifications on mobile and answer when ready. Agents never wait on you unless truly blocked.
 
 ### Two-Dimensional Model Selection
 
@@ -111,12 +120,20 @@ See [ADR-031](docs/adr/adr-031-observability-eventstream-agent-tree.md).
 
 ### Local-First Issue System
 
-This is DiriCode's most unconventional design choice. Agents are autonomous runtimes — their task state is operational data, not project metadata. Storing operational data in a remote API introduces rate limits, network dependency, and latency that undermine the whole system. So DiriCode doesn't.
+<<<<<<< HEAD
+This is DiriCode's most unconventional design choice. Agents are autonomous runtimes — their task state is operational data, not project metadata. Storing operational data in a remote API introduces rate limits, latency, and blocks autonomous execution. DiriCode keeps all state local for maximum autonomy and speed.
+
+SQLite is the source of truth for all runtime state — issues, tasks, epics, and their relationships. This is a full reversal from the original design (see [ADR-022](docs/adr/adr-022-github-issues-sqlite-timeline.md), superseded by [ADR-048](docs/adr/adr-048-sqlite-issue-system.md)):
+
+- **Plans become local records.** Each sprint task is stored in SQLite with acceptance criteria, file lists, and implementation notes. Local I/O at sub-millisecond speed enables full autonomous execution.
+- # **Autonomous-first.** Agents work at full capability continuously. Creating an issue, updating task status, marking completion — all local I/O with full autonomy.
+  This is DiriCode's most unconventional design choice. Agents are autonomous runtimes — their task state is operational data, not project metadata. Storing operational data in a remote API introduces rate limits, network dependency, and latency that undermine the whole system. So DiriCode doesn't.
 
 SQLite is the source of truth for all runtime state — issues, tasks, epics, and their relationships. This is a full reversal from the original design (see [ADR-022](docs/adr/adr-022-github-issues-sqlite-timeline.md), superseded by [ADR-048](docs/adr/adr-048-sqlite-issue-system.md)):
 
 - **Plans become local records.** Each sprint task is stored in SQLite with acceptance criteria, file lists, and implementation notes. No network call required to read or write task state.
 - **Offline-first.** No network, no problem. Agents work at full capability whether or not they can reach the internet. Creating an issue, updating task status, marking completion — all local I/O.
+  > > > > > > > origin/main
 - **No rate limits.** Dense agent activity during sprint execution no longer creates API pressure. SQLite reads are sub-millisecond; GitHub API calls have hundreds of milliseconds of round-trip latency.
 - **Sync adapters are output targets, not input sources.** If you want external visibility — for stakeholders, phone review, or team collaboration — a sync adapter pushes state from SQLite to a GitHub Project. The directionality is intentional: SQLite receives writes, GitHub receives exports.
 

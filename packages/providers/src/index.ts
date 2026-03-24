@@ -25,3 +25,6 @@ export type {
   ABSkipResult,
   TaskDescriptor,
 } from "./ab/ABExperimentManager.js";
+
+export { CopilotProvider, createCopilotProvider } from "./copilot/index.js";
+export { DEFAULT_COPILOT_MODEL, getGithubModelInfo, hasGithubAuth } from "./copilot/index.js";
