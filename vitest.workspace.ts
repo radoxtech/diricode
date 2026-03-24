@@ -6,5 +6,6 @@ export default [
   "packages/memory/vitest.config.ts",
   "packages/server/vitest.config.ts",
   "packages/web/vitest.config.ts",
+  "packages/test-utils/vitest.config.ts",
   "apps/cli/vitest.config.ts",
 ];
