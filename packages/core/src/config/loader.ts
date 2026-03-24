@@ -79,7 +79,7 @@ export async function loadConfig(options?: LoadConfigOptions): Promise<LoadConfi
     layers.push({ source: "global", config: globalConfig });
   }
 
-  const c12Result = await c12LoadConfig<Record<string, unknown>>({
+  const c12Result = await c12LoadConfig({
     cwd,
     configFile: ".dc/config",
     dotenv: true,
