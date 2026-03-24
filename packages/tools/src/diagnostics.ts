@@ -152,7 +152,10 @@ export const diagnosticsTool: Tool<DiagnosticsParams, DiagnosticsResult> = {
 
     const normalizedRoot = resolve(context.workspaceRoot);
     if (!workdir.startsWith(normalizedRoot + "/") && workdir !== normalizedRoot) {
-      throw new ToolError("PATH_OUTSIDE_WORKSPACE", `Path "${params.path}" is outside workspace`);
+      throw new ToolError(
+        "PATH_OUTSIDE_WORKSPACE",
+        `Path "${params.path ?? ""}" is outside workspace`,
+      );
     }
 
     let command: string;

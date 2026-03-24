@@ -1,4 +1,11 @@
-import type { Agent, AgentContext, AgentMetadata, AgentResult, Tool } from "@diricode/core";
+import type {
+  Agent,
+  AgentContext,
+  AgentMetadata,
+  AgentResult,
+  Tool,
+  ToolContext,
+} from "@diricode/core";
 import { AgentError } from "@diricode/core";
 
 export interface CodeWriterConfig {
@@ -32,14 +39,14 @@ function findTool(tools: readonly Tool[], name: string): Tool | undefined {
   return tools.find((t) => t.name === name);
 }
 
-function buildToolContext(context: AgentContext) {
+function buildToolContext(context: AgentContext): ToolContext {
   return {
     workspaceRoot: context.workspaceRoot,
     emit: context.emit,
   };
 }
 
-export function createCodeWriterAgent(config: CodeWriterConfig): Agent {
+export function createCodeWriterAgent(_config: CodeWriterConfig): Agent {
   const metadata: AgentMetadata = {
     name: "code-writer",
     description:
@@ -91,7 +98,6 @@ export function createCodeWriterAgent(config: CodeWriterConfig): Agent {
       });
 
       let toolCalls = 0;
-      let tokensUsed = 0;
 
       const globTool = findTool(context.tools, "glob");
       if (globTool) {
@@ -126,7 +132,7 @@ export function createCodeWriterAgent(config: CodeWriterConfig): Agent {
       }
 
       const output = buildOutputSummary(input, context.tools, diagnosticErrors);
-      tokensUsed = estimateTokens(input);
+      const tokensUsed = estimateTokens(input);
 
       context.emit("agent.completed", {
         agentId: metadata.name,

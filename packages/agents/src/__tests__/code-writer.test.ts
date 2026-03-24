@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { AgentError, createCodeWriterAgent } from "../index.js";
-import type { Agent, AgentContext, AgentResult } from "../index.js";
+import type { AgentContext, AgentResult } from "../index.js";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
 
 type MockFn = ReturnType<typeof vi.fn>;

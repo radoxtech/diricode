@@ -80,12 +80,12 @@ function getFileLanguage(filePath: string): string | undefined {
   return EXTENSION_TO_LANG.get(ext);
 }
 
-const TS_SYMBOL_PATTERNS: Array<{
+const TS_SYMBOL_PATTERNS: {
   regex: RegExp;
   kind: SymbolKind;
   nameGroup: number;
   containerGroup?: number;
-}> = [
+}[] = [
   {
     regex: /^\s*(?:export\s+)?(?:abstract\s+)?class\s+([A-Za-z_$][\w$]*)/,
     kind: "class",
