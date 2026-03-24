@@ -1,20 +1,25 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { GeminiProvider } from "../providers/gemini.js";
 
-vi.mock("@google/genai", () => {
-  return {
-    GoogleGenAI: vi.fn().mockImplementation(({ apiKey }: { apiKey: string }) => ({
-      models: {
-        generateContent: vi.fn(),
-        generateContentStream: vi.fn(),
-      },
-      _apiKey: apiKey,
-    })),
-  };
-});
+// Mock the @google/genai module with a controllable mock class
+const mockGenerateContent = vi.fn();
+const mockGenerateContentStream = vi.fn();
+
+vi.mock("@google/genai", () => ({
+  GoogleGenAI: vi.fn().mockImplementation(() => ({
+    models: {
+      generateContent: mockGenerateContent,
+      generateContentStream: mockGenerateContentStream,
+    },
+  })),
+}));
 
 describe("GeminiProvider", () => {
   const mockApiKey = "test-api-key-12345";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   describe("constructor", () => {
     it("creates instance with API key string", () => {
@@ -71,19 +76,7 @@ describe("GeminiProvider", () => {
 
   describe("generate", () => {
     it("generates content with default model", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
-      const mockGenerateContent = vi.fn().mockResolvedValue({
-        text: "Generated response",
-      });
-
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContent: mockGenerateContent,
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContent.mockResolvedValue({ text: "Generated response" });
 
       const provider = new GeminiProvider(mockApiKey);
       const result = await provider.generate({ prompt: "Hello" });
@@ -100,19 +93,7 @@ describe("GeminiProvider", () => {
     });
 
     it("uses custom model when provided", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
-      const mockGenerateContent = vi.fn().mockResolvedValue({
-        text: "Custom model response",
-      });
-
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContent: mockGenerateContent,
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContent.mockResolvedValue({ text: "Custom model response" });
 
       const provider = new GeminiProvider(mockApiKey);
       const result = await provider.generate({
@@ -136,15 +117,7 @@ describe("GeminiProvider", () => {
     });
 
     it("handles null response text", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContent: vi.fn().mockResolvedValue({ text: null }),
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContent.mockResolvedValue({ text: null });
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow(
@@ -153,15 +126,7 @@ describe("GeminiProvider", () => {
     });
 
     it("handles API errors with meaningful messages", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContent: vi.fn().mockRejectedValue(new Error("API key invalid")),
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContent.mockRejectedValue(new Error("API key invalid"));
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow(
@@ -170,15 +135,7 @@ describe("GeminiProvider", () => {
     });
 
     it("handles rate limit errors", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContent: vi.fn().mockRejectedValue(new Error("rate limit exceeded")),
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContent.mockRejectedValue(new Error("rate limit exceeded"));
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow("Rate limit exceeded");
@@ -187,7 +144,6 @@ describe("GeminiProvider", () => {
 
   describe("stream", () => {
     it("streams content with default model", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
       const mockStream = {
         // eslint-disable-next-line @typescript-eslint/require-await
         async *[Symbol.asyncIterator]() {
@@ -195,15 +151,7 @@ describe("GeminiProvider", () => {
           yield { text: "Chunk 2" };
         },
       };
-
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContentStream: vi.fn().mockResolvedValue(mockStream),
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContentStream.mockResolvedValue(mockStream);
 
       const provider = new GeminiProvider(mockApiKey);
       const chunks: { delta: string; done: boolean }[] = [];
@@ -219,7 +167,6 @@ describe("GeminiProvider", () => {
     });
 
     it("handles empty chunks", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
       const mockStream = {
         // eslint-disable-next-line @typescript-eslint/require-await
         async *[Symbol.asyncIterator]() {
@@ -228,15 +175,7 @@ describe("GeminiProvider", () => {
           yield { text: "" };
         },
       };
-
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContentStream: vi.fn().mockResolvedValue(mockStream),
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContentStream.mockResolvedValue(mockStream);
 
       const provider = new GeminiProvider(mockApiKey);
       const chunks: { delta: string; done: boolean }[] = [];
@@ -253,30 +192,21 @@ describe("GeminiProvider", () => {
     });
 
     it("uses custom model config when provided", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
-      const mockGenerateContentStream = vi.fn().mockResolvedValue({
+      const mockStream = {
         // eslint-disable-next-line @typescript-eslint/require-await
         async *[Symbol.asyncIterator]() {
           yield { text: "Response" };
         },
-      });
-
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContentStream: mockGenerateContentStream,
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      };
+      mockGenerateContentStream.mockResolvedValue(mockStream);
 
       const provider = new GeminiProvider(mockApiKey);
 
       for await (const _ of provider.stream({
         prompt: "Hello",
         model: { modelId: "gemini-pro", temperature: 0.8, maxTokens: 1000 },
+        // eslint-disable-next-line no-empty
       })) {
-        // Intentionally empty: consuming stream to trigger mock
       }
 
       expect(mockGenerateContentStream).toHaveBeenCalledWith({
@@ -290,15 +220,7 @@ describe("GeminiProvider", () => {
     });
 
     it("handles streaming errors", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContentStream: vi.fn().mockRejectedValue(new Error("Network error")),
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContentStream.mockRejectedValue(new Error("Network error"));
 
       const provider = new GeminiProvider(mockApiKey);
       const generator = provider.stream({ prompt: "Hello" });
@@ -311,32 +233,14 @@ describe("GeminiProvider", () => {
 
   describe("error handling", () => {
     it("handles model not found errors", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContent: vi
-                .fn()
-                .mockRejectedValue(new Error("model not found: invalid-model")),
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContent.mockRejectedValue(new Error("model not found: invalid-model"));
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow("Invalid model ID");
     });
 
     it("handles unknown errors", async () => {
-      const { GoogleGenAI } = await import("@google/genai");
-      vi.mocked(GoogleGenAI).mockImplementation(
-        () =>
-          ({
-            models: {
-              generateContent: vi.fn().mockRejectedValue("unknown error"),
-            },
-          }) as unknown as InstanceType<typeof GoogleGenAI>,
-      );
+      mockGenerateContent.mockRejectedValue("unknown error");
 
       const provider = new GeminiProvider(mockApiKey);
       await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow(
