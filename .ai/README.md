@@ -19,7 +19,17 @@ This documentation pack contains complete workflows for:
 
 ---
 
-## 🚀 Quick Start
+> **Runtime vs Development — Important Distinction**
+>
+> The workflows, commands, and knowledge files in this `.ai/` directory describe how to **develop DiriCode itself** (the project). They document the GitHub-based contribution workflow used by DiriCode contributors and AI agents working on the codebase.
+>
+> **This is not DiriCode's runtime issue system.** DiriCode's runtime stores all agent state — issues, tasks, epics, sprints — in a local SQLite database (see [ADR-048](../docs/adr/adr-048-sqlite-issue-system.md)). GitHub Projects #4 tracks DiriCode development progress; it is not used by DiriCode agents at runtime.
+>
+> If you are reading this file to understand how DiriCode manages issues during execution, refer to ADR-048 instead.
+
+---
+
+## 🚀 Quick Start (DiriCode Development Workflow)
 
 ### Prerequisites
 
@@ -35,7 +45,9 @@ gh auth login
 gh auth status
 ```
 
-### Available Commands
+### Available Commands (DiriCode Development)
+
+These commands are used when **contributing to DiriCode's codebase**, not when DiriCode is running autonomously.
 
 | Command           | Purpose                                      | File                         |
 | ----------------- | -------------------------------------------- | ---------------------------- |
@@ -46,11 +58,11 @@ gh auth status
 
 ---
 
-## 📋 File Index
+## 📋 File Index (DiriCode Development Workflow)
 
 ### Commands Directory (`.ai/commands/`)
 
-Executable workflows for common development tasks:
+Executable workflows for common **DiriCode development** tasks (contributing to DiriCode, not DiriCode's runtime execution):
 
 1. **`start-work.md`** - Initialize worktree-based git workflow for a new `[Task]` issue
    - Validates task-level issues only
@@ -83,7 +95,7 @@ Specialized executor agents for consultative workflows:
 
 ### Knowledge Directory (`.ai/knowledge/`)
 
-Reference documentation and architectural patterns:
+Reference documentation and architectural patterns for **developing DiriCode** (GitHub Projects #4 setup, contributor workflows, label taxonomy). These patterns describe the development process, not DiriCode's runtime behavior:
 
 1. **`epic-hierarchy.md`** - Multi-level project organization
    - Four-level hierarchy: Meta-Epic → Epic → Sub-Epic → Task
