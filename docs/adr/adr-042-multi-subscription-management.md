@@ -302,3 +302,87 @@ Before routing to the requested tier, the SubscriptionRouter first attempts a LO
 This is inspired by RouteLLM's trained complexity classifier but uses a simpler heuristic: tasks with fewer than 200 input tokens and no architectural tags are candidates for LOW-tier first. The quality scoring system (v2) refines this heuristic over time.
 
 The "try cheap first" strategy is opt-in per work mode — enabled by default at Quality levels 1-2, disabled at Quality levels 4-5, configurable at Quality level 3.
+
+### Addendum — 3D Model Classification: Tier × Family × Context Size (2026-03-24)
+
+#### 1. Motivation & Problem Statement
+
+The same model (e.g., Claude Opus) can be available across multiple subscriptions at different context window sizes. For instance, a GitHub Copilot subscription provides Opus with 200K context at a lower cost, while an Anthropic direct API provides Opus with a 1M context window at a higher price point.
+
+The current 2D classification (Tier × Family) cannot distinguish these variants. As a result, the router cannot prefer the cheaper 200K subscription when massive context isn't needed. Adding context size as a third dimension enables cost-optimized routing based on actual task context requirements.
+
+#### 2. ContextGroup Type Definition
+
+```typescript
+type ContextGroup = "standard" | "extended" | "massive";
+
+// Thresholds (input tokens only — output limits remain with ADR-006's largeOutput fallback):
+// standard: ≤200,000 input tokens  — most tasks, cheapest subscriptions
+// extended: 200,001–999,999 tokens — large codebases, multi-file analysis
+// massive:  ≥1,000,000 tokens      — full-repo analysis, massive document processing
+```
+
+#### 3. Updated ModelCapability Interface
+
+The `contextGroup` is a derived categorical dimension used for routing.
+
+```typescript
+interface ModelCapability {
+  // ... existing fields ...
+  contextWindow: number;        // exact token limit (existing)
+  contextGroup: ContextGroup;   // categorical routing dimension (NEW)
+}
+```
+
+**Derivation rule:**
+- `contextWindow ≤ 200,000` → `"standard"`
+- `200,001 ≤ contextWindow ≤ 999,999` → `"extended"`
+- `contextWindow ≥ 1,000,000` → `"massive"`
+
+#### 4. Updated Routing Strategy
+
+We insert a new **Step 1.5** into the routing strategy described in Section 4:
+
+**Step 1.5 — Filter by Context Group:**
+- If the agent request includes `contextRequired: ContextGroup`, retain only subscriptions whose model's `contextGroup` is ≥ the required group (standard < extended < massive).
+- If `contextRequired` isn't specified, default to `"standard"` and prefer subscriptions with `contextGroup: "standard"`.
+
+This ensures the router picks the cheapest subscription offering the model at standard context when massive context isn't needed. For example, Copilot (Opus 200K) is selected over Anthropic direct (Opus 1M) for typical tasks.
+
+#### 5. Agent-Side Context Request
+
+This integrates with the `AgentConfig` from ADR-006:
+
+```typescript
+// Extension to agent model request:
+interface AgentModelRequest {
+  tier: ModelTier;
+  family: ModelFamily;
+  contextRequired?: ContextGroup;  // Optional — defaults to "standard"
+}
+```
+
+Most agents never set `contextRequired` and receive standard context, which is sufficient for over 90% of tasks. Agents that work with large codebases, such as the architect or codebase-mapper, can configure `contextRequired: "extended"`. Rare scenarios like full-repo analysis use `contextRequired: "massive"`. This can be set statically in agent config or dynamically by the orchestrator.
+
+#### 6. Auto-Detection & Local Registry
+
+| Provider      | API Endpoint           | Returns Context Window | Field                      |
+|---------------|------------------------|------------------------|----------------------------|
+| Anthropic     | `GET /v1/models`       | ✅                     | `max_input_tokens`         |
+| Google Gemini | `GET /v1beta/models`   | ✅                     | `inputTokenLimit`          |
+| GitHub Models | `GET /catalog/models`  | ✅                     | `limits.max_input_tokens`  |
+| OpenAI        | `GET /v1/models`       | ❌                     | —                          |
+| Azure OpenAI  | `GET /openai/models`   | ❌                     | —                          |
+| DeepSeek      | `GET /models`          | ❌                     | —                          |
+
+Providers that expose the context window via API allow the system to auto-detect `contextGroup` on subscription initialization. For others, we use a local model metadata registry (`packages/providers/src/model-metadata.ts`) with hardcoded values. API auto-detection always takes precedence.
+
+#### 7. Reconciliation with ADR-006 `largeContext` Fallback
+
+ADR-006 defines `largeContext` as a reactive fallback that escalates to a model with a bigger window when the context is too large. The 3D classification mechanism complements this:
+
+- **Context groups (proactive):** The router picks the correct context group upfront based on `contextRequired`, preventing context issues before they occur.
+- **`largeContext` fallback (reactive):** When a task's actual input exceeds the current model's context window at runtime, the router escalates to a subscription offering a higher context group.
+
+The `largeContext` fallback remains the essential escalation mechanism for cases where the agent's context needs were underestimated.
+
