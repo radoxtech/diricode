@@ -5,7 +5,7 @@
 | Status      | Accepted                                      |
 | Date        | 2026-03-09                                    |
 | Scope       | MVP                                           |
-| References  | analiza-narzedzi-ekosystem.md                 |
+| References  | analiza-narzedzi-ekosystem.md, Survey Decision C2, @modelcontextprotocol/sdk |
 
 ### Context
 
@@ -44,3 +44,9 @@ When MCP capabilities are discovered, the tools are automatically registered wit
 
 **Consistency Guarantee**
 Whether a tool is native (TypeScript) or external (MCP), it receives identical middleware treatment.
+
+### Addendum — Official SDK Adoption (Survey Decision C2, 2026-03-23)
+
+DiriCode adopts the official `@modelcontextprotocol/sdk` package (published by the MCP project, maintained by Anthropic) as the sole MCP implementation dependency. This replaces any custom MCP protocol handling.
+
+The SDK provides: client/server creation, stdio/SSE transports, tool/resource/prompt primitives, and protocol version negotiation. DiriCode uses it as an MCP client to consume external tool servers (web search, browser automation, custom skills).

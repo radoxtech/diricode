@@ -16,6 +16,12 @@
     "test": "vitest run",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.0",
+    "@github/models": "0.0.1-beta.2",
+    "@google/genai": "^1.0.0",
+    "ai": "^6.0.138"
+  },
   "devDependencies": {
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

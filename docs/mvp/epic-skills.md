@@ -2,7 +2,7 @@
 
 > **Package**: `@diricode/core`
 > **Iteration**: MVP-2 (engine) → MVP-3 (built-in skills)
-> **Issue IDs**: DC-SKILL-001 — DC-SKILL-006
+> **Issue IDs**: DC-SKILL-001 — DC-SKILL-007
 > **Dependencies**: DC-CORE-005..012 (agent runtime), DC-CORE-001..004 (config), DC-TOOL-001..012 (tool contracts)
 
 ## Summary
@@ -12,6 +12,7 @@ Key constraints:
 - **Metis guidance**: skills system was **not** in POC. POC keeps hardcoded TypeScript agent behavior; skills start in MVP-2.
 - Skills follow the reusable package model (OpenCode-like), with custom skills in project scope.
 - Skill behavior adapts to 4 work-mode dimensions from `analiza-lean-mode.md`: Quality, Autonomy, Verbose, Creativity.
+- **LLM-based routing**: a LOW-tier router handles skill selection to save context tokens for HEAVY/MEDIUM agents.
 
 ---
 
@@ -69,7 +70,35 @@ Resolution policy:
 
 ### Dependencies
 - Depends on: DC-SKILL-001
-- Blocks: DC-SKILL-003, DC-SKILL-004, DC-SKILL-005
+- Blocks: DC-SKILL-003, DC-SKILL-004, DC-SKILL-005, DC-SKILL-007
+
+---
+
+## Issue: DC-SKILL-007 — LLM-Based Skill Router
+
+### Description
+Implement a LOW-tier LLM router to dynamically select skills based on task context. This prevents context bloat in HEAVY/MEDIUM models by only loading necessary skill definitions.
+
+Scope:
+- specialized prompt for LOW-tier model (e.g., Haiku/DeepSeek)
+- skill metadata extraction for routing prompt (ID, name, description)
+- integration into dispatcher before agent spawning
+
+### Acceptance Criteria
+- [ ] Skill metadata is indexed in SQLite memory layer for fast retrieval.
+- [ ] Router uses a LOW-tier model (cost/latency optimization).
+- [ ] Router returns a JSON list of skill IDs.
+- [ ] Dispatcher loads the identified skills before spawning the target agent.
+- [ ] Max skill limit (e.g., 3-5) is enforced to maintain context hygiene.
+- [ ] Routing decisions are traceable in EventStream metadata.
+
+### References
+- `docs/adr/adr-043-llm-skills-loader.md` (primary)
+- `docs/adr/adr-004-agent-roster-3-tiers.md` (tiering strategy)
+
+### Dependencies
+- Depends on: DC-SKILL-002
+- Blocks: DC-SKILL-003
 
 ---
 

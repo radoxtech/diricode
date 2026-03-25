@@ -5,7 +5,7 @@
 | Status      | Accepted                                                      |
 | Date        | 2026-03-21                                                    |
 | Scope       | MVP-2 (subscription rotation), v2 (quality scoring), v3 (A/B testing) |
-| References  | ADR-004 (agent roster 3 tiers), ADR-005 (families), ADR-006 (4 fallback types), ADR-025 (native TS router + fallback chain) |
+| References  | ADR-004 (agent roster 3 tiers), ADR-005 (families), ADR-006 (4 fallback types), ADR-025 (native TS router + fallback chain), Survey Decision E1 |
 
 ### Context
 
@@ -294,3 +294,11 @@ A/B tests are opt-in. They run transparently alongside normal work — the user 
 - **Quality scoring requires volume.** Elo ratings need ~50+ comparisons to be meaningful. Low-traffic deployments may not generate enough signal. Mitigated by conservative K-factor and treating sub-50-match scores as provisional.
 - **A/B testing doubles cost** for tested tasks. This is opt-in and should only run on a small percentage of traffic. The experiment config includes traffic weight controls.
 - **Phased delivery.** Full feature set spans three releases (MVP-2, v2, v3). Early users get subscription rotation without quality insights.
+
+### Addendum — "Try Cheap First" Routing Strategy (Survey Decision E1, 2026-03-23)
+
+Before routing to the requested tier, the SubscriptionRouter first attempts a LOW-tier model when the task complexity is ambiguous. If the LOW-tier model handles the task successfully (code compiles, tests pass, reviewer approves), the cost savings are captured. If the LOW-tier model fails or produces low-quality output, the router escalates to the originally requested tier.
+
+This is inspired by RouteLLM's trained complexity classifier but uses a simpler heuristic: tasks with fewer than 200 input tokens and no architectural tags are candidates for LOW-tier first. The quality scoring system (v2) refines this heuristic over time.
+
+The "try cheap first" strategy is opt-in per work mode — enabled by default at Quality levels 1-2, disabled at Quality levels 4-5, configurable at Quality level 3.
