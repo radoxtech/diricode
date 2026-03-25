@@ -11,6 +11,9 @@ export { ProviderPriorities } from "./types.js";
 
 export { ProviderAlreadyRegisteredError, ProviderNotFoundError, Registry } from "./registry.js";
 
+export { GeminiProvider } from "./providers/gemini.js";
+export type { GeminiProviderConfig } from "./providers/gemini.js";
+
 export { ABExperimentManager } from "./ab/ABExperimentManager.js";
 
 export type {
