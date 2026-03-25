@@ -1,5 +1,5 @@
 {
-  "name": "@diricode/providers",
+  "name": "@diricode/test-utils",
   "version": "0.0.0",
   "private": false,
   "license": "MIT",
@@ -14,16 +14,19 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^2.0.0",
-    "@github/models": "0.0.1-beta.2",
-    "@google/genai": "^1.0.0",
-    "ai": "^6.0.138"
+    "@diricode/core": "workspace:*",
+    "@diricode/agents": "workspace:*",
+    "@diricode/providers": "workspace:*",
+    "@diricode/server": "workspace:*",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.1.0"
   }
 }

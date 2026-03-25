@@ -14,12 +14,7 @@ An autonomous AI coding framework that helps you build applications — from POC
 
 Most AI coding tools are glorified chatbots — you type, they respond, state disappears. DiriCode is designed to work more like an autonomous development team:
 
-<<<<<<< HEAD
-
-- # **SQLite is the brain.** Plans, sprints, tasks, and progress live in a local SQLite database — autonomous, no rate limits. Agents read and write state at sub-millisecond speed. GitHub sync is optional: when you want external visibility, a sync adapter pushes state out to a GitHub Project. Agents operate with full autonomy — decisions are local, state is instant.
-- **SQLite is the brain.** Plans, sprints, tasks, and progress live in a local SQLite database — offline-first, no network required, no rate limits. Agents read and write state at sub-millisecond speed. GitHub sync is optional: when you want external visibility, a sync adapter pushes state out to a GitHub Project. But agents never wait for the network to do their job.
-
-  > > > > > > > origin/main
+- **SQLite is the brain.** Plans, sprints, tasks, and progress live in a local SQLite database — autonomous, no rate limits. Agents read and write state at sub-millisecond speed. GitHub sync is optional: when you want external visibility, a sync adapter pushes state out to a GitHub Project. Agents operate with full autonomy — decisions are local, state is instant.
 
 - **Sprint-based execution.** DiriCode doesn't just answer one question at a time. It interviews you to understand the full scope, builds a plan broken into sprints and epics, then executes tasks in parallel across isolated git worktrees. When it hits a blocker, it finishes everything else it can, does a project review, and replans. It only asks you questions when it genuinely gets stuck or when a decision requires your taste. Questions are queued by importance × blocking-factor — answered from mobile in batches when you have time.
 
@@ -60,9 +55,9 @@ You describe what you want
 
 **Questions Queue:** The orchestrator continuously gathers decision-making questions and doubts. Each is tagged with importance (architectural impact, user experience, technical debt) and blocking-factor (how many other tasks it halts). Queue is sorted automatically — highest impact blockers surface first. You receive batched notifications on mobile and answer when ready. Agents never wait on you unless truly blocked.
 
-### Two-Dimensional Model Selection
+### Three-Dimensional Model Selection
 
-Instead of hardcoding "use GPT for everything," DiriCode classifies AI models along two dimensions:
+Instead of hardcoding "use GPT for everything," DiriCode classifies AI models along three dimensions:
 
 **Tier** — how powerful (and expensive) the model is:
 
@@ -84,9 +79,19 @@ Instead of hardcoding "use GPT for everything," DiriCode classifies AI models al
 | Bulk         | High volume work at minimal cost                 |
 | Agentic      | Tool use, multi-step autonomous execution        |
 
-Each agent requests `{ tier: "heavy", family: "reasoning" }` and the router finds the best available model across all your subscriptions. A single model can belong to multiple families — Opus 4.6 is reasoning + creative + agentic.
+**Context Size** — how much input context the model can handle:
 
-See [ADR-004](docs/adr/adr-004-agent-roster-3-tiers.md) and [ADR-042](docs/adr/adr-042-multi-subscription-management.md).
+| Context Group | Range          | Used For                                            |
+| ------------- | -------------- | --------------------------------------------------- |
+| Standard      | ≤200K tokens   | Most tasks, single-file analysis, standard coding   |
+| Extended      | 200K–1M tokens | Large codebases, multi-file analysis, big documents |
+| Massive       | ≥1M tokens     | Full-repo analysis, massive document processing     |
+
+The same model can appear in different context groups depending on your subscription — for example, Claude Opus via GitHub Copilot (200K, standard) vs Anthropic direct API (1M, massive). The router prefers cheaper subscriptions when smaller context is sufficient.
+
+Each agent requests `{ tier: "heavy", family: "reasoning" }` (and optionally `contextRequired: "standard"`) and the router finds the best available model across all your subscriptions, preferring cheaper subscriptions when smaller context is sufficient. A single model can belong to multiple families — Opus 4.6 is reasoning + creative + agentic.
+
+See [ADR-004](docs/adr/adr-004-agent-roster-3-tiers.md) and [ADR-042](docs/adr/adr-042-multi-subscription-management.md). The 3D classification system is documented in the [ADR-042 addendum](docs/adr/adr-042-multi-subscription-management.md).
 
 ### Multi-Subscription Management
 
@@ -120,20 +125,12 @@ See [ADR-031](docs/adr/adr-031-observability-eventstream-agent-tree.md).
 
 ### Local-First Issue System
 
-<<<<<<< HEAD
 This is DiriCode's most unconventional design choice. Agents are autonomous runtimes — their task state is operational data, not project metadata. Storing operational data in a remote API introduces rate limits, latency, and blocks autonomous execution. DiriCode keeps all state local for maximum autonomy and speed.
 
 SQLite is the source of truth for all runtime state — issues, tasks, epics, and their relationships. This is a full reversal from the original design (see [ADR-022](docs/adr/adr-022-github-issues-sqlite-timeline.md), superseded by [ADR-048](docs/adr/adr-048-sqlite-issue-system.md)):
 
 - **Plans become local records.** Each sprint task is stored in SQLite with acceptance criteria, file lists, and implementation notes. Local I/O at sub-millisecond speed enables full autonomous execution.
-- # **Autonomous-first.** Agents work at full capability continuously. Creating an issue, updating task status, marking completion — all local I/O with full autonomy.
-  This is DiriCode's most unconventional design choice. Agents are autonomous runtimes — their task state is operational data, not project metadata. Storing operational data in a remote API introduces rate limits, network dependency, and latency that undermine the whole system. So DiriCode doesn't.
-
-SQLite is the source of truth for all runtime state — issues, tasks, epics, and their relationships. This is a full reversal from the original design (see [ADR-022](docs/adr/adr-022-github-issues-sqlite-timeline.md), superseded by [ADR-048](docs/adr/adr-048-sqlite-issue-system.md)):
-
-- **Plans become local records.** Each sprint task is stored in SQLite with acceptance criteria, file lists, and implementation notes. No network call required to read or write task state.
-- **Offline-first.** No network, no problem. Agents work at full capability whether or not they can reach the internet. Creating an issue, updating task status, marking completion — all local I/O.
-  > > > > > > > origin/main
+- **Autonomous-first.** Agents work at full capability continuously. Creating an issue, updating task status, marking completion — all local I/O with full autonomy.
 - **No rate limits.** Dense agent activity during sprint execution no longer creates API pressure. SQLite reads are sub-millisecond; GitHub API calls have hundreds of milliseconds of round-trip latency.
 - **Sync adapters are output targets, not input sources.** If you want external visibility — for stakeholders, phone review, or team collaboration — a sync adapter pushes state from SQLite to a GitHub Project. The directionality is intentional: SQLite receives writes, GitHub receives exports.
 
