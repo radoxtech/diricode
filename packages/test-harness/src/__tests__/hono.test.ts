@@ -12,15 +12,18 @@ describe("createHonoTestClient", () => {
     app.get("/health", (c) => c.json({ status: "ok" }));
     app.get("/users/:id", (c) => c.json({ id: c.req.param("id") }));
     app.post("/users", async (c) => {
-      const body = await c.req.json();
+       
+      const body: unknown = await c.req.json();
       return c.json({ created: body }, 201);
     });
     app.put("/users/:id", async (c) => {
-      const body = await c.req.json();
+       
+      const body: unknown = await c.req.json();
       return c.json({ updated: body });
     });
     app.patch("/users/:id", async (c) => {
-      const body = await c.req.json();
+       
+      const body: unknown = await c.req.json();
       return c.json({ patched: body });
     });
     app.delete("/users/:id", (c) => c.json({ deleted: c.req.param("id") }));

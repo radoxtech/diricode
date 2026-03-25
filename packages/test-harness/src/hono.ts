@@ -132,9 +132,9 @@ export function createTestServer(app: Hono, options: TestServerOptions = {}): Te
     path: string,
     options: RequestInit = {},
   ): Promise<TestResponse> {
-    const mergedHeaders = {
+    const mergedHeaders: Record<string, string> = {
       ...defaultHeaders,
-      ...((options.headers as Record<string, string>) ?? {}),
+      ...(options.headers as Record<string, string> | undefined),
     };
 
     return baseClient.request(method, path, {

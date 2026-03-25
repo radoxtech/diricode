@@ -34,7 +34,7 @@ export interface TestDatabase {
  * });
  * ```
  */
-export async function createInMemoryDatabase(): Promise<TestDatabase> {
+export function createInMemoryDatabase(): TestDatabase {
   const db = new Database(":memory:");
 
   db.pragma("journal_mode = WAL");
@@ -43,8 +43,9 @@ export async function createInMemoryDatabase(): Promise<TestDatabase> {
   return {
     db,
     path: ":memory:",
-    cleanup: async () => {
+    cleanup: () => {
       db.close();
+      return Promise.resolve();
     },
   };
 }
@@ -133,7 +134,7 @@ export class TestDatabaseManager {
   async setup(
     options: {
       inMemory?: boolean;
-      migrations?: Array<{ version: number; sql: string }>;
+      migrations?: { version: number; sql: string }[];
     } = {},
   ): Promise<void> {
     const inMemory = options.inMemory ?? true;
@@ -183,21 +184,21 @@ export class TestDatabaseManager {
   /**
    * Runs a SQL query and returns all results.
    */
-  all<T = unknown>(sql: string, ...params: unknown[]): T[] {
+  all(sql: string, ...params: unknown[]): unknown[] {
     if (this.db === null) {
       throw new Error("Database not initialized. Call setup() first.");
     }
-    return this.db.prepare(sql).all(...params) as T[];
+    return this.db.prepare(sql).all(...params);
   }
 
   /**
    * Runs a SQL query and returns the first result.
    */
-  get<T = unknown>(sql: string, ...params: unknown[]): T | undefined {
+  get(sql: string, ...params: unknown[]): unknown {
     if (this.db === null) {
       throw new Error("Database not initialized. Call setup() first.");
     }
-    return this.db.prepare(sql).get(...params) as T | undefined;
+    return this.db.prepare(sql).get(...params);
   }
 
   /**

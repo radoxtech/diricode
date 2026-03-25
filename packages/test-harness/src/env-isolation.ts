@@ -52,13 +52,13 @@ export class EnvIsolation {
 
     for (const key of currentKeys) {
       if (!savedKeys.has(key)) {
-        delete process.env[key];
+        Reflect.deleteProperty(process.env, key);
       }
     }
 
     for (const [key, value] of Object.entries(this.savedEnv)) {
       if (value === undefined) {
-        delete process.env[key];
+        Reflect.deleteProperty(process.env, key);
       } else {
         process.env[key] = value;
       }
@@ -85,7 +85,7 @@ export class EnvIsolation {
    * @param key - The environment variable name
    */
   delete(key: string): void {
-    delete process.env[key];
+    Reflect.deleteProperty(process.env, key);
   }
 
   /**
@@ -94,7 +94,7 @@ export class EnvIsolation {
    */
   clear(): void {
     for (const key of Object.keys(process.env)) {
-      delete process.env[key];
+      Reflect.deleteProperty(process.env, key);
     }
   }
 }

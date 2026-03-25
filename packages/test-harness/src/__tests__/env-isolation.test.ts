@@ -46,7 +46,7 @@ describe("EnvIsolation", () => {
 
   it("should not throw when restoring without save", () => {
     const freshEnv = new EnvIsolation();
-    expect(() => freshEnv.restore()).not.toThrow();
+    expect(() => { freshEnv.restore(); }).not.toThrow();
   });
 
   it("should set variables via set method", () => {

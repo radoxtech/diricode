@@ -14,21 +14,21 @@ describe("createInMemoryDatabase", () => {
     await db.cleanup();
   });
 
-  it("should create an in-memory database", async () => {
-    db = await createInMemoryDatabase();
+  it("should create an in-memory database", () => {
+    db = createInMemoryDatabase();
     expect(db.db).toBeDefined();
     expect(db.path).toBe(":memory:");
   });
 
-  it("should allow SQL queries", async () => {
-    db = await createInMemoryDatabase();
+  it("should allow SQL queries", () => {
+    db = createInMemoryDatabase();
     const result = db.db.prepare("SELECT 1 as num").get() as { num: number };
     expect(result.num).toBe(1);
   });
 
-  it("should enable foreign keys", async () => {
-    db = await createInMemoryDatabase();
-    const rows = db.db.pragma("foreign_keys") as Array<Record<string, number>>;
+  it("should enable foreign keys", () => {
+    db = createInMemoryDatabase();
+    const rows = db.db.pragma("foreign_keys") as Record<string, number>[];
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0]).toHaveProperty("foreign_keys", 1);
   });
@@ -54,9 +54,9 @@ describe("createFileDatabase", () => {
     db.db.prepare("CREATE TABLE test (id INTEGER)").run();
     db.db.prepare("INSERT INTO test VALUES (1)").run();
 
-    const result = db.db.prepare("SELECT * FROM test").all() as Array<{ id: number }>;
+    const result = db.db.prepare("SELECT * FROM test").all() as { id: number }[];
     expect(result).toHaveLength(1);
-    expect(result[0]!.id).toBe(1);
+    expect(result[0]?.id).toBe(1);
   });
 
   it("should clean up temp directory on cleanup", async () => {
@@ -89,8 +89,9 @@ describe("TestDatabaseManager", () => {
     });
 
     manager.run("INSERT INTO users (id) VALUES (1)");
-    const result = manager.get("SELECT * FROM users WHERE id = 1") as { id: number };
-    expect(result.id).toBe(1);
+    const result = manager.get("SELECT * FROM users WHERE id = 1") as { id: number } | undefined;
+    expect(result).toBeDefined();
+    expect(result?.id).toBe(1);
   });
 
   it("should run migrations in order", async () => {
@@ -102,8 +103,11 @@ describe("TestDatabaseManager", () => {
     });
 
     manager.run("INSERT INTO users (id, name) VALUES (1, 'John')");
-    const result = manager.get("SELECT * FROM users WHERE id = 1") as { id: number; name: string };
-    expect(result.name).toBe("John");
+    const result = manager.get("SELECT * FROM users WHERE id = 1") as
+      | { id: number; name: string }
+      | undefined;
+    expect(result).toBeDefined();
+    expect(result?.name).toBe("John");
   });
 
   it("should skip already applied migrations", async () => {
@@ -119,8 +123,9 @@ describe("TestDatabaseManager", () => {
     });
 
     manager.run("INSERT INTO posts (id) VALUES (1)");
-    const result = manager.get("SELECT * FROM posts WHERE id = 1") as { id: number };
-    expect(result.id).toBe(1);
+    const result = manager.get("SELECT * FROM posts WHERE id = 1") as { id: number } | undefined;
+    expect(result).toBeDefined();
+    expect(result?.id).toBe(1);
   });
 
   it("should support all() query method", async () => {
@@ -129,10 +134,10 @@ describe("TestDatabaseManager", () => {
     manager.run("INSERT INTO test VALUES (1)");
     manager.run("INSERT INTO test VALUES (2)");
 
-    const results = manager.all("SELECT * FROM test") as Array<{ id: number }>;
+    const results = manager.all("SELECT * FROM test") as { id: number }[];
     expect(results).toHaveLength(2);
-    expect(results[0]!.id).toBe(1);
-    expect(results[1]!.id).toBe(2);
+    expect(results[0]?.id).toBe(1);
+    expect(results[1]?.id).toBe(2);
   });
 
   it("should support get() query method", async () => {
@@ -140,8 +145,9 @@ describe("TestDatabaseManager", () => {
     manager.exec("CREATE TABLE test (id INTEGER)");
     manager.run("INSERT INTO test VALUES (1)");
 
-    const result = manager.get("SELECT * FROM test WHERE id = 1") as { id: number };
-    expect(result.id).toBe(1);
+    const result = manager.get("SELECT * FROM test WHERE id = 1") as { id: number } | undefined;
+    expect(result).toBeDefined();
+    expect(result?.id).toBe(1);
   });
 
   it("should return undefined for get() when no match", async () => {
@@ -169,7 +175,7 @@ describe("TestDatabaseManager", () => {
       INSERT INTO test VALUES (2);
     `);
 
-    const results = manager.all("SELECT * FROM test") as Array<{ id: number }>;
+    const results = manager.all("SELECT * FROM test");
     expect(results).toHaveLength(2);
   });
 
