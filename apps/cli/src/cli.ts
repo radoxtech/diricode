@@ -27,7 +27,7 @@ cli
         console.log(`diricode v${pkg.version}`);
       }
       const config = await resolveConfig(flags);
-      startRepl(config, { session: flags.session });
+      await startRepl(config, { session: flags.session });
     } catch (err) {
       if (err instanceof Error) {
         // eslint-disable-next-line no-console
