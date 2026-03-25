@@ -1,4 +1,10 @@
-export { AgentRegistry, AgentNotFoundError, AgentAlreadyRegisteredError } from "./registry.js";
+export {
+  AgentRegistry,
+  AgentNotFoundError,
+  AgentAlreadyRegisteredError,
+  TierConstraintError,
+} from "./registry.js";
+export type { TierConstraint, AgentRegistryOptions } from "./registry.js";
 export { createDispatcher } from "./dispatcher.js";
 export type { DispatcherConfig } from "./dispatcher.js";
 export { createCodeWriterAgent } from "./code-writer.js";
