@@ -4,7 +4,7 @@ export interface GithubModelInfo {
   readonly supportsStreaming: boolean;
 }
 
-const GITHUB_MODELS: Record<string, GithubModelInfo> = {
+export const GITHUB_MODELS: Record<string, GithubModelInfo> = {
   "gpt-5": { provider: "openai", modelId: "openai/gpt-5", supportsStreaming: true },
   "gpt-5-mini": { provider: "openai", modelId: "openai/gpt-5-mini", supportsStreaming: true },
   "gpt-5-nano": { provider: "openai", modelId: "openai/gpt-5-nano", supportsStreaming: true },

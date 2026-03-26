@@ -1,5 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { type ReplOptions, type ReplStatus } from "../commands/repl.js";
+
+vi.mock("@diricode/providers", () => ({
+  hasGithubAuth: vi.fn().mockReturnValue(true),
+}));
 
 describe("ReplStatus", () => {
   it("has correct shape", () => {

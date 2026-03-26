@@ -13,6 +13,7 @@ export const ProviderIdSchema = z.enum([
   "google",
   "mistral",
   "cohere",
+  "copilot",
   "groq",
   "ollama",
   "azure-openai",
@@ -49,9 +50,7 @@ export const ProviderConfigSchema = z
  * }
  * ```
  */
-export const ProvidersConfigSchema = z
-  .record(ProviderIdSchema, ProviderConfigSchema)
-  .default({});
+export const ProvidersConfigSchema = z.record(ProviderIdSchema, ProviderConfigSchema).default({});
 
 // ---------------------------------------------------------------------------
 // Agents

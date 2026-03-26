@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "@diricode/core": "workspace:*",
+    "@diricode/providers": "workspace:*",
+    "@inquirer/prompts": "^8.3.2",
     "cac": "^6.7.14",
     "defu": "^6.1.4",
     "zod": "^3.24.0"

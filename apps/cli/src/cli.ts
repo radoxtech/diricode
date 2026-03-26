@@ -5,6 +5,9 @@ import { validateFlags } from "./flags.js";
 import { resolveConfig } from "./config.js";
 import { startRepl } from "./commands/repl.js";
 import { runOnce } from "./commands/run.js";
+import { runLogin } from "./commands/login.js";
+import { runLogout } from "./commands/logout.js";
+import { runWhoami } from "./commands/whoami.js";
 
 const cli = cac("diricode");
 
@@ -56,6 +59,49 @@ cli
       process.exit(1);
     }
   });
+
+cli
+  .command("login", "Authenticate with GitHub and store token in system keychain")
+  .option("--token <token>", "GitHub token (non-interactive)")
+  .option("--model <model>", "Default model to use (non-interactive)")
+  .action(async (options: Record<string, unknown>) => {
+    try {
+      await runLogin({
+        token: typeof options.token === "string" ? options.token : undefined,
+        model: typeof options.model === "string" ? options.model : undefined,
+      });
+    } catch (err) {
+      if (err instanceof Error) {
+        // eslint-disable-next-line no-console
+        console.error(`Error: ${err.message}`);
+      }
+      process.exit(1);
+    }
+  });
+
+cli.command("logout", "Remove GitHub token from system keychain").action(async () => {
+  try {
+    await runLogout();
+  } catch (err) {
+    if (err instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error(`Error: ${err.message}`);
+    }
+    process.exit(1);
+  }
+});
+
+cli.command("whoami", "Show current authentication status").action(async () => {
+  try {
+    await runWhoami();
+  } catch (err) {
+    if (err instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error(`Error: ${err.message}`);
+    }
+    process.exit(1);
+  }
+});
 
 cli.help();
 cli.version(pkg.version);
