@@ -33,6 +33,8 @@ export {
   hasGithubAuth,
   getGithubToken,
   getGithubTokenFromKeychain,
+  getGithubTokenSource,
+  GITHUB_TOKEN_ENV_VARS,
   KeychainService,
   KeychainUnavailableError,
   KEYCHAIN_SERVICE,
@@ -42,4 +44,4 @@ export {
   fetchAvailableModels,
   clearModelsCache,
 } from "./copilot/index.js";
-export type { GithubUser, CatalogModel } from "./copilot/index.js";
+export type { GithubUser, CatalogModel, GithubTokenSource } from "./copilot/index.js";

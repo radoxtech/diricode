@@ -5,7 +5,14 @@ export {
   getGithubModelInfo,
   isKnownModel,
 } from "./models.js";
-export { getGithubToken, hasGithubAuth, getGithubTokenFromKeychain } from "./auth.js";
+export {
+  getGithubToken,
+  hasGithubAuth,
+  getGithubTokenFromKeychain,
+  getGithubTokenSource,
+  GITHUB_TOKEN_ENV_VARS,
+} from "./auth.js";
+export type { GithubTokenSource } from "./auth.js";
 export {
   KeychainService,
   KeychainUnavailableError,

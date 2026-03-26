@@ -2,6 +2,8 @@ import { KeychainService, KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT } from "./keychain.
 
 export const GITHUB_TOKEN_ENV_VARS = ["DC_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"] as const;
 
+export type GithubTokenSource = (typeof GITHUB_TOKEN_ENV_VARS)[number] | "keychain" | "none";
+
 const _keychainService = new KeychainService();
 
 export function getGithubTokenFromKeychain(): string | undefined {
@@ -17,6 +19,19 @@ export function getGithubToken(): string | undefined {
     }
   }
   return getGithubTokenFromKeychain();
+}
+
+export function getGithubTokenSource(): GithubTokenSource {
+  for (const envVar of GITHUB_TOKEN_ENV_VARS) {
+    const value = process.env[envVar];
+    if (value && value.trim().length > 0) {
+      return envVar;
+    }
+  }
+  if (getGithubTokenFromKeychain() !== undefined) {
+    return "keychain";
+  }
+  return "none";
 }
 
 export function hasGithubAuth(): boolean {
