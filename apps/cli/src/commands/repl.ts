@@ -1,6 +1,9 @@
 import { createInterface, type Interface } from "node:readline/promises";
 import type { DiriCodeConfig } from "@diricode/core";
 import { hasGithubAuth } from "@diricode/providers";
+import { runLogin } from "./login.js";
+import { runLogout } from "./logout.js";
+import { runWhoami } from "./whoami.js";
 
 export interface ReplOptions {
   session?: string;
@@ -17,6 +20,9 @@ function printHelp(): void {
   console.log(`
 Commands:
   /help     Show this help message
+  /login    Authenticate with GitHub or Google
+  /logout   Remove stored GitHub token from OS Keychain
+  /whoami   Show current authentication status
   /status   Show current REPL status
   /exit     Exit the REPL
   /clear    Clear the screen
@@ -82,7 +88,7 @@ export async function startRepl(config: DiriCodeConfig, options: ReplOptions): P
   if (promptOnMissing && !hasGithubAuth()) {
     // eslint-disable-next-line no-console
     console.log(
-      "No GitHub token found. Run 'dc login' to authenticate or set DC_GITHUB_TOKEN / GITHUB_TOKEN env var.\n",
+      "No GitHub token found. Run '/login' to authenticate or set DC_GITHUB_TOKEN / GITHUB_TOKEN env var.\n",
     );
   }
 
@@ -92,7 +98,16 @@ export async function startRepl(config: DiriCodeConfig, options: ReplOptions): P
     terminal: true,
     historySize: 100,
     completer: (line: string): [string[], string] => {
-      const commands = ["/help", "/status", "/exit", "/quit", "/clear"];
+      const commands = [
+        "/help",
+        "/login",
+        "/logout",
+        "/whoami",
+        "/status",
+        "/exit",
+        "/quit",
+        "/clear",
+      ];
       const hits = commands.filter((c) => c.startsWith(line));
       return [hits, line];
     },
@@ -133,6 +148,21 @@ export async function startRepl(config: DiriCodeConfig, options: ReplOptions): P
       if (trimmed === "/clear") {
         // eslint-disable-next-line no-console
         console.clear();
+        continue;
+      }
+
+      if (trimmed === "/login") {
+        await runLogin();
+        continue;
+      }
+
+      if (trimmed === "/logout") {
+        await runLogout();
+        continue;
+      }
+
+      if (trimmed === "/whoami") {
+        await runWhoami();
         continue;
       }
 

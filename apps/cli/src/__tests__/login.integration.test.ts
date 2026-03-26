@@ -117,7 +117,7 @@ describe("login → whoami → logout integration", () => {
     await runLogin({ token: "ghp_test_integration", model: "gpt-5-mini" });
     loginOut.restore();
 
-    expect(loginOut.lines.join("")).toContain("Logged in as octocat");
+    expect(loginOut.lines.join("")).toContain("Logged in to GitHub as octocat");
     expect(keychainStore.get("diricode:github-token")).toBe("ghp_test_integration");
 
     mockGetGithubToken.mockReturnValue("ghp_test_integration");
@@ -196,7 +196,7 @@ describe("login → whoami → logout integration", () => {
     await runLogin({});
     loginOut.restore();
 
-    expect(loginOut.lines.join("")).toContain("Already authenticated");
+    expect(loginOut.lines.join("")).toContain("Already logged in with GitHub");
     expect(mockValidateGithubToken).not.toHaveBeenCalled();
     expect(keychainStore.has("diricode:github-token")).toBe(false);
   });
