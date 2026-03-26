@@ -100,7 +100,7 @@ describe("runLogin()", () => {
       return true;
     });
     await runLogin({});
-    expect(out.join("")).toContain("Already authenticated");
+    expect(out.join("")).toContain("Already logged in with GitHub");
     expect(validateGithubToken).not.toHaveBeenCalled();
   });
 
