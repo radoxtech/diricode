@@ -7,7 +7,7 @@ export { loadConfig } from "./config/loader.js";
 export type { LoadConfigOptions, LoadConfigResult } from "./config/loader.js";
 export { getGlobalConfigDir, getProjectConfigPath } from "./config/paths.js";
 
-export { AgentError } from "./agents/types.js";
+export { AgentError, serializeTask, deserializeTask } from "./agents/types.js";
 export type {
   Agent,
   AgentCategory,
@@ -24,6 +24,8 @@ export type {
   HistoryMessage,
   PlanContext,
   TaskSummary,
+  Task,
+  SerializedTask,
   TokenBudget,
   ContextInjection,
   TemplateVars,
