@@ -15,31 +15,31 @@ describe("getGlobalConfigDir", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns ~/Library/Preferences/dc on macOS", () => {
+  it("returns ~/Library/Preferences/diricode on macOS", () => {
     Object.defineProperty(process, "platform", { value: "darwin" });
     const result = getGlobalConfigDir();
-    expect(result).toBe(join(homedir(), "Library", "Preferences", "dc"));
+    expect(result).toBe(join(homedir(), "Library", "Preferences", "diricode"));
   });
 
-  it("returns $XDG_CONFIG_HOME/dc on Linux when XDG_CONFIG_HOME is set", () => {
+  it("returns $XDG_CONFIG_HOME/diricode on Linux when XDG_CONFIG_HOME is set", () => {
     Object.defineProperty(process, "platform", { value: "linux" });
     vi.stubEnv("XDG_CONFIG_HOME", "/custom/config");
     const result = getGlobalConfigDir();
-    expect(result).toBe("/custom/config/dc");
+    expect(result).toBe("/custom/config/diricode");
   });
 
-  it("returns ~/.config/dc on Linux when XDG_CONFIG_HOME is not set", () => {
+  it("returns ~/.config/diricode on Linux when XDG_CONFIG_HOME is not set", () => {
     Object.defineProperty(process, "platform", { value: "linux" });
     vi.stubEnv("XDG_CONFIG_HOME", "");
     const result = getGlobalConfigDir();
-    expect(result).toBe(join(homedir(), ".config", "dc"));
+    expect(result).toBe(join(homedir(), ".config", "diricode"));
   });
 
-  it("returns ~/.config/dc on Linux when XDG_CONFIG_HOME is undefined", () => {
+  it("returns ~/.config/diricode on Linux when XDG_CONFIG_HOME is undefined", () => {
     Object.defineProperty(process, "platform", { value: "linux" });
     vi.stubEnv("XDG_CONFIG_HOME", undefined as unknown as string);
     const result = getGlobalConfigDir();
-    expect(result).toBe(join(homedir(), ".config", "dc"));
+    expect(result).toBe(join(homedir(), ".config", "diricode"));
   });
 
   it("throws on unsupported platform (win32)", () => {

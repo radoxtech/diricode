@@ -1,5 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { type ReplOptions, type ReplStatus } from "../commands/repl.js";
+import { type DiriCodeConfig } from "@diricode/core";
+
+vi.mock("@diricode/providers", () => ({
+  hasGithubAuth: vi.fn<() => boolean>().mockReturnValue(true),
+}));
+
+vi.mock("node:readline/promises", () => ({
+  createInterface: vi.fn().mockReturnValue({
+    question: vi.fn().mockResolvedValue("/exit"),
+    close: vi.fn(),
+  }),
+}));
 
 describe("ReplStatus", () => {
   it("has correct shape", () => {
@@ -28,5 +40,56 @@ describe("ReplOptions", () => {
   it("accepts empty options", () => {
     const options: ReplOptions = {};
     expect(options.session).toBeUndefined();
+  });
+});
+
+describe("startRepl() auth prompt", () => {
+  let consoleOutput: string[];
+  let restoreConsole: () => void;
+
+  beforeEach(() => {
+    consoleOutput = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
+      consoleOutput.push(args.map(String).join(" "));
+    });
+    restoreConsole = (): void => {
+      spy.mockRestore();
+    };
+  });
+
+  afterEach(() => {
+    restoreConsole();
+    vi.clearAllMocks();
+  });
+
+  it("shows no-auth message when no GitHub token and promptOnMissing is default", async () => {
+    vi.resetModules();
+    vi.doMock("@diricode/providers", () => ({ hasGithubAuth: () => false }));
+    vi.doMock("node:readline/promises", () => ({
+      createInterface: vi.fn().mockReturnValue({
+        question: vi.fn().mockResolvedValue("/exit"),
+        close: vi.fn(),
+      }),
+    }));
+    const { startRepl } = await import("../commands/repl.js");
+    const config = {} as DiriCodeConfig;
+    await startRepl(config, {});
+    expect(consoleOutput.some((line) => line.includes("No GitHub token found"))).toBe(true);
+  });
+
+  it("shows no message when GitHub token is present", async () => {
+    vi.resetModules();
+    vi.doMock("@diricode/providers", () => ({ hasGithubAuth: () => true }));
+    vi.doMock("node:readline/promises", () => ({
+      createInterface: vi.fn().mockReturnValue({
+        question: vi.fn().mockResolvedValue("/exit"),
+        close: vi.fn(),
+      }),
+    }));
+    const { startRepl } = await import("../commands/repl.js");
+    const config = {} as DiriCodeConfig;
+    consoleOutput = [];
+    await startRepl(config, {});
+    expect(consoleOutput.some((line) => line.includes("No GitHub token found"))).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import { createInterface, type Interface } from "node:readline/promises";
 import type { DiriCodeConfig } from "@diricode/core";
+import { hasGithubAuth } from "@diricode/providers";
 
 export interface ReplOptions {
   session?: string;
@@ -74,6 +75,16 @@ function* dispatchToAgent(
 
 export async function startRepl(config: DiriCodeConfig, options: ReplOptions): Promise<void> {
   let status: ReplStatus = { session: options.session ?? null, mode: "idle", historySize: 0 };
+
+  const configRecord = config as unknown as { auth?: { promptOnMissing?: boolean } };
+  const promptOnMissing = configRecord.auth?.promptOnMissing !== false;
+
+  if (promptOnMissing && !hasGithubAuth()) {
+    // eslint-disable-next-line no-console
+    console.log(
+      "No GitHub token found. Run 'dc login' to authenticate or set DC_GITHUB_TOKEN / GITHUB_TOKEN env var.\n",
+    );
+  }
 
   const rl = createInterface({
     input: process.stdin,

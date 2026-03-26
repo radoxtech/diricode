@@ -4,22 +4,22 @@ import { join } from "node:path";
 /**
  * Returns the platform-specific global config directory for DiriCode.
  *
- * - Linux: `$XDG_CONFIG_HOME/dc/` (fallback to `~/.config/dc/`)
- * - macOS: `~/Library/Preferences/dc/`
+ * - Linux: `$XDG_CONFIG_HOME/diricode/` (fallback to `~/.config/diricode/`)
+ * - macOS: `~/Library/Preferences/diricode/`
  * - Other: throws an error (no Windows support in MVP)
  */
 export function getGlobalConfigDir(): string {
   const platform = process.platform;
 
   if (platform === "darwin") {
-    return join(homedir(), "Library", "Preferences", "dc");
+    return join(homedir(), "Library", "Preferences", "diricode");
   }
 
   if (platform === "linux") {
     const xdgConfigHome = process.env.XDG_CONFIG_HOME;
     const base =
       xdgConfigHome != null && xdgConfigHome !== "" ? xdgConfigHome : join(homedir(), ".config");
-    return join(base, "dc");
+    return join(base, "diricode");
   }
 
   throw new Error(

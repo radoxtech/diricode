@@ -333,7 +333,9 @@ describe("DiriCodeConfigSchema", () => {
       });
       expect(result.success).toBe(false);
       if (!result.success) {
-        const paths = result.error.issues.map((i: { path: (string | number)[] }) => i.path.join("."));
+        const paths = result.error.issues.map((i: { path: (string | number)[] }) =>
+          i.path.join("."),
+        );
         expect(paths.some((p: string) => p.includes("temperature"))).toBe(true);
       }
     });
@@ -346,6 +348,22 @@ describe("DiriCodeConfigSchema", () => {
       if (!result.success) {
         expect(result.error.issues.length).toBeGreaterThan(0);
       }
+    });
+  });
+
+  describe("copilot provider", () => {
+    it("accepts copilot as a valid provider id", () => {
+      const result = DiriCodeConfigSchema.safeParse({
+        providers: { copilot: {} },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts copilot provider with defaultModel", () => {
+      const result = DiriCodeConfigSchema.parse({
+        providers: { copilot: { defaultModel: "gpt-5-mini" } },
+      });
+      expect(result.providers.copilot?.defaultModel).toBe("gpt-5-mini");
     });
   });
 });
