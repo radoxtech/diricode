@@ -84,6 +84,73 @@ export interface TaskSummary {
   readonly status: "pending" | "in-progress" | "completed" | "blocked";
 }
 
+export interface Task {
+  readonly id: string;
+  readonly description: string;
+  readonly status: "pending" | "in-progress" | "completed" | "blocked" | "failed";
+  readonly blocked_by: readonly string[];
+  readonly blocking: readonly string[];
+  readonly sessionId?: string;
+  readonly agentName?: string;
+  readonly createdAt?: number;
+  readonly updatedAt?: number;
+}
+
+export interface SerializedTask {
+  readonly id: string;
+  readonly description: string;
+  readonly status: Task["status"];
+  readonly blocked_by: string;
+  readonly blocking: string;
+  readonly session_id?: string;
+  readonly agent_name?: string;
+  readonly created_at?: string;
+  readonly updated_at?: string;
+}
+
+export function serializeTask(task: Task): SerializedTask {
+  return {
+    id: task.id,
+    description: task.description,
+    status: task.status,
+    blocked_by: JSON.stringify(task.blocked_by),
+    blocking: JSON.stringify(task.blocking),
+    session_id: task.sessionId,
+    agent_name: task.agentName,
+    created_at: task.createdAt ? new Date(task.createdAt).toISOString() : undefined,
+    updated_at: task.updatedAt ? new Date(task.updatedAt).toISOString() : undefined,
+  };
+}
+
+export function deserializeTask(row: SerializedTask): Task {
+  let blockedBy: string[];
+  let blocking: string[];
+
+  try {
+    blockedBy = JSON.parse(row.blocked_by) as string[];
+  } catch {
+    blockedBy = [];
+  }
+
+  try {
+    blocking = JSON.parse(row.blocking) as string[];
+  } catch {
+    blocking = [];
+  }
+
+  return {
+    id: row.id,
+    description: row.description,
+    status: row.status,
+    blocked_by: blockedBy,
+    blocking,
+    sessionId: row.session_id,
+    agentName: row.agent_name,
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : undefined,
+  };
+}
+
 /**
  * Token budget allocation for a prompt component.
  * @see ADR-016 Context Composer token budgets
