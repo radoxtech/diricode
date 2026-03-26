@@ -150,7 +150,6 @@ export function deserializeTask(row: SerializedTask): Task {
     updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : undefined,
   };
 }
-
 /**
  * Token budget allocation for a prompt component.
  * @see ADR-016 Context Composer token budgets
@@ -256,3 +255,102 @@ export interface Agent {
   readonly metadata: AgentMetadata;
   execute(input: string, context: AgentContext): Promise<AgentResult>;
 }
+
+// ---------------------------------------------------------------------------
+// Sandbox execution types
+// ---------------------------------------------------------------------------
+
+/**
+ * Stop reasons for sandboxed agent execution.
+ */
+export type SandboxStopReason =
+  | "budget_exceeded"
+  | "timeout"
+  | "retry_exhausted"
+  | "upstream_error"
+  | "success"
+  | "error";
+
+/**
+ * Tier-aware token budget configuration.
+ * Maps agent tier to max tokens per invocation.
+ */
+export interface SandboxTokenBudget {
+  readonly heavy: number;
+  readonly medium: number;
+  readonly light: number;
+}
+
+/**
+ * Tier-aware timeout configuration in milliseconds.
+ */
+export interface SandboxTimeout {
+  readonly heavy: number;
+  readonly medium: number;
+  readonly light: number;
+}
+
+/**
+ * Tier-aware retry policy configuration.
+ */
+export interface SandboxRetryPolicy {
+  readonly heavy: number;
+  readonly medium: number;
+  readonly light: number;
+}
+
+/**
+ * Complete sandbox configuration for agent execution.
+ */
+export interface SandboxConfig {
+  readonly tokenBudget: SandboxTokenBudget;
+  readonly timeout: SandboxTimeout;
+  readonly retryPolicy: SandboxRetryPolicy;
+}
+
+/**
+ * Result of a sandboxed execution attempt.
+ */
+export interface SandboxAttemptResult {
+  readonly success: boolean;
+  readonly output: string;
+  readonly tokensUsed: number;
+  readonly toolCalls: number;
+  readonly stopReason: SandboxStopReason;
+  readonly retryCount: number;
+  readonly error?: string;
+}
+
+/**
+ * Aggregated result of sandboxed execution with all attempts.
+ */
+export interface SandboxExecutionResult {
+  readonly success: boolean;
+  readonly output: string;
+  readonly totalTokens: number;
+  readonly totalToolCalls: number;
+  readonly stopReason: SandboxStopReason;
+  readonly attempts: readonly SandboxAttemptResult[];
+  readonly retries: number;
+}
+
+/**
+ * Default sandbox configuration optimized for POC.
+ */
+export const DEFAULT_SANDBOX_CONFIG: SandboxConfig = {
+  tokenBudget: {
+    heavy: 80000,
+    medium: 40000,
+    light: 10000,
+  },
+  timeout: {
+    heavy: 300000, // 5 minutes
+    medium: 120000, // 2 minutes
+    light: 30000, // 30 seconds
+  },
+  retryPolicy: {
+    heavy: 3,
+    medium: 2,
+    light: 1,
+  },
+};
