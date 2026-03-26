@@ -93,6 +93,7 @@ export async function executeInSandbox(
   let retries = 0;
   let tokenBudgetExceeded = false;
   let timeout = false;
+  let finalStopReason: SandboxStopReason = "error";
 
   while (retries <= maxRetries) {
     const attemptContext: SandboxContext = {
@@ -109,6 +110,7 @@ export async function executeInSandbox(
       if (attemptResult.tokensUsed > maxTokens) {
         tokenBudgetExceeded = true;
         stopReason = "budget_exceeded";
+        finalStopReason = stopReason;
         attempts.push({
           success: false,
           output: attemptResult.output,
@@ -131,6 +133,7 @@ export async function executeInSandbox(
       });
 
       if (attemptResult.success) {
+        finalStopReason = "success";
         return {
           success: true,
           output: attemptResult.output,
@@ -148,6 +151,7 @@ export async function executeInSandbox(
       }
 
       stopReason = "retry_exhausted";
+      finalStopReason = stopReason;
       attempts.push({
         success: false,
         output: attemptResult.output,
@@ -161,13 +165,15 @@ export async function executeInSandbox(
       if (error instanceof AgentError && error.code === "TIMEOUT") {
         timeout = true;
         stopReason = "timeout";
+        finalStopReason = stopReason;
       } else {
-        stopReason = determineStopReason(
+        finalStopReason = determineStopReason(
           error,
           tokenBudgetExceeded,
           timeout,
           retries >= maxRetries,
         );
+        stopReason = finalStopReason;
       }
 
       attempts.push({
@@ -180,7 +186,12 @@ export async function executeInSandbox(
         error: error instanceof Error ? error.message : String(error),
       });
 
-      if (retries < maxRetries && stopReason !== "upstream_error") {
+      const shouldRetry =
+        retries < maxRetries &&
+        stopReason !== "upstream_error" &&
+        stopReason !== "timeout" &&
+        stopReason !== "budget_exceeded";
+      if (shouldRetry) {
         retries++;
         continue;
       }
@@ -194,12 +205,7 @@ export async function executeInSandbox(
     output: lastAttempt?.output ?? "",
     totalTokens: attempts.reduce((sum, a) => sum + a.tokensUsed, 0),
     totalToolCalls: attempts.reduce((sum, a) => sum + a.toolCalls, 0),
-    stopReason: determineStopReason(
-      lastAttempt?.error,
-      tokenBudgetExceeded,
-      timeout,
-      retries >= maxRetries,
-    ),
+    stopReason: finalStopReason,
     attempts,
     retries,
   };
