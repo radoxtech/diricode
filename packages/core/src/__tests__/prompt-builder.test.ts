@@ -20,7 +20,10 @@ function makeTool(name: string, description = `${name} tool`): Tool {
     description,
     parameters: { parse: (v: unknown) => v } as Tool["parameters"],
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    execute: async () => ({ success: true, data: {} }),
+    execute: async () => {
+      await Promise.resolve();
+      return { success: true, data: {} };
+    },
   };
 }
 

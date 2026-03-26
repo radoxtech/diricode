@@ -68,16 +68,7 @@ export class PromptBuilder {
 
   bindTools(tools: readonly Tool[], capabilities: readonly string[]): this {
     this.capabilities = capabilities;
-    this.tools = tools.filter((tool) => {
-      if (!tool.annotations || !("capabilities" in tool.annotations)) {
-        return true;
-      }
-      const toolCaps = tool.annotations.capabilities;
-      if (Array.isArray(toolCaps)) {
-        return toolCaps.some((c) => capabilities.includes(typeof c === "string" ? c : String(c)));
-      }
-      return true;
-    });
+    this.tools = [...tools];
     return this;
   }
 
@@ -119,7 +110,7 @@ export class PromptBuilder {
       agentDescription: this.config.metadata.description || "",
       capabilities: this.capabilities.join(", "),
       tools: this.tools.map((t) => t.name).join(", "),
-      workspaceRoot: this.config.workspaceRoot || "",
+      workspaceRoot: this.config.workspaceRoot ?? "",
       ...this.customVars,
     };
 
