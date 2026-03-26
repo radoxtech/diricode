@@ -67,8 +67,8 @@ cli
   .action(async (options: Record<string, unknown>) => {
     try {
       await runLogin({
-        token: options["token"] as string | undefined,
-        model: options["model"] as string | undefined,
+        token: options.token as string | undefined,
+        model: options.model as string | undefined,
       });
     } catch (err) {
       if (err instanceof Error) {

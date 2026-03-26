@@ -18,6 +18,14 @@ export interface LoginOptions {
   model?: string;
 }
 
+interface NestedConfig {
+  providers?: {
+    copilot?: {
+      defaultModel?: string;
+    };
+  };
+}
+
 function saveDefaultModelToConfig(defaultModel: string): void {
   let configDir: string;
   try {
@@ -28,30 +36,19 @@ function saveDefaultModelToConfig(defaultModel: string): void {
 
   const configPath = join(configDir, "config.jsonc");
 
-  let existing: Record<string, unknown> = {};
+  let existing: NestedConfig = {};
   if (existsSync(configPath)) {
     try {
-      existing = JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
+      existing = JSON.parse(readFileSync(configPath, "utf-8")) as NestedConfig;
     } catch {
       existing = {};
     }
   }
 
-  const providers =
-    existing["providers"] != null &&
-    typeof existing["providers"] === "object" &&
-    !Array.isArray(existing["providers"])
-      ? (existing["providers"] as Record<string, unknown>)
-      : {};
+  const providers = existing.providers ?? {};
+  const copilot = providers.copilot ?? {};
 
-  const copilot =
-    providers["copilot"] != null &&
-    typeof providers["copilot"] === "object" &&
-    !Array.isArray(providers["copilot"])
-      ? (providers["copilot"] as Record<string, unknown>)
-      : {};
-
-  const updated = {
+  const updated: NestedConfig = {
     ...existing,
     providers: {
       ...providers,
@@ -78,9 +75,7 @@ export async function runLogin(options: LoginOptions = {}): Promise<void> {
 
   let token = options.token;
 
-  if (!token) {
-    token = await password({ message: "Enter your GitHub Personal Access Token:" });
-  }
+  token ??= await password({ message: "Enter your GitHub Personal Access Token:" });
 
   let user: Awaited<ReturnType<typeof validateGithubToken>>;
   try {

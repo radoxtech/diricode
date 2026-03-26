@@ -3,8 +3,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockKeychainDelete = vi.hoisted(() => vi.fn<() => boolean>());
 
 vi.mock("@diricode/providers", () => {
-  function MockKeychain() {}
-  MockKeychain.prototype.delete = mockKeychainDelete;
+  class MockKeychain {
+    delete = mockKeychainDelete;
+  }
 
   return {
     KeychainService: MockKeychain,

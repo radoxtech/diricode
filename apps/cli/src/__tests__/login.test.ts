@@ -6,9 +6,10 @@ const mockGetGithubTokenSource = vi.hoisted(() => vi.fn<() => string>());
 const mockSaveDefaultModel = vi.hoisted(() => vi.fn());
 
 vi.mock("@diricode/providers", () => {
-  function MockKeychain() {}
-  MockKeychain.prototype.set = mockKeychainSet;
-  MockKeychain.prototype.get = vi.fn().mockReturnValue(null);
+  class MockKeychain {
+    set = mockKeychainSet;
+    get = vi.fn().mockReturnValue(null);
+  }
 
   return {
     KeychainService: MockKeychain,
@@ -42,8 +43,8 @@ vi.mock("@diricode/core", () => ({
   }),
 }));
 
-vi.mock("node:fs", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("node:fs")>();
+vi.mock("node:fs", async () => {
+  const actual: Record<string, unknown> = await vi.importActual("node:fs");
   return {
     ...actual,
     mkdirSync: mockSaveDefaultModel,

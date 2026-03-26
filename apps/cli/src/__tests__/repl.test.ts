@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { type ReplOptions, type ReplStatus } from "../commands/repl.js";
+import { type DiriCodeConfig } from "@diricode/core";
 
 vi.mock("@diricode/providers", () => ({
   hasGithubAuth: vi.fn<() => boolean>().mockReturnValue(true),
@@ -44,17 +45,20 @@ describe("ReplOptions", () => {
 
 describe("startRepl() auth prompt", () => {
   let consoleOutput: string[];
-  let consoleSpy: ReturnType<typeof vi.spyOn>;
+  let restoreConsole: () => void;
 
   beforeEach(() => {
     consoleOutput = [];
-    consoleSpy = vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
+    const spy = vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
       consoleOutput.push(args.map(String).join(" "));
     });
+    restoreConsole = (): void => {
+      spy.mockRestore();
+    };
   });
 
   afterEach(() => {
-    consoleSpy.mockRestore();
+    restoreConsole();
     vi.clearAllMocks();
   });
 
@@ -68,7 +72,7 @@ describe("startRepl() auth prompt", () => {
       }),
     }));
     const { startRepl } = await import("../commands/repl.js");
-    const config = {} as import("@diricode/core").DiriCodeConfig;
+    const config = {} as DiriCodeConfig;
     await startRepl(config, {});
     expect(consoleOutput.some((line) => line.includes("No GitHub token found"))).toBe(true);
   });
@@ -83,7 +87,7 @@ describe("startRepl() auth prompt", () => {
       }),
     }));
     const { startRepl } = await import("../commands/repl.js");
-    const config = {} as import("@diricode/core").DiriCodeConfig;
+    const config = {} as DiriCodeConfig;
     consoleOutput = [];
     await startRepl(config, {});
     expect(consoleOutput.some((line) => line.includes("No GitHub token found"))).toBe(false);

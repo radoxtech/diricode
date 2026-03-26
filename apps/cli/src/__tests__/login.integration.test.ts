@@ -14,19 +14,20 @@ const mockExistsSync = vi.hoisted(() => vi.fn<() => boolean>().mockReturnValue(f
 const mockReadFileSync = vi.hoisted(() => vi.fn());
 
 vi.mock("@diricode/providers", () => {
-  function MockKeychain() {}
-  MockKeychain.prototype.get = vi.fn((service: string, account: string) => {
-    return keychainStore.get(`${service}:${account}`) ?? null;
-  });
-  MockKeychain.prototype.set = vi.fn((service: string, account: string, value: string) => {
-    keychainStore.set(`${service}:${account}`, value);
-  });
-  MockKeychain.prototype.delete = vi.fn((service: string, account: string) => {
-    const key = `${service}:${account}`;
-    const existed = keychainStore.has(key);
-    keychainStore.delete(key);
-    return existed;
-  });
+  class MockKeychain {
+    get(service: string, account: string): string | null {
+      return keychainStore.get(`${service}:${account}`) ?? null;
+    }
+    set(service: string, account: string, value: string): void {
+      keychainStore.set(`${service}:${account}`, value);
+    }
+    delete(service: string, account: string): boolean {
+      const key = `${service}:${account}`;
+      const existed = keychainStore.has(key);
+      keychainStore.delete(key);
+      return existed;
+    }
+  }
 
   return {
     KeychainService: MockKeychain,
@@ -57,8 +58,8 @@ vi.mock("@diricode/core", () => ({
   }),
 }));
 
-vi.mock("node:fs", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("node:fs")>();
+vi.mock("node:fs", async () => {
+  const actual: Record<string, unknown> = await vi.importActual("node:fs");
   return {
     ...actual,
     mkdirSync: mockMkdirSync,
@@ -78,7 +79,12 @@ function captureStdout(): { lines: string[]; restore: () => void } {
     lines.push(String(s));
     return true;
   });
-  return { lines, restore: () => spy.mockRestore() };
+  return {
+    lines,
+    restore: (): void => {
+      spy.mockRestore();
+    },
+  };
 }
 
 describe("login → whoami → logout integration", () => {

@@ -76,10 +76,8 @@ function* dispatchToAgent(
 export async function startRepl(config: DiriCodeConfig, options: ReplOptions): Promise<void> {
   let status: ReplStatus = { session: options.session ?? null, mode: "idle", historySize: 0 };
 
-  const authSection = (config as unknown as Record<string, unknown>)["auth"] as
-    | Record<string, unknown>
-    | undefined;
-  const promptOnMissing = authSection == null ? true : (authSection["promptOnMissing"] ?? true);
+  const configRecord = config as unknown as { auth?: { promptOnMissing?: boolean } };
+  const promptOnMissing = configRecord.auth?.promptOnMissing !== false;
 
   if (promptOnMissing && !hasGithubAuth()) {
     // eslint-disable-next-line no-console

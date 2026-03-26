@@ -16,7 +16,7 @@ export async function runWhoami(): Promise<void> {
 
   const sourceLabel = source === "keychain" ? "OS Keychain" : `${source} env var`;
 
-  let login = "(unknown)";
+  let login: string;
   try {
     const user = await validateGithubToken(token);
     login = user.name ? `${user.login} (${user.name})` : user.login;

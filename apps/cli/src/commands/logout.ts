@@ -5,6 +5,7 @@ import {
   KeychainUnavailableError,
 } from "@diricode/providers";
 
+// eslint-disable-next-line @typescript-eslint/require-await -- keychain ops may become async
 export async function runLogout(): Promise<void> {
   const keychain = new KeychainService();
   let deleted: boolean;
