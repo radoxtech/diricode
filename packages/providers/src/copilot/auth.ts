@@ -1,27 +1,14 @@
-/**
- * Authentication handling for GitHub Models / Copilot provider.
- *
- * Auth is via GitHub token following the DC_* env convention.
- * The @github/models package defaults to GITHUB_TOKEN env var,
- * but we also support explicit DC_GITHUB_TOKEN for consistency
- * with the layered config system.
- */
+import { KeychainService, KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT } from "./keychain.js";
 
-/**
- * Well-known environment variable names for GitHub authentication.
- * Ordered by precedence (first found wins).
- */
-export const GITHUB_TOKEN_ENV_VARS = [
-  "DC_GITHUB_TOKEN", // Explicit DiriCode convention
-  "GITHUB_TOKEN", // GitHub CLI / Actions standard
-  "GH_TOKEN", // GitHub CLI alternative
-] as const;
+export const GITHUB_TOKEN_ENV_VARS = ["DC_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"] as const;
 
-/**
- * Get the GitHub token from environment variables.
- *
- * @returns The GitHub token or undefined if not found.
- */
+const _keychainService = new KeychainService();
+
+export function getGithubTokenFromKeychain(): string | undefined {
+  const token = _keychainService.get(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
+  return token ?? undefined;
+}
+
 export function getGithubToken(): string | undefined {
   for (const envVar of GITHUB_TOKEN_ENV_VARS) {
     const value = process.env[envVar];
@@ -29,29 +16,14 @@ export function getGithubToken(): string | undefined {
       return value.trim();
     }
   }
-  return undefined;
+  return getGithubTokenFromKeychain();
 }
 
-/**
- * Check if GitHub authentication is configured.
- *
- * @returns true if a token is available in the environment.
- */
 export function hasGithubAuth(): boolean {
   return getGithubToken() !== undefined;
 }
 
-/**
- * Authentication configuration for createGithubModels.
- */
 export interface GithubAuthConfig {
-  /**
-   * GitHub Personal Access Token or Fine-Grained Token.
-   * If omitted, defaults to GITHUB_TOKEN env var.
-   */
   apiKey?: string;
-  /**
-   * Organization to attribute API usage to (optional).
-   */
   org?: string;
 }
