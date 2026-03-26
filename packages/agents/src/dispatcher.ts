@@ -5,7 +5,7 @@ import type {
   AgentMetadata,
   AgentResult,
 } from "@diricode/core";
-import { AgentError } from "@diricode/core";
+import { AgentError, PromptBuilder } from "@diricode/core";
 import type { AgentRegistry } from "./registry.js";
 
 export interface DispatcherConfig {
@@ -100,10 +100,20 @@ export function createDispatcher(config: DispatcherConfig): Agent {
       });
 
       const agent = config.registry.get(selected.agent.name);
+      const agentPromptBuilder = new PromptBuilder({
+        metadata: agent.metadata,
+        workspaceRoot: context.workspaceRoot,
+      });
       const childContext: AgentContext = {
         ...context,
         parentAgentId: metadata.name,
+        promptBuilder: agentPromptBuilder,
       };
+
+      context.emit("dispatcher.prompt-built", {
+        agent: selected.agent.name,
+        systemPromptPreview: agentPromptBuilder.build(input, []).systemPrompt.substring(0, 100),
+      });
 
       const result = await agent.execute(input, childContext);
 
