@@ -18,7 +18,7 @@ export interface ParsedTask {
 
 export interface PlanParserResult {
   tasks: ParsedTask[];
-  edges: Array<{ upstream: string; downstream: string }>;
+  edges: { upstream: string; downstream: string }[];
   taskCount: number;
   edgeCount: number;
 }
@@ -41,7 +41,7 @@ function slugify(text: string, index: number): string {
     .trim()
     .replace(/\s+/g, "-")
     .slice(0, 40);
-  return clean ? `task-${index + 1}-${clean}` : `task-${index + 1}`;
+  return clean ? `task-${String(index + 1)}-${clean}` : `task-${String(index + 1)}`;
 }
 
 function extractTaskNumber(text: string): number | null {
@@ -54,7 +54,7 @@ function extractTaskNumber(text: string): number | null {
 
 function findDependencyRefs(
   text: string,
-  allTasks: Array<{ id: string; index: number; num: number | null }>,
+  allTasks: { id: string; index: number; num: number | null }[],
 ): string[] {
   const lower = text.toLowerCase();
   const deps: string[] = [];
@@ -83,7 +83,7 @@ function findDependencyRefs(
 
 function parseMarkdownTasks(markdown: string): ParsedTask[] {
   const lines = markdown.split("\n");
-  const rawTasks: Array<{ description: string; rawLine: string; lineIndex: number }> = [];
+  const rawTasks: { description: string; rawLine: string; lineIndex: number }[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? "";
@@ -131,8 +131,8 @@ function parseMarkdownTasks(markdown: string): ParsedTask[] {
   });
 }
 
-function buildGraph(tasks: ParsedTask[]): Array<{ upstream: string; downstream: string }> {
-  const edges: Array<{ upstream: string; downstream: string }> = [];
+function buildGraph(tasks: ParsedTask[]): { upstream: string; downstream: string }[] {
+  const edges: { upstream: string; downstream: string }[] = [];
 
   for (const task of tasks) {
     for (const dep of task.blockedBy) {
@@ -163,10 +163,7 @@ export const planParserTool: Tool<PlanParserParams, PlanParserResult> = {
     destructiveHint: false,
     idempotentHint: true,
   },
-  async execute(
-    params: PlanParserParams,
-    context: ToolContext,
-  ): Promise<ToolResult<PlanParserResult>> {
+  execute(params: PlanParserParams, context: ToolContext): Promise<ToolResult<PlanParserResult>> {
     context.emit("tool.start", { tool: "plan-parser", sessionId: params.sessionId });
 
     const tasks = parseMarkdownTasks(params.plan);
@@ -185,6 +182,6 @@ export const planParserTool: Tool<PlanParserParams, PlanParserResult> = {
       edgeCount: edges.length,
     });
 
-    return { success: true, data: result };
+    return Promise.resolve({ success: true, data: result });
   },
 };

@@ -74,7 +74,9 @@ export class TaskRepository {
         JSON.stringify(task.blocking),
       );
 
-    return this.getById(task.id) as TaskRecord;
+    const record = this.getById(task.id);
+    if (!record) throw new Error(`Task ${task.id} not found after upsert`);
+    return record;
   }
 
   getById(id: string): TaskRecord | undefined {

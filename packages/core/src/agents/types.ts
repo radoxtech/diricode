@@ -123,13 +123,13 @@ export function serializeTask(task: Task): SerializedTask {
 }
 
 export function deserializeTask(row: SerializedTask): Task {
-  let blocked_by: string[];
+  let blockedBy: string[];
   let blocking: string[];
 
   try {
-    blocked_by = JSON.parse(row.blocked_by) as string[];
+    blockedBy = JSON.parse(row.blocked_by) as string[];
   } catch {
-    blocked_by = [];
+    blockedBy = [];
   }
 
   try {
@@ -142,7 +142,7 @@ export function deserializeTask(row: SerializedTask): Task {
     id: row.id,
     description: row.description,
     status: row.status,
-    blocked_by,
+    blocked_by: blockedBy,
     blocking,
     sessionId: row.session_id,
     agentName: row.agent_name,
