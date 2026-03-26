@@ -290,25 +290,6 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
       });
 
       const agent = config.registry.get(selected.agent.name);
-<<<<<<< HEAD
-      const agentPromptBuilder = new PromptBuilder({
-        metadata: agent.metadata,
-        workspaceRoot: context.workspaceRoot,
-      });
-      const childContext: AgentContext = {
-        ...context,
-        parentAgentId: metadata.name,
-        promptBuilder: agentPromptBuilder,
-      };
-
-      context.emit("dispatcher.prompt-built", {
-        agent: selected.agent.name,
-        systemPromptPreview: agentPromptBuilder.build(input, []).systemPrompt.substring(0, 100),
-      });
-
-      const result = await agent.execute(input, childContext);
-=======
-
       const envelope = createHandoffEnvelope({
         parentExecutionId: executionId,
         parentAgentName: metadata.name,
@@ -373,7 +354,6 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         });
         throw error;
       }
->>>>>>> origin/main
 
       context.emit("agent.completed", {
         agentId: metadata.name,
