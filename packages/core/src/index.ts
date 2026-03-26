@@ -33,6 +33,33 @@ export type {
 export { PromptBuilder, DEFAULT_BUDGET } from "./agents/prompt-builder.js";
 export type { PromptBuilderConfig } from "./agents/prompt-builder.js";
 
+export { AgentProtocolError } from "./agents/protocol.js";
+export type {
+  ContextHandoffEnvelope,
+  ContextInheritanceMode,
+  ContextInheritanceRules,
+  ParentChildGraphNode,
+  SerializedContext,
+  DelegationContext,
+  GoalDefinition,
+  ArtifactReference,
+  ResultPropagationContract,
+  ResultIntegrationMode,
+  AgentDelegationResult,
+  DelegationRequest,
+  DelegationEvent,
+  ProtocolErrorCode,
+} from "./agents/protocol.js";
+export {
+  DEFAULT_INHERITANCE_RULES,
+  DEFAULT_RESULT_CONTRACT,
+  MAX_DELEGATION_DEPTH,
+  INLINE_ARTIFACT_THRESHOLD_BYTES,
+  wouldCreateCycle,
+  generateExecutionId,
+  generateHandoffId,
+} from "./agents/protocol.js";
+
 export { SkillDefinitionSchema } from "./skills/index.js";
 export type { SkillDefinition, SkillManifest, SkillLoadResult } from "./skills/index.js";
 export { SkillRegistry } from "./skills/index.js";
