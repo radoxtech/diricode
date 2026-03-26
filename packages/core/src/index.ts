@@ -15,7 +15,23 @@ export type {
   AgentMetadata,
   AgentResult,
   AgentTier,
+  ModelFamily,
+  ContextSize,
+  ModelHints,
+  RepoMap,
+  FileNode,
+  FileContext,
+  HistoryMessage,
+  PlanContext,
+  TaskSummary,
+  TokenBudget,
+  ContextInjection,
+  TemplateVars,
+  PromptBudget,
+  BuiltPrompt,
 } from "./agents/types.js";
+export { PromptBuilder, DEFAULT_BUDGET } from "./agents/prompt-builder.js";
+export type { PromptBuilderConfig } from "./agents/prompt-builder.js";
 
 export { SkillDefinitionSchema } from "./skills/index.js";
 export type { SkillDefinition, SkillManifest, SkillLoadResult } from "./skills/index.js";
