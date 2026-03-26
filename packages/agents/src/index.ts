@@ -6,7 +6,7 @@ export {
 } from "./registry.js";
 export type { TierConstraint, AgentRegistryOptions } from "./registry.js";
 export { createDispatcher } from "./dispatcher.js";
-export type { DispatcherConfig } from "./dispatcher.js";
+export type { DispatcherConfig, SwarmConfig, SwarmTask, SwarmResult } from "./dispatcher.js";
 export { createCodeWriterAgent } from "./code-writer.js";
 export type { CodeWriterConfig } from "./code-writer.js";
 export {
