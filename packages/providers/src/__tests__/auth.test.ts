@@ -1,18 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+const mockGetPassword = vi.hoisted(() => vi.fn<() => string | null>().mockReturnValue(null));
+const mockSetPassword = vi.hoisted(() => vi.fn());
+const mockDeletePassword = vi.hoisted(() => vi.fn<() => boolean>().mockReturnValue(true));
+
 vi.mock("@napi-rs/keyring", () => {
-  const mockEntry = vi.fn();
-  mockEntry.prototype.getPassword = vi.fn().mockReturnValue(null);
-  mockEntry.prototype.setPassword = vi.fn();
-  mockEntry.prototype.deletePassword = vi.fn().mockReturnValue(true);
+  class MockEntry {
+    getPassword = mockGetPassword;
+    setPassword = mockSetPassword;
+    deletePassword = mockDeletePassword;
+  }
+
   return {
-    Entry: mockEntry,
+    Entry: MockEntry,
     findCredentials: vi.fn().mockReturnValue([]),
   };
 });
 
 import { getGithubToken, hasGithubAuth, getGithubTokenFromKeychain } from "../copilot/auth.js";
-import { Entry } from "@napi-rs/keyring";
 
 describe("getGithubToken() with keychain fallback", () => {
   beforeEach(() => {
@@ -26,7 +31,7 @@ describe("getGithubToken() with keychain fallback", () => {
 
   it("returns DC_GITHUB_TOKEN when set (env wins over keychain)", () => {
     vi.stubEnv("DC_GITHUB_TOKEN", "env-token");
-    vi.mocked(Entry.prototype.getPassword).mockReturnValue("keychain-token");
+    mockGetPassword.mockReturnValue("keychain-token");
     expect(getGithubToken()).toBe("env-token");
   });
 
@@ -47,7 +52,7 @@ describe("getGithubToken() with keychain fallback", () => {
     vi.stubEnv("DC_GITHUB_TOKEN", "");
     vi.stubEnv("GITHUB_TOKEN", "");
     vi.stubEnv("GH_TOKEN", "");
-    vi.mocked(Entry.prototype.getPassword).mockReturnValue("keychain-token");
+    mockGetPassword.mockReturnValue("keychain-token");
     expect(getGithubToken()).toBe("keychain-token");
   });
 
@@ -55,7 +60,7 @@ describe("getGithubToken() with keychain fallback", () => {
     vi.stubEnv("DC_GITHUB_TOKEN", "");
     vi.stubEnv("GITHUB_TOKEN", "");
     vi.stubEnv("GH_TOKEN", "");
-    vi.mocked(Entry.prototype.getPassword).mockReturnValue(null);
+    mockGetPassword.mockReturnValue(null);
     expect(getGithubToken()).toBeUndefined();
   });
 });
@@ -66,12 +71,12 @@ describe("getGithubTokenFromKeychain()", () => {
   });
 
   it("returns token from keychain when available", () => {
-    vi.mocked(Entry.prototype.getPassword).mockReturnValue("keychain-token");
+    mockGetPassword.mockReturnValue("keychain-token");
     expect(getGithubTokenFromKeychain()).toBe("keychain-token");
   });
 
   it("returns undefined when keychain has no token", () => {
-    vi.mocked(Entry.prototype.getPassword).mockReturnValue(null);
+    mockGetPassword.mockReturnValue(null);
     expect(getGithubTokenFromKeychain()).toBeUndefined();
   });
 });
@@ -95,7 +100,7 @@ describe("hasGithubAuth()", () => {
     vi.stubEnv("DC_GITHUB_TOKEN", "");
     vi.stubEnv("GITHUB_TOKEN", "");
     vi.stubEnv("GH_TOKEN", "");
-    vi.mocked(Entry.prototype.getPassword).mockReturnValue("keychain-token");
+    mockGetPassword.mockReturnValue("keychain-token");
     expect(hasGithubAuth()).toBe(true);
   });
 
@@ -103,7 +108,7 @@ describe("hasGithubAuth()", () => {
     vi.stubEnv("DC_GITHUB_TOKEN", "");
     vi.stubEnv("GITHUB_TOKEN", "");
     vi.stubEnv("GH_TOKEN", "");
-    vi.mocked(Entry.prototype.getPassword).mockReturnValue(null);
+    mockGetPassword.mockReturnValue(null);
     expect(hasGithubAuth()).toBe(false);
   });
 });

@@ -28,17 +28,17 @@ export async function validateGithubToken(token: string): Promise<GithubUser> {
   }
 
   if (response.status === 401 || response.status === 403) {
-    throw new InvalidTokenError(`GitHub token rejected (HTTP ${response.status})`);
+    throw new InvalidTokenError(`GitHub token rejected (HTTP ${String(response.status)})`);
   }
 
   if (!response.ok) {
-    throw new InvalidTokenError(`GitHub API error (HTTP ${response.status})`);
+    throw new InvalidTokenError(`GitHub API error (HTTP ${String(response.status)})`);
   }
 
   const data = (await response.json()) as Record<string, unknown>;
   return {
-    login: data["login"] as string,
-    name: data["name"] as string | undefined,
-    avatar_url: data["avatar_url"] as string | undefined,
+    login: data.login as string,
+    name: data.name as string | undefined,
+    avatar_url: data.avatar_url as string | undefined,
   };
 }

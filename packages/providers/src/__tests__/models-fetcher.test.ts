@@ -33,7 +33,7 @@ describe("fetchAvailableModels()", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => MOCK_API_RESPONSE,
+      json: () => Promise.resolve(MOCK_API_RESPONSE),
     });
 
     const models = await fetchAvailableModels("ghp_token");
@@ -46,7 +46,7 @@ describe("fetchAvailableModels()", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => MOCK_API_RESPONSE,
+      json: () => Promise.resolve(MOCK_API_RESPONSE),
     });
 
     await fetchAvailableModels("ghp_mytoken");
@@ -56,7 +56,7 @@ describe("fetchAvailableModels()", () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: "Bearer ghp_mytoken",
-        }),
+        }) as Record<string, string>,
       }),
     );
   });
@@ -81,7 +81,7 @@ describe("fetchAvailableModels()", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => MOCK_API_RESPONSE,
+      json: () => Promise.resolve(MOCK_API_RESPONSE),
     });
 
     await fetchAvailableModels("ghp_token");
@@ -94,7 +94,7 @@ describe("fetchAvailableModels()", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => MOCK_API_RESPONSE,
+      json: () => Promise.resolve(MOCK_API_RESPONSE),
     });
 
     await fetchAvailableModels("ghp_token");

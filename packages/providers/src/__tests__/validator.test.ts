@@ -13,11 +13,12 @@ describe("validateGithubToken()", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({
-        login: "octocat",
-        name: "The Octocat",
-        avatar_url: "https://example.com/avatar",
-      }),
+      json: () =>
+        Promise.resolve({
+          login: "octocat",
+          name: "The Octocat",
+          avatar_url: "https://example.com/avatar",
+        }),
     });
 
     const user = await validateGithubToken("ghp_valid");
@@ -32,7 +33,7 @@ describe("validateGithubToken()", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ login: "octocat" }),
+      json: () => Promise.resolve({ login: "octocat" }),
     });
 
     await validateGithubToken("ghp_mytoken");
@@ -40,7 +41,7 @@ describe("validateGithubToken()", () => {
     expect(mockFetch).toHaveBeenCalledWith("https://api.github.com/user", {
       headers: expect.objectContaining({
         Authorization: "Bearer ghp_mytoken",
-      }),
+      }) as Record<string, string>,
     });
   });
 
