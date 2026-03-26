@@ -50,29 +50,22 @@ async function executeWithTimeout(
   timeoutMs: number,
 ): Promise<AgentResult> {
   return new Promise((resolve, reject) => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    let settled = false;
-
-    const cleanup = () => {
-      if (!settled) {
-        settled = true;
-        clearTimeout(timeoutId);
-      }
-    };
-
-    timeoutId = setTimeout(() => {
-      cleanup();
-      reject(new AgentError("TIMEOUT", `Agent execution timed out after ${timeoutMs}ms`));
+    const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => {
+      reject(new AgentError("TIMEOUT", `Agent execution timed out after ${String(timeoutMs)}ms`));
     }, timeoutMs);
 
     agent.execute(input, context).then(
       (result) => {
-        cleanup();
+        clearTimeout(timeoutId);
         resolve(result);
       },
-      (error) => {
-        cleanup();
-        reject(error);
+      (error: unknown) => {
+        clearTimeout(timeoutId);
+        if (error instanceof Error) {
+          reject(error);
+        } else {
+          reject(new Error(String(error)));
+        }
       },
     );
   });
@@ -118,7 +111,7 @@ export async function executeInSandbox(
           toolCalls: attemptResult.toolCalls,
           stopReason,
           retryCount: retries,
-          error: `Token budget exceeded: ${attemptResult.tokensUsed} > ${maxTokens}`,
+          error: `Token budget exceeded: ${String(attemptResult.tokensUsed)} > ${String(maxTokens)}`,
         });
         break;
       }

@@ -1,10 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { AgentError, DEFAULT_SANDBOX_CONFIG } from "@diricode/core";
-import type { Agent, AgentContext, AgentResult, SandboxConfig } from "@diricode/core";
+import type { Agent, AgentResult, SandboxConfig } from "@diricode/core";
 import { executeInSandbox } from "../sandbox.js";
 import type { SandboxContext } from "../sandbox.js";
-
-type MockFn = ReturnType<typeof vi.fn>;
 
 function makeAgent(overrides?: Partial<Agent>): Agent {
   return {
@@ -63,28 +61,30 @@ describe("executeInSandbox", () => {
         timeout: { heavy: 300000, medium: 5000, light: 30000 },
         retryPolicy: { heavy: 3, medium: 1, light: 0 },
       };
+      const executeMock = vi.fn<() => Promise<AgentResult>>().mockResolvedValue({
+        success: true,
+        output: "done",
+        toolCalls: 0,
+        tokensUsed: 50,
+      });
       const agent = makeAgent({
+        execute: executeMock,
         metadata: { ...makeAgent().metadata, tier: "medium" },
-        execute: vi.fn().mockResolvedValue({
-          success: true,
-          output: "done",
-          toolCalls: 0,
-          tokensUsed: 50,
-        }),
       });
       const context = makeSandboxContext({ sandboxConfig: config });
 
       await executeInSandbox(agent, "test", context);
 
-      expect(agent.execute).toHaveBeenCalledTimes(1);
+      expect(executeMock).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("timeout handling", () => {
     it("stops with timeout reason when agent times out", async () => {
-      const agent = makeAgent({
-        execute: vi.fn().mockRejectedValue(new AgentError("TIMEOUT", "Agent execution timed out")),
-      });
+      const executeMock = vi
+        .fn<() => Promise<AgentResult>>()
+        .mockRejectedValue(new AgentError("TIMEOUT", "Agent execution timed out"));
+      const agent = makeAgent({ execute: executeMock });
       const config: SandboxConfig = {
         tokenBudget: { heavy: 80000, medium: 40000, light: 10000 },
         timeout: { heavy: 300000, medium: 120000, light: 30000 },
@@ -100,9 +100,10 @@ describe("executeInSandbox", () => {
     });
 
     it("does not retry on timeout", async () => {
-      const agent = makeAgent({
-        execute: vi.fn().mockRejectedValue(new AgentError("TIMEOUT", "Agent execution timed out")),
-      });
+      const executeMock = vi
+        .fn<() => Promise<AgentResult>>()
+        .mockRejectedValue(new AgentError("TIMEOUT", "Agent execution timed out"));
+      const agent = makeAgent({ execute: executeMock });
       const config: SandboxConfig = {
         tokenBudget: { heavy: 80000, medium: 40000, light: 10000 },
         timeout: { heavy: 300000, medium: 120000, light: 30000 },
@@ -112,14 +113,14 @@ describe("executeInSandbox", () => {
 
       await executeInSandbox(agent, "test", context);
 
-      expect(agent.execute).toHaveBeenCalledTimes(1);
+      expect(executeMock).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("retry policy", () => {
     it("retries failed execution according to tier policy", async () => {
       const executeMock = vi
-        .fn()
+        .fn<() => Promise<AgentResult>>()
         .mockResolvedValueOnce({ success: false, output: "fail1", toolCalls: 1, tokensUsed: 50 })
         .mockResolvedValueOnce({ success: true, output: "success", toolCalls: 2, tokensUsed: 100 });
       const agent = makeAgent({ execute: executeMock });
@@ -139,7 +140,7 @@ describe("executeInSandbox", () => {
 
     it("stops with retry_exhausted when retries are depleted", async () => {
       const executeMock = vi
-        .fn()
+        .fn<() => Promise<AgentResult>>()
         .mockResolvedValue({ success: false, output: "always fail", toolCalls: 0, tokensUsed: 10 });
       const agent = makeAgent({ execute: executeMock });
       const config: SandboxConfig = {
@@ -197,9 +198,10 @@ describe("executeInSandbox", () => {
     });
 
     it("does not retry on upstream_error", async () => {
-      const agent = makeAgent({
-        execute: vi.fn().mockRejectedValue(new AgentError("UPSTREAM_ERROR", "upstream failed")),
-      });
+      const executeMock = vi
+        .fn<() => Promise<AgentResult>>()
+        .mockRejectedValue(new AgentError("UPSTREAM_ERROR", "upstream failed"));
+      const agent = makeAgent({ execute: executeMock });
       const config: SandboxConfig = {
         tokenBudget: { heavy: 80000, medium: 40000, light: 10000 },
         timeout: { heavy: 300000, medium: 120000, light: 30000 },
@@ -209,7 +211,7 @@ describe("executeInSandbox", () => {
 
       await executeInSandbox(agent, "test", context);
 
-      expect(agent.execute).toHaveBeenCalledTimes(1);
+      expect(executeMock).toHaveBeenCalledTimes(1);
     });
 
     it("handles AgentError with upstream codes correctly", async () => {
@@ -234,7 +236,7 @@ describe("executeInSandbox", () => {
   describe("heavy tier", () => {
     it("allows more retries for heavy tier agents", async () => {
       const executeMock = vi
-        .fn()
+        .fn<() => Promise<AgentResult>>()
         .mockResolvedValueOnce({ success: false, output: "fail1", toolCalls: 1, tokensUsed: 50 })
         .mockResolvedValueOnce({ success: false, output: "fail2", toolCalls: 1, tokensUsed: 50 })
         .mockResolvedValueOnce({ success: true, output: "success", toolCalls: 2, tokensUsed: 100 });
