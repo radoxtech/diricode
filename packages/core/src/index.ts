@@ -79,6 +79,16 @@ export { SkillRegistry } from "./skills/index.js";
 export { SkillRouter } from "./skills/index.js";
 export type { SkillRouterProvider, SkillRouterOptions } from "./skills/index.js";
 
+export { ModelTierResolver } from "./agents/model-tier-resolver.js";
+export type {
+  ModelTier,
+  ModelClass,
+  ResolutionReason,
+  TierMappingConfig,
+  TierResolution,
+  AvailabilityChecker,
+} from "./agents/model-tier-resolver.js";
+
 export {
   SubscriptionSchema,
   SubscriptionLimitsSchema,
