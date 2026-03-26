@@ -6,20 +6,25 @@ import type {
   AgentResult,
   ContextInheritanceRules,
   ResultPropagationContract,
+  SandboxConfig,
 } from "@diricode/core";
 import {
   AgentError,
   DEFAULT_INHERITANCE_RULES,
   DEFAULT_RESULT_CONTRACT,
+  DEFAULT_SANDBOX_CONFIG,
   generateExecutionId,
 } from "@diricode/core";
 
 import type { AgentRegistry } from "./registry.js";
 import { DelegationGraph, createHandoffEnvelope, createDelegationResult } from "./protocol.js";
+import { executeInSandbox } from "./sandbox.js";
+import type { SandboxContext } from "./sandbox.js";
 
 export interface DispatcherConfig {
   readonly registry: AgentRegistry;
   readonly maxDelegationDepth: number;
+  readonly sandboxConfig?: SandboxConfig;
 }
 
 interface ClassifiedIntent {
@@ -216,11 +221,13 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
       "progress-monitoring",
       "parallel-swarm-execution",
       "dag-scheduling",
+      "sandbox-execution",
     ],
     tags: ["orchestration"],
   };
 
   const graph = new DelegationGraph();
+  const sandboxConfig = config.sandboxConfig ?? DEFAULT_SANDBOX_CONFIG;
 
   return {
     metadata,
@@ -328,9 +335,21 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         executionId,
       });
 
+      const sandboxContext: SandboxContext = {
+        ...childContext,
+        sandboxConfig: sandboxConfig,
+      };
+
       let result: AgentResult;
+      let sandboxResult;
       try {
-        result = await agent.execute(input, childContext);
+        sandboxResult = await executeInSandbox(agent, input, sandboxContext, sandboxConfig);
+        result = {
+          success: sandboxResult.success,
+          output: sandboxResult.output,
+          toolCalls: sandboxResult.totalToolCalls,
+          tokensUsed: sandboxResult.totalTokens,
+        };
         graph.completeNode(envelope.childExecutionId, result.success);
 
         const delegationResult = createDelegationResult(result, envelope, DEFAULT_RESULT_CONTRACT);
@@ -342,6 +361,8 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
           toolCalls: result.toolCalls,
           tokensUsed: result.tokensUsed,
           tokenCount: delegationResult.tokenCount,
+          stopReason: sandboxResult.stopReason,
+          retries: sandboxResult.retries,
           executionId,
         });
       } catch (error) {
@@ -350,6 +371,8 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
           handoffId: envelope.handoffId,
           childExecutionId: envelope.childExecutionId,
           error: error instanceof Error ? error.message : String(error),
+          stopReason: sandboxResult?.stopReason ?? "error",
+          retries: sandboxResult?.retries ?? 0,
           executionId,
         });
         throw error;

@@ -7,7 +7,12 @@ export { loadConfig } from "./config/loader.js";
 export type { LoadConfigOptions, LoadConfigResult } from "./config/loader.js";
 export { getGlobalConfigDir, getProjectConfigPath } from "./config/paths.js";
 
-export { AgentError, serializeTask, deserializeTask } from "./agents/types.js";
+export {
+  AgentError,
+  serializeTask,
+  deserializeTask,
+  DEFAULT_SANDBOX_CONFIG,
+} from "./agents/types.js";
 export type {
   Agent,
   AgentCategory,
@@ -31,6 +36,13 @@ export type {
   TemplateVars,
   PromptBudget,
   BuiltPrompt,
+  SandboxConfig,
+  SandboxStopReason,
+  SandboxTokenBudget,
+  SandboxTimeout,
+  SandboxRetryPolicy,
+  SandboxAttemptResult,
+  SandboxExecutionResult,
 } from "./agents/types.js";
 export { PromptBuilder, DEFAULT_BUDGET } from "./agents/prompt-builder.js";
 export type { PromptBuilderConfig } from "./agents/prompt-builder.js";

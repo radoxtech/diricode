@@ -9,6 +9,8 @@ export { createDispatcher } from "./dispatcher.js";
 export type { DispatcherConfig, SwarmConfig, SwarmTask, SwarmResult } from "./dispatcher.js";
 export { createCodeWriterAgent } from "./code-writer.js";
 export type { CodeWriterConfig } from "./code-writer.js";
+export { executeInSandbox } from "./sandbox.js";
+export type { SandboxContext } from "./sandbox.js";
 export {
   DelegationGraph,
   ProtocolEngine,
@@ -44,5 +46,12 @@ export type {
   DelegationEvent,
   ProtocolErrorCode,
   AgentProtocolError,
+  SandboxConfig,
+  SandboxStopReason,
+  SandboxTokenBudget,
+  SandboxTimeout,
+  SandboxRetryPolicy,
+  SandboxAttemptResult,
+  SandboxExecutionResult,
 } from "@diricode/core";
-export { AgentError } from "@diricode/core";
+export { AgentError, DEFAULT_SANDBOX_CONFIG } from "@diricode/core";
