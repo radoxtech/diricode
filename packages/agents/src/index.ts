@@ -11,6 +11,8 @@ export { createCodeWriterAgent } from "./code-writer.js";
 export type { CodeWriterConfig } from "./code-writer.js";
 export { createPlannerQuickAgent } from "./planner-quick.js";
 export type { PlannerQuickConfig } from "./planner-quick.js";
+export { createCodeExplorerAgent } from "./code-explorer.js";
+export type { CodeExplorerConfig } from "./code-explorer.js";
 export { executeInSandbox } from "./sandbox.js";
 export type { SandboxContext } from "./sandbox.js";
 export {
