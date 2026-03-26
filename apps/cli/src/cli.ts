@@ -6,6 +6,8 @@ import { resolveConfig } from "./config.js";
 import { startRepl } from "./commands/repl.js";
 import { runOnce } from "./commands/run.js";
 import { runLogin } from "./commands/login.js";
+import { runLogout } from "./commands/logout.js";
+import { runWhoami } from "./commands/whoami.js";
 
 const cli = cac("diricode");
 
@@ -76,6 +78,30 @@ cli
       process.exit(1);
     }
   });
+
+cli.command("logout", "Remove stored GitHub token from OS Keychain").action(async () => {
+  try {
+    await runLogout();
+  } catch (err) {
+    if (err instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error(`Error: ${err.message}`);
+    }
+    process.exit(1);
+  }
+});
+
+cli.command("whoami", "Show current authentication status").action(async () => {
+  try {
+    await runWhoami();
+  } catch (err) {
+    if (err instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error(`Error: ${err.message}`);
+    }
+    process.exit(1);
+  }
+});
 
 cli.help();
 cli.version(pkg.version);
