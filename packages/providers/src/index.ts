@@ -27,4 +27,21 @@ export type {
 } from "./ab/ABExperimentManager.js";
 
 export { CopilotProvider, createCopilotProvider } from "./copilot/index.js";
-export { DEFAULT_COPILOT_MODEL, getGithubModelInfo, hasGithubAuth } from "./copilot/index.js";
+export {
+  DEFAULT_COPILOT_MODEL,
+  getGithubModelInfo,
+  hasGithubAuth,
+  getGithubToken,
+  getGithubTokenFromKeychain,
+  getGithubTokenSource,
+  GITHUB_TOKEN_ENV_VARS,
+  KeychainService,
+  KeychainUnavailableError,
+  KEYCHAIN_SERVICE,
+  KEYCHAIN_ACCOUNT,
+  validateGithubToken,
+  InvalidTokenError,
+  fetchAvailableModels,
+  clearModelsCache,
+} from "./copilot/index.js";
+export type { GithubUser, CatalogModel, GithubTokenSource } from "./copilot/index.js";
