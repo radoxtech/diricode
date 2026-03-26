@@ -5,6 +5,7 @@ import { validateFlags } from "./flags.js";
 import { resolveConfig } from "./config.js";
 import { startRepl } from "./commands/repl.js";
 import { runOnce } from "./commands/run.js";
+import { runLogin } from "./commands/login.js";
 
 const cli = cac("diricode");
 
@@ -48,6 +49,25 @@ cli
       }
       const config = await resolveConfig(flags);
       runOnce(config, prompt, { json: flags.json, session: flags.session });
+    } catch (err) {
+      if (err instanceof Error) {
+        // eslint-disable-next-line no-console
+        console.error(`Error: ${err.message}`);
+      }
+      process.exit(1);
+    }
+  });
+
+cli
+  .command("login", "Authenticate with GitHub and configure your default model")
+  .option("--token <token>", "GitHub Personal Access Token (non-interactive)")
+  .option("--model <model>", "Default model to use (non-interactive)")
+  .action(async (options: Record<string, unknown>) => {
+    try {
+      await runLogin({
+        token: options["token"] as string | undefined,
+        model: options["model"] as string | undefined,
+      });
     } catch (err) {
       if (err instanceof Error) {
         // eslint-disable-next-line no-console
