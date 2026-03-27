@@ -23,3 +23,10 @@ export { validateGithubToken, InvalidTokenError } from "./validator.js";
 export type { GithubUser } from "./validator.js";
 export { fetchAvailableModels, clearModelsCache } from "./models-fetcher.js";
 export type { CatalogModel } from "./models-fetcher.js";
+export {
+  initiateGithubDeviceFlow,
+  pollGithubDeviceToken,
+  exchangeGithubDeviceCode,
+  GithubOAuthError,
+} from "./github-oauth.js";
+export type { GithubDeviceCodeResponse, GithubOAuthToken } from "./github-oauth.js";

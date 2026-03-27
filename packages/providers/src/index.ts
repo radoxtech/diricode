@@ -43,5 +43,15 @@ export {
   InvalidTokenError,
   fetchAvailableModels,
   clearModelsCache,
+  initiateGithubDeviceFlow,
+  pollGithubDeviceToken,
+  exchangeGithubDeviceCode,
+  GithubOAuthError,
 } from "./copilot/index.js";
-export type { GithubUser, CatalogModel, GithubTokenSource } from "./copilot/index.js";
+export type {
+  GithubUser,
+  CatalogModel,
+  GithubTokenSource,
+  GithubDeviceCodeResponse,
+  GithubOAuthToken,
+} from "./copilot/index.js";

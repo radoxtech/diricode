@@ -10,8 +10,13 @@ import {
   getGithubToken,
   getGithubTokenSource,
   InvalidTokenError,
+  initiateGithubDeviceFlow,
+  pollGithubDeviceToken,
+  GithubOAuthError,
 } from "@diricode/providers";
 import { getGlobalConfigDir } from "@diricode/core";
+
+const GITHUB_CLIENT_ID = "Ov23li7a7FBdI2WkK0dd";
 
 export interface LoginOptions {
   token?: string;
@@ -116,6 +121,10 @@ async function loginGithub(
       process.exitCode = 1;
       return;
     }
+    const oauthSuccess = await tryGithubOAuth(forcedModel);
+    if (oauthSuccess) {
+      return;
+    }
     const token = await password({
       message: "Enter your GitHub Personal Access Token:",
       mask: true,
@@ -144,6 +153,36 @@ async function loginGithub(
   }
 
   await doGithubLogin(existingToken, forcedModel);
+}
+
+async function tryGithubOAuth(model?: string): Promise<boolean> {
+  process.stdout.write(`\nStarting GitHub OAuth device flow...\n`);
+  try {
+    const codeResponse = await initiateGithubDeviceFlow(GITHUB_CLIENT_ID);
+    process.stdout.write(
+      `\n  1. Open: ${codeResponse.verification_uri}\n` +
+        `  2. Enter: ${codeResponse.user_code}\n\n` +
+        `Waiting for authorization...\n`,
+    );
+    const tokenResponse = await pollGithubDeviceToken(
+      GITHUB_CLIENT_ID,
+      codeResponse.device_code,
+      codeResponse.interval,
+    );
+    await doGithubLogin(tokenResponse.access_token, model);
+    return true;
+  } catch (err) {
+    if (err instanceof GithubOAuthError) {
+      process.stdout.write(
+        `OAuth failed: ${err.message}\nFalling back to manual token entry.\n`,
+      );
+      return false;
+    }
+    process.stdout.write(
+      `OAuth failed: ${err instanceof Error ? err.message : String(err)}\nFalling back to manual token entry.\n`,
+    );
+    return false;
+  }
 }
 
 async function doGithubLogin(token: string, model?: string): Promise<void> {
@@ -204,9 +243,9 @@ async function selectProvider(): Promise<"github" | "google" | null> {
     message: "Which provider would you like to authenticate with?",
     choices: [
       {
-        name: "GitHub (Personal Access Token) — for GitHub Models",
+        name: "GitHub (OAuth) — for GitHub Models",
         value: "github",
-        description: "Store a GitHub PAT in your OS keychain for GitHub Models access",
+        description: "Authorize via GitHub browser flow for GitHub Models access",
       },
       {
         name: "Google (Gemini API Key) — for Gemini AI",
