@@ -90,6 +90,12 @@ export type {
 } from "./agents/model-tier-resolver.js";
 
 export {
+  DefaultModelTierResolver,
+  DEFAULT_MODEL_CONFIG_RESOLVER,
+} from "./agents/model-config-resolver.js";
+export type { ModelConfig, ModelConfigResolver } from "./agents/model-config-resolver.js";
+
+export {
   SubscriptionSchema,
   SubscriptionLimitsSchema,
   SubscriptionHealthSchema,
