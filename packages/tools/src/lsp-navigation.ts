@@ -102,8 +102,8 @@ function findTokenOccurrences(
   content: string,
   token: string,
   excludeStringsAndComments = false,
-): Array<{ line: number; character: number }> {
-  const occurrences: Array<{ line: number; character: number }> = [];
+): { line: number; character: number }[] {
+  const occurrences: { line: number; character: number }[] = [];
   const lines = content.split("\n");
   const safeToken = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const tokenRe = new RegExp(`(?<![\\w$])${safeToken}(?![\\w$])`, "g");
@@ -123,8 +123,8 @@ function findTokenOccurrences(
 function findDefinitionInContent(
   content: string,
   token: string,
-): Array<{ line: number; character: number }> {
-  const definitions: Array<{ line: number; character: number }> = [];
+): { line: number; character: number }[] {
+  const definitions: { line: number; character: number }[] = [];
   const lines = content.split("\n");
   const safeToken = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -185,8 +185,8 @@ function verifyPrepareToken(raw: string, workspaceRoot: string): PrepareTokenPay
     if (
       typeof parsed !== "object" ||
       parsed === null ||
-      typeof (parsed as Record<string, unknown>)["body"] !== "string" ||
-      typeof (parsed as Record<string, unknown>)["sig"] !== "string"
+      typeof (parsed as Record<string, unknown>).body !== "string" ||
+      typeof (parsed as Record<string, unknown>).sig !== "string"
     ) {
       throw new Error("bad shape");
     }
@@ -212,10 +212,10 @@ function verifyPrepareToken(raw: string, workspaceRoot: string): PrepareTokenPay
     if (
       typeof p !== "object" ||
       p === null ||
-      typeof (p as Record<string, unknown>)["file"] !== "string" ||
-      typeof (p as Record<string, unknown>)["line"] !== "number" ||
-      typeof (p as Record<string, unknown>)["character"] !== "number" ||
-      typeof (p as Record<string, unknown>)["token"] !== "string"
+      typeof (p as Record<string, unknown>).file !== "string" ||
+      typeof (p as Record<string, unknown>).line !== "number" ||
+      typeof (p as Record<string, unknown>).character !== "number" ||
+      typeof (p as Record<string, unknown>).token !== "string"
     ) {
       throw new Error("bad payload");
     }
@@ -817,7 +817,7 @@ function runStaticChecks(
       diagnostics.push({
         file: relPath,
         line: lineNum,
-        character: (consoleMatch.index ?? 0) + 1,
+        character: consoleMatch.index + 1,
         severity: "hint",
         code: "DIAG-001",
         message: `console.${consoleMatch[1] ?? "log"} call found — consider removing debug output`,
@@ -830,10 +830,10 @@ function runStaticChecks(
       diagnostics.push({
         file: relPath,
         line: lineNum,
-        character: (todoMatch.index ?? 0) + 1,
+        character: todoMatch.index + 1,
         severity: "info",
         code: "DIAG-002",
-        message: `${todoMatch[1] ?? "TODO"}: ${(todoMatch[2] ?? "").trim()}`,
+        message: `${todoMatch[1] ?? "TODO"}: ${todoMatch[2]?.trim() ?? ""}`,
       });
     }
 
@@ -843,7 +843,7 @@ function runStaticChecks(
       diagnostics.push({
         file: relPath,
         line: lineNum,
-        character: (anyMatch.index ?? 0) + 1,
+        character: anyMatch.index + 1,
         severity: "warning",
         code: "DIAG-003",
         message: "Explicit `any` type found — prefer a more precise type annotation",
@@ -856,7 +856,7 @@ function runStaticChecks(
       diagnostics.push({
         file: relPath,
         line: lineNum,
-        character: (nonNullMatch.index ?? 0) + 1,
+        character: nonNullMatch.index + 1,
         severity: "warning",
         code: "DIAG-004",
         message: "Non-null assertion operator (`!.`) detected — consider null-safe access instead",
@@ -869,7 +869,7 @@ function runStaticChecks(
       diagnostics.push({
         file: relPath,
         line: lineNum,
-        character: (tsIgnoreMatch.index ?? 0) + 1,
+        character: tsIgnoreMatch.index + 1,
         severity: "warning",
         code: "DIAG-005",
         message: `${tsIgnoreMatch[0]} suppresses type errors — resolve the underlying issue instead`,
