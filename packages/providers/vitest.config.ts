@@ -6,6 +6,7 @@ export default defineConfig({
     pool: "forks",
     environment: "node",
     include: ["src/**/__tests__/**/*.test.ts"],
+    setupFiles: ["./vitest.setup.ts"],
     server: {
       deps: {
         external: ["@napi-rs/keyring"],
