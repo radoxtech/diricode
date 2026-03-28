@@ -386,3 +386,26 @@ ADR-006 defines `largeContext` as a reactive fallback that escalates to a model 
 
 The `largeContext` fallback remains the essential escalation mechanism for cases where the agent's context needs were underestimated.
 
+### Addendum — Swarm Model Picker as Unified Decision Layer (2026-03-28)
+
+ADR-049 introduces the **Swarm Model Picker** — a decision engine that sits above the SubscriptionRouter. The Picker adds a **per-request, per-agent decision layer** that this ADR's SubscriptionRouter does not provide.
+
+**Layered architecture:**
+
+```
+Dispatcher/Agent ──► Picker (ADR-049) ──► SubscriptionRouter (this ADR) ──► Provider (ADR-025)
+                     │                    │
+                     │ "use gpt-4.1"      │ "use subscription azure-work"
+                     ▼                    ▼
+               Policy-driven         Health-driven
+               model scoring         subscription selection
+```
+
+**Division of responsibility:**
+- **Picker** (ADR-049): selects the optimal *model* based on agent role, task type, constraints, and policy scoring. Outputs `{ provider, model }`.
+- **SubscriptionRouter** (this ADR): selects the optimal *subscription* for that specific model based on health state, rate limits, costs, and availability. Outputs the actual API credentials and endpoint.
+
+The Picker consumes subscription health data from this ADR to inform cost and latency estimates in its scoring algorithm, but it does not manage subscription state itself. The SubscriptionRouter's auto-recovery, cooldown, and rotation logic remain unchanged.
+
+When the Picker is unavailable (e.g., during bootstrap or failure), the existing `ModelTierResolver` + SubscriptionRouter path serves as a degraded fallback — static tier mapping without policy scoring.
+
