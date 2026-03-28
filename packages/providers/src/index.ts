@@ -36,6 +36,9 @@ export { BASE_DELAY_MS, computeDelay, withRetry } from "./retry-engine.js";
 export { GeminiProvider } from "./providers/gemini.js";
 export type { GeminiProviderConfig } from "./providers/gemini.js";
 
+export { KimiProvider, createKimiProvider } from "./providers/kimi.js";
+export type { KimiProviderConfig } from "./providers/kimi.js";
+
 export { ABExperimentManager } from "./ab/ABExperimentManager.js";
 
 export type {
