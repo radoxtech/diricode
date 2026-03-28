@@ -37,12 +37,12 @@ Project constants:
 
 The **live GitHub project model** uses issues with `**Iteration**` body markers to denote sprint assignments:
 
-| Iteration | Sprint | Period |
-|-----------|--------|--------|
-| POC | Sprint 1 | Week 1-2 |
-| MVP-1 | Sprint 2 | Week 3-4 |
-| MVP-2 | Sprint 3 | Week 5-6 |
-| MVP-3 | Sprint 4 | Week 7-8 |
+| Iteration | Sprint   | Period   |
+| --------- | -------- | -------- |
+| POC       | Sprint 1 | Week 1-2 |
+| MVP-1     | Sprint 2 | Week 3-4 |
+| MVP-2     | Sprint 3 | Week 5-6 |
+| MVP-3     | Sprint 4 | Week 7-8 |
 
 **Issue Structure:**
 
@@ -117,7 +117,7 @@ Features in `In Progress` or `Review` occupy their conflict domains.
 ### Step 1 — Discover project fields
 
 ```javascript
-github_projects_list(method="list_project_fields")
+github_projects_list((method = "list_project_fields"));
 ```
 
 Record the Sprint/Iteration field id and Status field id.
@@ -125,7 +125,7 @@ Record the Sprint/Iteration field id and Status field id.
 ### Step 2 — Fetch project items
 
 ```javascript
-github_projects_list(method="list_project_items")
+github_projects_list((method = "list_project_items"));
 ```
 
 ### Step 3 — Resolve sprint (TWO METHODS)
@@ -151,6 +151,7 @@ If Sprint field is NOT populated on items (common case), parse from issue body:
 Patterns like `POC → MVP-1` or `MVP-1 → MVP-2` indicate an issue spans sprints.
 
 **Rules:**
+
 - Extract `**Iteration**: ` value until newline
 - `POC` alone → Sprint 1
 - `MVP-1` or `POC → MVP-1` → Sprint 2
@@ -161,12 +162,12 @@ Patterns like `POC → MVP-1` or `MVP-1 → MVP-2` indicate an issue spans sprin
 
 Today's date determines active sprint:
 
-| Date Range | Active Sprint | Iteration |
-|------------|--------------|-----------|
-| 2026-03-15 to 2026-03-28 | Sprint 1 | POC |
-| 2026-03-29 to 2026-04-11 | Sprint 2 | MVP-1 |
-| 2026-04-12 to 2026-04-25 | Sprint 3 | MVP-2 |
-| 2026-04-26 to 2026-05-09 | Sprint 4 | MVP-3 |
+| Date Range               | Active Sprint | Iteration |
+| ------------------------ | ------------- | --------- |
+| 2026-03-15 to 2026-03-28 | Sprint 1      | POC       |
+| 2026-03-29 to 2026-04-11 | Sprint 2      | MVP-1     |
+| 2026-04-12 to 2026-04-25 | Sprint 3      | MVP-2     |
+| 2026-04-26 to 2026-05-09 | Sprint 4      | MVP-3     |
 
 ---
 
@@ -183,18 +184,19 @@ Mark orphaned features (no epic) with reduced readiness.
 
 ## Scoring
 
-| Factor | Weight | Notes |
-|--------|-------:|-------|
-| Status readiness | 25 | `Ready` > `Todo` |
-| Priority | 20 | Critical > High > Medium > Low |
-| Dependency freedom | 20 | blocked = 0 |
-| Parallel safety | 20 | no active conflicts = full score |
-| Epic context resolved | 5 | parent epic known |
-| Size / atomicity | 10 | smaller, isolated work preferred |
+| Factor                | Weight | Notes                            |
+| --------------------- | -----: | -------------------------------- |
+| Status readiness      |     25 | `Ready` > `Todo`                 |
+| Priority              |     20 | Critical > High > Medium > Low   |
+| Dependency freedom    |     20 | blocked = 0                      |
+| Parallel safety       |     20 | no active conflicts = full score |
+| Epic context resolved |      5 | parent epic known                |
+| Size / atomicity      |     10 | smaller, isolated work preferred |
 
 ### Tiebreakers
 
 Prefer features that:
+
 1. unblock other issues
 2. have `execution:parallel-safe`
 3. have both `component:*` and `area:*`
@@ -211,6 +213,7 @@ Generate **2–5 bundles** using greedy strategy:
 3. Add next only if no `area:*`, `conflict:*`, or high-risk component overlap
 
 **Bundle rules:**
+
 - Only safe candidates
 - No `area:*` overlap within bundle
 - No `conflict:*` overlap within bundle
@@ -257,6 +260,7 @@ Best immediate next feature with reasoning
 ## Required Machine-Readable Output
 
 Write to:
+
 - `.sisyphus/notepads/current-sprint/report.json`
 - `.sisyphus/notepads/current-sprint/summary.md`
 
@@ -301,7 +305,7 @@ Write to:
 
 ## Related Commands
 
-- `./start-work.md`
+- `./start.md`
 - `./project-health.md`
 
 ---
