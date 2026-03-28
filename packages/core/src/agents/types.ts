@@ -239,6 +239,11 @@ export interface AgentResult {
   readonly output: string;
   readonly toolCalls: number;
   readonly tokensUsed: number;
+  /**
+   * Optional agent-specific structured output.
+   * Callers (dispatcher, UI) can inspect findings without parsing freeform text.
+   */
+  readonly findings?: unknown;
 }
 
 export class AgentError extends Error {
