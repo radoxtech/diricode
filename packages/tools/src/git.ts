@@ -612,9 +612,9 @@ function parseLogEntry(entry: string, _format: string): GitLogEntry | null {
   const firstLineMatch = /^([a-f0-9]+)\s+(.+)\s+\(([^)]+)\)$/.exec(firstLine);
   if (!firstLineMatch || firstLineMatch.length < 4) return null;
 
-  const hash = firstLineMatch[1]!;
-  const subject = firstLineMatch[2]!;
-  const authorInfo = firstLineMatch[3]!;
+  const hash = firstLineMatch[1] ?? "";
+  const subject = firstLineMatch[2] ?? "";
+  const authorInfo = firstLineMatch[3] ?? "";
 
   const authorMatch = /^([^<]+)\s+<([^>]+)>,\s+(.+)$/.exec(authorInfo.trim());
   if (!authorMatch || authorMatch.length < 4) {
@@ -630,9 +630,9 @@ function parseLogEntry(entry: string, _format: string): GitLogEntry | null {
     };
   }
 
-  const authorName = authorMatch[1]!;
-  const authorEmail = authorMatch[2]!;
-  const relativeDate = authorMatch[3]!;
+  const authorName = authorMatch[1] ?? "";
+  const authorEmail = authorMatch[2] ?? "";
+  const relativeDate = authorMatch[3] ?? "";
 
   return {
     hash,
