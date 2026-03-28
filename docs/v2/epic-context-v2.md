@@ -2,7 +2,7 @@
 
 > Package: `@diricode/core`
 > Iteration: **v2.0**
-> Issue IDs: **DC-CTX-010..DC-CTX-016**
+> Issue IDs: **DC-CTX-010..DC-CTX-017**
 
 ## Summary
 
@@ -199,3 +199,27 @@ Survey references: 3.8 (token budget calculator), 6.1-6.6 (context monitoring su
 
 **References**
 - `analiza-context-management.md` Section 2.2 (Cline FileContextTracker with chokidar)
+
+---
+
+### DC-CTX-017 — Tool result spill and large-output offloading
+
+**Goal**: Offload oversized tool outputs into durable storage and replace them in active context with compact references.
+
+**Scope**
+- detect oversized tool outputs above configurable thresholds
+- persist payloads outside the active prompt path
+- use compact references/summaries in active context
+- support explicit rehydration when downstream agents need the full payload
+- emit spill/offload events and metrics
+
+**Acceptance criteria**
+- [ ] Oversized outputs are detected deterministically.
+- [ ] Large payloads are persisted with stable references.
+- [ ] Active context uses compact references instead of full payloads.
+- [ ] Rehydration path can recover original payload when needed.
+- [ ] Spill metrics are observable.
+
+**References**
+- Pattern 06 — Tool Result Auto-Spill
+- sample repo research: `example-repos/agentic-flow/agentic-flow/src/reasoningbank/AdvancedMemory.ts`

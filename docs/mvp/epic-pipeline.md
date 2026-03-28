@@ -2,17 +2,17 @@
 
 > Package: `@diricode/core`
 > Iteration: **MVP-1 (basic) → MVP-2 (full)**
-> Issue IDs: **DC-PIPE-001..DC-PIPE-008**
+> Issue IDs: **DC-PIPE-001..DC-PIPE-009**
 
 ## Summary
 
-This epic implements DiriCode's execution pipeline from basic turn orchestration (MVP-1) to the complete 4-phase workflow with guardrails (MVP-2). It formalizes how user intent becomes executable tasks, how results are checkpointed into memory, and how the system enforces anti-drift and context safety constraints.
+This epic implements DiriCode's execution pipeline from the first believable runtime path (MVP-1) to the complete 4-phase workflow with guardrails (MVP-2). The immediate goal is a **sequential-first, checkpointable, observable** execution model that proves the runtime can accept a prompt, route it safely, execute specialist/tool work, stream progress, and resume from a checkpoint.
 
-The pipeline must preserve dispatcher-first architecture, explicit phase transitions, and user authority for high-risk deviations. It aligns with ADR-013 (Interview→Plan→Execute→Verify), ADR-003 (delegation/loop safety), and cross-cutting requirements for typed events, deterministic state transitions, and observability integration.
+The pipeline must preserve dispatcher-first architecture, explicit phase transitions, and user authority for high-risk deviations. It aligns with ADR-013 (Interview→Plan→Execute→Verify), ADR-003 (delegation/loop safety), and cross-cutting requirements for typed events, deterministic state transitions, checkpoint persistence, and observability integration.
 
 ---
 
-## MVP-1 Issues (basic pipeline)
+## MVP-1 Issues (prototype-first pipeline)
 
 ## Issue: DC-PIPE-001 — Turn lifecycle
 
@@ -58,22 +58,22 @@ Create a robust turn execution lifecycle with traceable IDs, timeout safety, and
 
 ### Goal
 
-Implement initial routing logic between simple direct execution and planned execution.
+Implement the first execution-path router: heuristic intent/complexity analysis that chooses between direct specialist execution and the heavier planning path.
 
 ### Scope
 
-- Step 1: dispatcher analyzes user request complexity
-- Step 2: if simple → route directly to code-writer path
+- Step 1: dispatcher analyzes user request complexity / intent
+- Step 2: if simple → route directly to specialist execution path
 - Step 3: if complex → delegate to planner, then execute produced plan
 - Configurable complexity threshold:
-  - heuristics and/or scoring rules
+  - heuristic rules in MVP-1
   - override via config for tuning
 - Ensure deterministic route decision logged in turn metadata
 
 ### Acceptance criteria
 
-- [ ] Dispatcher performs complexity classification for each turn.
-- [ ] Simple requests bypass planner and execute directly.
+- [ ] Dispatcher performs deterministic heuristic classification for each turn.
+- [ ] Simple requests bypass planner and execute directly through specialist/tool path.
 - [ ] Complex requests go through planner before execution.
 - [ ] Decision boundary is configurable and test-covered.
 - [ ] Decision reason is observable in turn timeline metadata.
@@ -89,13 +89,15 @@ Implement initial routing logic between simple direct execution and planned exec
 
 ### Goal
 
-Provide reliable MVP-1 task runner with one-task-at-a-time semantics and checkpoints.
+Provide reliable MVP-1 task runner with one-task-at-a-time semantics, explicit checkpoints, and forward compatibility for later wave-based execution.
 
 ### Scope
 
 - Sequential executor:
   - execute planned tasks strictly one at a time
   - for each task: invoke agent → collect result → validate success → continue/abort
+- Compatibility requirement:
+  - task model and checkpoints must remain usable when wave execution is introduced later
 - Failure behavior:
   - abort-on-failure default
   - explicit failure reason and last successful checkpoint
@@ -115,6 +117,35 @@ Provide reliable MVP-1 task runner with one-task-at-a-time semantics and checkpo
 
 - `spec-mvp-diricode.md` (checkpoint protocols, atomic execution mindset)
 - `analiza-context-management.md` (timeline/checkpoint persistence rationale)
+
+---
+
+## Issue: DC-PIPE-009 — Tool loop error classification and recovery policy
+
+### Goal
+
+Define how tool-loop failures are classified, surfaced, and handled so the runtime can recover predictably from non-fatal errors while still stopping on genuinely blocking failures.
+
+### Scope
+
+- classify tool errors into recoverable / retryable / blocking / user-decision-needed
+- define retry vs stop vs escalate behavior per class
+- preserve typed error records in turn/task state
+- emit error and recovery events into EventStream
+- keep policy compatible with later deviation rules and wave execution
+
+### Acceptance criteria
+
+- [ ] Tool failures are categorized with deterministic policy outcomes.
+- [ ] Recoverable failures can continue without corrupting task state.
+- [ ] Blocking failures stop downstream work by default.
+- [ ] User-decision-needed failures are surfaced explicitly.
+- [ ] Error classification and recovery actions are observable in runtime events.
+
+### References
+
+- `docs/adr/adr-013-project-pipeline.md`
+- `docs/adr/adr-031-observability-eventstream-agent-tree.md`
 
 ---
 
@@ -161,7 +192,7 @@ Implement full 4-phase pipeline with explicit phase state machine and phase-spec
 
 ### Goal
 
-Upgrade executor from sequential to dependency-aware wave scheduling.
+Upgrade the already-stable sequential executor to dependency-aware wave scheduling for clearly independent work.
 
 ### Scope
 
@@ -227,7 +258,7 @@ Prevent endless analysis loops without implementation progress.
 
 ### Goal
 
-Enforce context-window safety limits across agents within each turn.
+Enforce context-window safety limits across agents within each turn after the first prototype runtime path is already working.
 
 ### Scope
 
@@ -322,3 +353,6 @@ Additional integration:
 
 - MVP-1: DC-PIPE-001 → 002 → 003
 - MVP-2: DC-PIPE-004 → 006 → 007 → 005 → 008
+
+Prototype-first reinforcement tasks:
+- MVP-1 hardening: DC-PIPE-009
