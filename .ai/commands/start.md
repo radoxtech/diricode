@@ -2,11 +2,11 @@
 description: Initialize a worktree for a sprint feature issue, or transition an epic to In Progress and then start one of its features
 ---
 
-# /start-work Command
+# /start Command
 
-**You are executing the `/start-work` command.**
+**You are executing the `/start` command.**
 
-This command creates a new git worktree for a single DiriCode **feature** issue.
+This command starts work on a single DiriCode **feature** issue.
 
 It must refuse to start work that is:
 
@@ -28,19 +28,10 @@ When you finish work in a worktree (via `/finish-work` or similar):
 
 **Why?** Worktrees in opencode are persistent coding environments reused across multiple sessions. Deleting a worktree destroys the developer's workspace and context for future sessions.
 
-**If you are already inside a worktree:**
-
-- **You CAN run `/start-work`** — it will sync the worktree with latest main and start work in the current worktree
-- When you finish work here, merge to main via PR, then you can either:
-  - Continue in this worktree for the next issue (run `/start-work` again)
-  - Return to main repo and create a new worktree with `/start-work`
-- **Never delete this worktree** — leave it for reuse in future sessions
-
 **The `/finish-work` command MUST:**
 
 - Create the PR
 - Merge the PR to main
-- Checkout back to the main repo
 - **Never run `git worktree remove`**
 
 ---
@@ -56,7 +47,7 @@ You cannot create a worktree for an `epic` issue — epics are not directly impl
 ### Important note
 
 Repo knowledge docs describe a deeper task hierarchy, but the live GitHub board currently uses `epic` + `feature`.
-`/start-work` must use the **live board model** so the workflow is operational today.
+`/start` must use the **live board model** so the workflow is operational today.
 
 ---
 
@@ -100,12 +91,30 @@ Use local shell for:
 
 ---
 
+## Location Modes
+
+### Worktree Mode (already inside a worktree)
+
+When `/start` is invoked from within an existing worktree:
+
+1. **Create a feat branch** from latest `origin/main` — `git checkout -b <branch-name> origin/main`
+2. **Do all work** in that feat branch inside the current worktree
+3. That's it. No new worktree, no syncing, no merging into existing branches.
+
+This is the normal reuse pattern — worktrees persist across sessions, each new issue gets a fresh feat branch off main.
+
+### Main Mode (running from main repo)
+
+Creates a new worktree + feat branch as described below.
+
+---
+
 ## Invocation Modes
 
 ### Mode A — Single Feature (default)
 
 ```
-/start-work [#<feature-issue-number>]
+/start [#<feature-issue-number>]
 ```
 
 Starts work on one feature. If no issue number is given, queries the project board and lets the user pick from safe candidates.
@@ -113,7 +122,7 @@ Starts work on one feature. If no issue number is given, queries the project boa
 ### Mode B — Epic
 
 ```
-/start-work #<epic-issue-number>
+/start #<epic-issue-number>
 ```
 
 When passed an `epic`-labeled issue:
@@ -136,34 +145,15 @@ Check if running from main repo or inside a worktree:
 COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
 if [ "$COMMON_DIR" != "$GIT_DIR" ]; then
-    echo "📍 Running inside worktree — will sync and use current worktree"
     MODE="worktree"
 else
-    echo "📍 Running from main repo — will create new worktree"
     MODE="main"
 fi
 ```
 
 If uncommitted changes exist (`git status --porcelain` non-empty), stop and ask the user to stash or commit.
 
-### Step 2 — Sync with latest main
-
-**If MODE is "main":**
-
-```bash
-# Run git pull in main repo context
-cd "$MAIN_REPO" && git pull origin main
-```
-
-**If MODE is "worktree":**
-
-```bash
-# Sync current worktree with latest main
-git fetch origin main
-git merge origin/main --no-edit
-```
-
-### Step 3 — Detect issue type and select candidate
+### Step 2 — Select issue
 
 **If an issue number was passed:**
 
@@ -173,9 +163,9 @@ git merge origin/main --no-edit
   2. Parse the epic body for child `#<number>` references (format: `- [ ] #N` or bare `#N`).
   3. For each child, call `github_issue_read(method="get")` — keep only issues that are `OPEN` + labeled `feature` or `bug` + not labeled `status:blocked` + project status is not `In Progress`/`Done`.
   4. Display the eligible feature list and ask the user to pick one.
-  5. Continue with the chosen feature from Step 4.
-  - **If labeled `feature` or `bug`** → proceed directly to Step 4.
-  - **Any other label** → reject: only `feature`, `bug`, or `epic` issues are accepted.
+  5. Continue with the chosen feature from Step 3.
+- **If labeled `feature` or `bug`** → proceed directly to Step 3.
+- **Any other label** → reject: only `feature`, `bug`, or `epic` issues are accepted.
 
 **If no issue number was passed:**
 
@@ -184,22 +174,29 @@ git merge origin/main --no-edit
 3. Use only issues from `safe_candidates` in the report.
 4. Display the list and ask the user to choose one.
 
-### Step 4 — Re-validate conflicts
+### Step 3 — Re-validate conflicts
 
 Apply conflict refusal rules (see below) against the chosen feature before continuing.
 
-### Step 5 — Create worktree (main mode only)
+### Step 4 — Create feat branch and set up workspace
+
+**If MODE is "worktree":**
+
+```bash
+git fetch origin main
+git checkout -b "<type>/<slug>-#<issue>" origin/main
+```
+
+This creates a fresh feat branch from latest origin/main inside the existing worktree. All work happens on this branch.
 
 **If MODE is "main":**
 
 ```bash
+git pull origin main
 git worktree add "../diricode-#<issue>" -b "<type>/<slug>-#<issue>"
 ```
 
-**If MODE is "worktree":**
-Skip this step — worktree already exists. Use current worktree path.
-
-### Step 6 — Update feature project status
+### Step 5 — Update feature project status
 
 ```typescript
 github_projects_write(
@@ -211,7 +208,7 @@ github_projects_write(
 )
 ```
 
-### Step 7 — Output summary
+### Step 6 — Output summary and auto-proceed
 
 Emit the required output block (see below).
 
@@ -284,6 +281,8 @@ Slug: strip issue code prefix (e.g. `DC-TOOL-004: `), lowercase, hyphens, max 50
 
 ## Required Output
 
+**Main mode (new worktree created):**
+
 ```text
 ✅ WORKTREE CREATED
 
@@ -292,6 +291,21 @@ Epic:     #<E> — <epic title>
 Why safe: <reason — unblocked, no shared area/conflict labels>
 Branch:   <branch-name>
 Worktree: ../diricode-#<N>
+
+Occupied domains now active:
+- area:<X>
+- conflict:<Y>
+```
+
+**Worktree mode (reused existing worktree):**
+
+```text
+✅ WORK IN EXISTING WORKTREE
+
+Feature:  #<N> — <title>
+Epic:     #<E> — <epic title>
+Why safe: <reason — unblocked, no shared area/conflict labels>
+Branch:   <branch-name> (from origin/main)
 
 Occupied domains now active:
 - area:<X>
@@ -340,7 +354,7 @@ Then recommend:
 ## Epic Mode — Worked Example
 
 ```
-User: /start-work #11
+User: /start #11
 
 → github_issue_read #11 → labeled "epic"
 → Update #11 project status → In Progress
@@ -375,4 +389,4 @@ User: /start-work #11
 
 ---
 
-**Version:** 3.3.0
+**Version:** 4.0.0
