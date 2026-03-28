@@ -73,5 +73,7 @@ export type {
 } from "./lsp-navigation.js";
 export { planParserTool } from "./plan-parser.js";
 export type { ParsedTask, PlanParserResult } from "./plan-parser.js";
+export { treeSitterParseTool } from "./tree-sitter-parse.js";
+export type { TreeSitterSymbolInfo, TreeSitterParseResult } from "./tree-sitter-parse.js";
 export type { Tool, ToolAnnotations, ToolContext, ToolResult } from "@diricode/core";
 export { ToolError } from "@diricode/core";
