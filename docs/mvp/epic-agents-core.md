@@ -2,7 +2,7 @@
 
 > **Package**: `@diricode/core`  
 > **Iteration**: POC → MVP-1  
-> **Issue IDs**: DC-CORE-005 — DC-CORE-012  
+> **Issue IDs**: DC-CORE-005 — DC-CORE-016  
 > **Dependencies**: DC-CORE-001..004 (config), DC-SRV-001..004 (EventStream transport), DC-PROV-001..007 (model routing)
 
 ## Summary
@@ -14,6 +14,9 @@ Key constraints baked into this epic:
 - **ARCH-004**: Plandex roles map to first-class DiriCode agents (agentized responsibilities, no hidden role-switch magic).
 - **POC constraint**: no skills system dependency in routing/execution; agents are hardcoded in TypeScript first.
 - Tier controls cost/quality policy from day 1 (HEAVY/MEDIUM/LOW).
+- Dispatcher remains **read-only**.
+- Tool access is **explicitly allowlisted per agent**.
+- Sequential-first orchestration is the default early runtime shape; richer async/wave behavior is layered on later.
 
 ---
 
@@ -82,6 +85,7 @@ Build central coordinator runtime behavior:
 - POC routing is intentionally hardcoded (example baseline: code task -> `code-writer`, question/summarize -> `summarizer`).
 - Emits delegation and completion events to EventStream.
 - Keeps architecture open for MVP-1 LLM-based router without breaking interfaces.
+- Must not perform direct code/file mutation itself.
 
 POC must not depend on skills loading; static TS mappings only.
 
@@ -193,7 +197,8 @@ Prompt builder must produce inspectable artifacts for debugging/observability.
 Build delegation runtime over protocol/sandbox:
 - Dispatcher delegates to specialist agents.
 - Enforce delegation depth limit to prevent infinite chains.
-- Support parallel delegation where tasks are independent.
+- MVP-1 default: sequential delegation and result aggregation.
+- Later extension: support parallel/wave delegation where tasks are independent.
 - Emit complete delegation telemetry to EventStream.
 
 POC: deterministic delegation graph from hardcoded dispatcher logic.  
@@ -201,7 +206,8 @@ MVP-1: same APIs power LLM-assisted routing without redesign.
 
 ### Acceptance Criteria
 - [ ] Delegation depth guard is enforced and configurable.
-- [ ] Parallel child execution supported with join/aggregation semantics.
+- [ ] Sequential delegation path is deterministic and stable.
+- [ ] Parallel child execution remains an explicit extension point rather than a hidden default.
 - [ ] Parent receives normalized child results in stable order.
 - [ ] Delegation events cover start/success/failure/cancel.
 - [ ] System continues when one branch fails (unless policy says fail-fast).
@@ -263,7 +269,20 @@ This mapping is policy, not hardcoded constants, and must integrate with router 
 
 ---
 
-## New Tasks (Post-ADR Review)
+## Additional Tasks (Prototype-first follow-ups)
 
-- [ ] Implement async subagent pattern: start_job/check_status/get_result tools for HEAVY tier agents (ADR-039)
-- [ ] Implement tool-based agent discovery: list_agents(category?) and search_agents(query) tools replacing hardcoded dispatcher list (ADR-040)
+### DC-CORE-013 — Per-agent tool allowlists
+
+Bound each agent to an explicit tool policy enforced at prompt-build and runtime execution layers.
+
+### DC-CORE-014 — Async subagent spawning and background delegation
+
+Introduce bounded non-blocking child work after the stable sequential baseline, preserving parent/child traceability and tool/context boundaries.
+
+### DC-CORE-015 — Read-only dispatcher boundary enforcement
+
+Codify and test the dispatcher’s boundary so it cannot silently become a specialist executor.
+
+### DC-CORE-016 — Delegation handoff filtering and context boundaries
+
+Filter parent→child handoffs so delegated agents receive structured, bounded context rather than raw parent state.

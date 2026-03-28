@@ -2,7 +2,7 @@
 
 > Package: `@diricode/core`
 > Iteration: **v2.0**
-> Issue IDs: **DC-HOOK-006..DC-HOOK-012**
+> Issue IDs: **DC-HOOK-006..DC-HOOK-013**
 
 ## Summary
 
@@ -222,3 +222,24 @@ Source: `analiza-hookow.md` Section 4 — v2 roadmap.
 - `analiza-hookow.md` Section 3 (#13 loop-detection)
 - OMO: ralph-loop hook
 - MVP DC-CORE analysis paralysis guard (generalized here)
+
+---
+
+### DC-HOOK-013 — AI-slop guardrails and low-signal output detection
+
+**Goal**: Detect low-signal / low-quality agent output before it silently degrades code or planning quality.
+
+**Scope**
+- classify generic/repetitive/low-evidence outputs as warn / block / escalate
+- emit quality-warning events for observability
+- keep thresholds configurable to reduce false positives
+
+**Acceptance criteria**
+- [ ] First useful set of low-signal patterns is detected.
+- [ ] Quality warnings are observable.
+- [ ] Strictness is configurable.
+- [ ] False positives can be tuned down.
+
+**References**
+- Pattern 16 — AI Slop Guards
+- Langfuse evaluation/observability references

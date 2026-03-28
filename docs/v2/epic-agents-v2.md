@@ -323,3 +323,13 @@ Source: `analiza-agent-roster.md` — agents mapped to v2 in overview.md agent�
 **References**
 - `analiza-agent-roster.md` Section 9.7 (github-operator spec)
 - Survey features 2.3, 2.4 (REQ-IDs in GitHub Issues/Epics)
+
+---
+
+## Additional v2 quality/orchestration tasks anchored outside the roster list
+
+- **DC-REVIEW-001** — Confidence-based review escalation
+- **DC-MEM-008** — ReasoningBank retrieval and write path
+- **DC-MEM-009** — Cross-session memory querying
+
+These are not new roster agents themselves, but they are key v2 capabilities that the roster and review flows depend on.

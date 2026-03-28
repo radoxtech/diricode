@@ -4,7 +4,7 @@
 |-------------|-----------------------------------------------------------------------|
 | Status      | Accepted                                                              |
 | Date        | 2026-03-23                                                            |
-| Scope       | MVP                                                                   |
+| Scope       | MVP foundations + v2 live integration                                 |
 | References  | ADR-024 (hooks), ADR-018 (SQLite), Survey Decision A1                 |
 
 ### Context
@@ -22,6 +22,13 @@ DiriCode's agents are short-lived by design. They run to completion, then stop. 
 ### Decision
 
 **Introduce ReasoningBank — a structured store of reasoning patterns — backed by the existing SQLite instance, integrated with the Hook Framework (ADR-024), and separate from RAG or document-chunk retrieval.**
+
+**Prototype-first sequencing (clarification, 2026-03-28):**
+
+- ReasoningBank remains an accepted strategic capability.
+- MVP focus is on **storage/schema/foundation work only where it does not slow the first working runtime path**.
+- Live injection and hook-driven learning remain staged behind the core runtime loop, observability, and checkpoint/resume milestones.
+- In practical planning terms, ReasoningBank is an **early second-wave capability**, not part of the narrowest first prototype slice.
 
 **What a reasoning record contains.** Each record captures a single problem-solving event:
 
@@ -71,3 +78,11 @@ The hook integration means ReasoningBank is an opt-in layer on top of the existi
   - Relevance matching is hard to get right. FTS5 keyword matching over problem descriptors is fast but brittle — a slightly different phrasing for the same class of problem may not match. Semantic search over sqlite-vec embeddings covers this, but similarity thresholds require calibration. Injecting an irrelevant reasoning record is worse than injecting nothing, because it consumes tokens and may steer the agent in the wrong direction.
   - Extraction quality depends on the `post-agent` hook. The hook must produce a normalized, useful problem descriptor from what can be noisy agent output. Poor extraction produces low-signal records that pass confidence thresholds but don't help future agents. This is a quality problem that will surface only during real usage.
   - The `pre-agent` and `post-agent` hooks are Phase 2/3 in ADR-024's timeline. ReasoningBank's full integration cannot ship until those hook types are available. The storage layer and schema can be built in MVP; the live injection pipeline is a v2 deliverable.
+
+### Addendum — Delivery Staging Clarification (2026-03-28)
+
+This ADR is **not** being reversed. Instead, its delivery order is clarified:
+
+- **Do early:** preserve ReasoningBank in architecture, schema planning, and memory-roadmap decisions.
+- **Do after core runtime:** live retrieval/injection, confidence-driven reuse, and hook-powered learning loops.
+- **Do not let it delay:** the first believable prototype centered on controlled execution, streaming visibility, semantic navigation, and checkpoint/resume.

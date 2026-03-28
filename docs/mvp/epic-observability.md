@@ -1,8 +1,8 @@
 # Epic: EventStream Observability Backbone and MVP UI Transparency
 
 > **Packages**: `@diricode/core` + `@diricode/web`
-> **Iteration**: MVP-2 (data collection) → MVP-3 (UI components)
-> **Issue IDs**: DC-OBS-001 — DC-OBS-006
+> **Iteration**: MVP-1 (data layer) → MVP-3 (UI components)
+> **Issue IDs**: DC-OBS-001 — DC-OBS-009
 > **Dependencies**: DC-SRV SSE transport, DC-MEM SQLite persistence, DC-CORE agent lifecycle
 
 ## Summary
@@ -12,6 +12,8 @@ This epic delivers observability as a first-class system capability:
 3) low-latency metrics aggregation,
 4) real-time Web UI transparency components.
 
+Prototype-first sequencing clarifies that **the event/data layer lands before the full UI surface**. Early delivery must make runtime progress, tool activity, failures, and checkpoints visible even before every planned UI component is polished.
+
 Primary references:
 - `analiza-observability.md` (EventStream + 6 component model)
 - `analiza-lean-mode.md` (Verbose mode integration)
@@ -19,7 +21,7 @@ Primary references:
 
 ---
 
-## Issue: DC-OBS-001 — EventStream core implementation (MVP-2)
+## Issue: DC-OBS-001 — EventStream core implementation (MVP-1)
 
 ### Description
 Implement typed EventStream event bus with subscribe/publish APIs and SQLite persistence.
@@ -50,7 +52,7 @@ Canonical schema fields:
 
 ---
 
-## Issue: DC-OBS-002 — Event emission integration (MVP-2)
+## Issue: DC-OBS-002 — Event emission integration (MVP-1)
 
 ### Description
 Integrate consistent event emission across core systems:
@@ -78,7 +80,7 @@ Enforce hierarchy linking (`turn -> agent -> tool/delegate/llm`) via `parent_id`
 
 ---
 
-## Issue: DC-OBS-003 — Metrics aggregation engine (MVP-2)
+## Issue: DC-OBS-003 — Metrics aggregation engine (MVP-1 / MVP-2)
 
 ### Description
 Implement real-time aggregation for session/turn KPIs:
@@ -212,6 +214,18 @@ Provide the event mapping and layout logic for the AI Cockpit visualizer:
 
 ### Dependencies
 - Depends on: DC-OBS-001, DC-OBS-002, DC-WEB-008
+
+---
+
+## Additional prototype-first and v2 observability tasks
+
+### DC-OBS-008 — Streaming tool calls and partial execution updates (MVP-1)
+
+Stream tool invocation start/progress/end/error updates so long-running operations are visible before final completion.
+
+### DC-OBS-009 — Event coordination and execution correlation model (MVP-1)
+
+Define the correlation model tying turns, tasks, agents, tools, checkpoints, and recovery transitions into one coherent execution graph.
 
 ---
 
