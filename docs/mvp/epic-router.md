@@ -311,3 +311,11 @@ Implement Kimi adapter (priority 2) as fallback-capable Provider:
 
 POC exit requires baseline Copilot path operational with registry abstraction.
 MVP-1 exit requires full retry/fallback/error/stream behavior with Copilot→Kimi failover.
+
+---
+
+## v2 follow-up routing task
+
+### DC-ROUT-001 — Load-aware model routing and cooldown policy
+
+After the baseline router is stable, add health-aware routing inputs such as recent failures, cooldown windows, and basic load-aware selection without jumping straight to full adaptive orchestration.

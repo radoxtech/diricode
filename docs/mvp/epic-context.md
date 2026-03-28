@@ -6,7 +6,7 @@
 
 ## Summary
 
-This epic implements DiriCode’s 3-layer context architecture from `analiza-context-management.md` and ADR-016/017/018/019/020, optimized for narrow provider windows (especially Copilot <200k). The design prioritizes **inherited context** (ARCH-005), deterministic budgeting, and incremental indexing so agents receive maximal task-relevant signal with minimal token waste.
+This epic implements DiriCode’s 3-layer context architecture from `analiza-context-management.md` and ADR-016/017/018/019/020, optimized for narrow provider windows (especially Copilot <200k). The prototype-first clarification is important: **context quality still matters, but full context-budget sophistication is not allowed to delay the first believable runtime**.
 
 The architecture is delivered in three layers:
 1. **Layer 1 — Structural Index**: tree-sitter + SQLite + PageRank-backed repository map primitives.
@@ -14,8 +14,8 @@ The architecture is delivered in three layers:
 3. **Layer 3 — Context Composer**: adaptive token allocation + binary-search fitting for final prompt assembly.
 
 MVP progression:
-- **MVP-1**: index + ranking + repo map
-- **MVP-2**: condenser pipeline and conversation compaction
+- **MVP-1**: index + ranking + repo map + basic active signal
+- **MVP-2**: condenser pipeline, lightweight directory guidance, and conversation compaction
 - **MVP-3**: production-grade composer with adaptive budget fitting, active-file priority, symbol FTS lookup
 
 ## Architecture Baseline (from primary analysis)
@@ -52,7 +52,7 @@ MVP progression:
 - `conversation`: 20–35%
 - `reserved`: 15%
 
-This adaptive split is mandatory to support both “active editing” and “exploration/no-active-file” states from the same architecture.
+This adaptive split remains the target architecture, but the full system is intentionally staged later than the first prototype runtime.
 
 ## Issues
 
@@ -136,6 +136,18 @@ This adaptive split is mandatory to support both “active editing” and “exp
 **References**
 - `analiza-context-management.md` (repo map + budgeting)
 - ADR-016/018
+
+---
+
+### Bridge feature — lightweight directory guidance (`AGENTS.md`)
+
+Before the full context composer and advanced rules-injection stack mature, DiriCode can support lightweight directory-level guidance files (`AGENTS.md`) as an additive context signal.
+
+This is intentionally a **bridge feature**, not a replacement for the 3-layer architecture:
+
+- useful for package/module conventions,
+- low cost to adopt,
+- should not dominate early context scope.
 
 ---
 
@@ -315,7 +327,7 @@ This adaptive split is mandatory to support both “active editing” and “exp
 - DC-CTX-001, DC-CTX-002, DC-CTX-003
 
 ### MVP-2
-- DC-CTX-004, DC-CTX-005, DC-CTX-006
+- DC-CTX-004, DC-CTX-005, DC-CTX-006 + lightweight `AGENTS.md` bridge support
 
 ### MVP-3
 - DC-CTX-007, DC-CTX-008, DC-CTX-009

@@ -6,9 +6,9 @@
 > **Dependencies**: DC-SAFE-001..005, DC-SRV-001, DC-CORE-001
 
 ## Summary
-This epic delivers the shared tool layer for agent execution, starting from minimal POC filesystem/shell primitives, then adding MVP-1 developer integrations (Git, LSP), and finally MVP-2 smart code tooling (tree-sitter, AST-grep rewrite, hashline, web fetch). All tools implement one contract (`name`, `description`, `parameters` schema, `execute`) and emit `tool.start`/`tool.end` events.
+This epic delivers the shared tool layer for agent execution, starting from minimal POC filesystem/shell primitives, then adding MVP-1 developer integrations (Git, LSP, AST-aware search/refactor foundations), and finally MVP-2+ deeper tooling hardening. All tools implement one contract (`name`, `description`, `parameters` schema, `execute`) and emit `tool.start`/`tool.end` events.
 
-Primary source for scope and priorities: `analiza-narzedzi-ekosystem.md`. Tree-sitter/indexing constraints: `analiza-context-management.md`. Metis guidance is enforced: smart tools are MVP-2, not POC.
+Primary source for scope and priorities: `analiza-narzedzi-ekosystem.md`. Tree-sitter/indexing constraints: `analiza-context-management.md`. Prototype-first sequencing changes one important point: **semantic navigation and structural tooling move earlier**, because they materially raise coding quality in the first believable runtime.
 
 ## Global Requirements
 - Zod validation at tool boundary.
@@ -160,7 +160,7 @@ Provide constrained git CLI wrappers for core workflows, inheriting ADR-027 safe
 
 ### DC-TOOL-008: LSP client tools
 **Iteration**: MVP-1  
-**Priority**: P1
+**Priority**: P0
 
 **Description**:
 Implement goto-definition, find-references, and rename-symbol tools with capability checks and clear fallback diagnostics.
@@ -199,11 +199,11 @@ Add tree-sitter AST parsing and symbol extraction APIs with Bun-compatibility ri
 ---
 
 ### DC-TOOL-010: AST-grep search/replace
-**Iteration**: MVP-2  
-**Priority**: P1
+**Iteration**: MVP-1 → MVP-2  
+**Priority**: P0
 
 **Description**:
-Deliver structural code search and rewrite using AST patterns; dry-run first, explicit apply mode.
+Deliver structural code search and rewrite using AST patterns. MVP-1 focuses on structural search and safe dry-run workflows; MVP-2 hardens broader apply/rewrite behavior.
 
 **Acceptance Criteria**:
 - [ ] Structural search by pattern.
@@ -257,7 +257,7 @@ Implement URL fetch with timeout and markdown conversion for external context in
 **Dependencies**: DC-SAFE-004, DC-CORE-001
 
 ## Must NOT
-- Do **not** move smart code tooling into POC; keep it in MVP-2.
+- Do **not** move smart code tooling into POC; keep it after the safe runtime baseline.
 - Do **not** bypass DC-SAFE wrappers on mutating/system tools.
 - Do **not** include v2 scope (annotation approval UI, embeddings, advanced context hooks).
 - Do **not** leak secrets in tool payloads/logs.

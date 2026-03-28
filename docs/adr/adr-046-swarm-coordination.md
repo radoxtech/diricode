@@ -4,7 +4,7 @@
 |-------------|---------------------------------------------------------------------------------|
 | Status      | Accepted                                                                        |
 | Date        | 2026-03-23                                                                      |
-| Scope       | MVP                                                                             |
+| Scope       | MVP architecture, later delivery                                                |
 | References  | ADR-002 (dispatcher), ADR-003 (nesting), ADR-039 (async subagent), Survey Decision A2 |
 
 ### Context
@@ -26,6 +26,12 @@ Swarm coordination in DiriCode is not a replacement for any of these frameworks.
 ### Decision
 
 **The dispatcher can create a swarm: a group of N parallel agent sessions working on related subtasks of the same top-level task.**
+
+**Prototype-first sequencing (clarification, 2026-03-28):**
+
+- Swarm coordination remains an accepted architectural capability.
+- MVP-1 delivery is **sequential-first**. Swarms are not the default execution mode for the first believable prototype.
+- The dispatcher and planning model must stay compatible with later swarm activation, but the initial milestone optimizes for control, observability, and checkpointability over throughput.
 
 Swarms are created by the dispatcher when it determines that a task has parallel structure — multiple independent areas of work that can proceed simultaneously without requiring each other's output. The dispatcher acts as the swarm coordinator throughout execution.
 
@@ -142,6 +148,14 @@ These patterns introduce coordination complexity that is not justified by DiriCo
   - Debugging a failed swarm is harder than debugging a single agent chain. A problem in member B may only manifest in member C's output.
   - The question queue requires the dispatcher to track which questions came from which agent and route answers correctly. Incorrect routing (sending an answer to the wrong agent) produces silent errors.
   - SQLite write coordination: context bus and question queue records must be written safely from parallel processes. Row-level SQLite locking is sufficient for the access pattern described (infrequent writes, many reads), but requires attention in the implementation.
+
+### Addendum — Delivery Priority Clarification (2026-03-28)
+
+Swarm coordination is retained as the target model for tasks with true parallel structure, but current sequencing is clarified:
+
+- **First:** stable sequential runtime and explicit checkpoint/resume.
+- **Then:** bounded wave execution for clearly independent work.
+- **Later:** richer swarm coordination features such as broader async question batching and merge/reconciliation workflows.
 
 - **Migration notes:**
   - No migration required for existing single-agent tasks. Swarm creation is explicit — the dispatcher must choose to create a swarm.

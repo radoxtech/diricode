@@ -61,11 +61,11 @@ v2 transforms DiriCode from a functional MVP into a polished developer tool. Key
 |------|--------|---------------|-----------|
 | [epic-tui.md](epic-tui.md) | Ink TUI client | DC-TUI-001..DC-TUI-006 | v2.0 |
 | [epic-annotation-approval.md](epic-annotation-approval.md) | Annotation-driven approval | DC-APPR-001..DC-APPR-005 | v2.0 |
-| [epic-hooks-v2.md](epic-hooks-v2.md) | 7 new hook types | DC-HOOK-006..DC-HOOK-012 | v2.0 |
-| [epic-context-v2.md](epic-context-v2.md) | Context monitoring + token budget | DC-CTX-010..DC-CTX-016 | v2.0 |
+| [epic-hooks-v2.md](epic-hooks-v2.md) | 7 new hook types + quality guardrails | DC-HOOK-006..DC-HOOK-013 | v2.0 |
+| [epic-context-v2.md](epic-context-v2.md) | Context monitoring + token budget + output spill | DC-CTX-010..DC-CTX-017 | v2.0 |
 | [epic-agents-v2.md](epic-agents-v2.md) | 12 additional agents | DC-AGENT-026..DC-AGENT-037 | v2.0 |
 | [epic-marketplace.md](epic-marketplace.md) | Skill catalog + discovery | DC-MKT-001..DC-MKT-006 | v2.1 |
-| [epic-observability-v2.md](epic-observability-v2.md) | Detail Panel + Timeline + Approval UI | DC-OBS-007..DC-OBS-012 | v2.1 |
+| [epic-observability-v2.md](epic-observability-v2.md) | Detail Panel + Timeline + Approval UI | DC-OBS-010..DC-OBS-012 | v2.1 |
 | [epic-embeddings.md](epic-embeddings.md) | Semantic embeddings + vector search | DC-EMB-001..DC-EMB-005 | v2.1 |
 | [epic-config-v2.md](epic-config-v2.md) | Config substitution + GUI + presets | DC-CFG-005..DC-CFG-009 | v2.1 |
 

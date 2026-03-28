@@ -2,14 +2,14 @@
 
 > Package: `@diricode/memory`
 > Iteration: **MVP-1**
-> Issue IDs: **DC-MEM-001..DC-MEM-007**
+> Issue IDs: **DC-MEM-001..DC-MEM-009**
 > Sync adapters (GitHub, GitLab, Jira) are optional output targets planned for v2+ — not part of MVP.
 
 ## Summary
 
 This epic delivers durable, queryable project memory for DiriCode MVP-1 using SQLite (project-local `.dc/memory.db`) with timeline-first storage, FTS5 search, token/cost telemetry, and multi-project isolation. It operationalizes ADR-048 (SQLite Issue System), ADR-018 (FTS/indexing), and cross-cutting boundaries: no direct DB access outside `@diricode/memory`, local-first issue management with optional sync adapters for external visibility.
 
-Memory is designed as the state spine for pipeline checkpoints, observability, and issue-driven planning. MVP-1 prioritizes deterministic schema evolution (migrations), low-latency retrieval, and strict project separation, while explicitly tracking technical risk around Bun + SQLite FTS5 with a mandatory POC spike.
+Memory is the state spine for **checkpoint/resume**, observability, and issue-driven planning. MVP-1 prioritizes deterministic schema evolution (migrations), low-latency retrieval, and strict project separation, while explicitly tracking technical risk around Bun + SQLite FTS5 with a mandatory POC spike.
 
 ## Issue: DC-MEM-001 — SQLite database setup with migrations
 
@@ -333,3 +333,15 @@ Ensure strict per-project memory isolation with optional global cross-project me
 4. DC-MEM-005 (usage telemetry)
 5. DC-MEM-007 (isolation/global routing)
 6. DC-MEM-006 (Local issue system client)
+
+---
+
+## v2 follow-up tasks already anchored from the pattern review
+
+### DC-MEM-008 — ReasoningBank retrieval and write path
+
+Add the first delivery task for ReasoningBank as a runtime capability with storage/retrieval boundaries, without requiring full live prompt injection yet.
+
+### DC-MEM-009 — Cross-session memory querying
+
+Enable querying prior session/task memory across sessions within the same project without flooding current active context.
