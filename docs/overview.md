@@ -1,7 +1,7 @@
 # DiriCode — Implementation Plan Overview
 
 > Comprehensive implementation roadmap spanning MVP (4 iterations), v2, v3, v4.
-> Generated from: 48 ADRs, MVP spec, and design decisions.
+> Generated from: 49 ADRs, MVP spec, and design decisions.
 > Date: 2026-03-21
 
 ---
@@ -48,6 +48,7 @@ graph TD
 
     subgraph "@diricode/providers"
         Router[Native TS Router]
+        Picker[LLM Picker — ADR-049]
         Redactor[Secret Redactor]
         Failover[Order-based Failover]
         Backoff[Rate Limit + Exponential Backoff]
@@ -84,7 +85,8 @@ graph TD
     SQLite --> Hono
     SyncAdapter -.->|optional push| GH
 
-    Router --> Redactor
+    Router --> Picker
+    Picker --> Redactor
     Redactor --> Failover
     Failover --> Backoff
     Backoff --> AISDK
@@ -288,6 +290,7 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 - [mvp/epic-skills.md](mvp/epic-skills.md) — Skills system agentskills.io (MVP-2 → MVP-3)
 - [mvp/epic-observability.md](mvp/epic-observability.md) — EventStream + Agent Tree + Metrics (MVP-2 → MVP-3)
 - [mvp/epic-web-ui.md](mvp/epic-web-ui.md) — Vite + React + shadcn/ui (MVP-3)
+- [mvp/epic-llm-picker.md](mvp/epic-llm-picker.md) — LLM Picker decision engine + dashboard (MVP-2 → v2)
 - [mvp/epic-cli.md](mvp/epic-cli.md) — CLI entrypoint (POC → MVP-1)
 - [mvp/epic-testing-infra.md](mvp/epic-testing-infra.md) — Vitest + mocks + fixtures (POC)
 
@@ -324,9 +327,10 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 | Source | File | Role |
 |--------|------|------|
 | MVP Spec | spec-mvp-diricode.md | Primary technical reference |
-| ADRs (46) | docs/adr/ | Architecture decisions |
+| ADRs (49) | docs/adr/ | Architecture decisions |
 | Agent Roster | ADR-004 | 40 agents, 3 tiers, 6 categories |
 | Work Modes | ADR-012 | 4-dimension work system |
 | Hooks | ADR-024 | 20 hook types roadmap |
 | Observability | ADR-031 | EventStream + UI components |
 | Multi-Subscription | ADR-042 | Subscription rotation, quality scoring, A/B testing |
+| LLM Picker | ADR-049 | Hybrid ML cascade + policy-driven model selection for swarm agents |

@@ -55,7 +55,7 @@
 | [046](adr-046-swarm-coordination.md) | Swarm Coordination | MVP | Architecture |
 | [047](adr-047-governance-policy-engine.md) | Governance & Policy Engine | MVP | Pipeline |
 | [048](adr-048-sqlite-issue-system.md) | SQLite Issue System (supersedes ADR-022) | MVP | State |
-| [049](adr-049-llm-picker.md) | LLM Picker: Intelligent Model Routing Engine | MVP-2+v2 | Router |
+| [049](adr-049-llm-picker.md) | LLM Picker | MVP-2+v2+v3 | Router |
 
 ## Template
 

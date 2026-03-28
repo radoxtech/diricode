@@ -1,760 +1,632 @@
-# Epic: LLM Picker (@diricode/core + @diricode/providers + @diricode/web)
+# Epic: LLM Picker (@diricode/providers)
 
 ## Summary
 
-LLM Picker is the advanced routing engine for DiriCode, transitioning from static model tiering to dynamic, context-aware model selection. It implements a multi-tier routing cascade (Heuristic → BERT → Tiny LLM) with Elo-based candidate scoring, provider health integration, and a feedback-driven optimization loop.
+The LLM Picker is a **hybrid decision engine** combining a 3-tier ML cascade (Heuristic → BERT/ONNX → TinyLLM/ONNX) with policy-driven weighted scoring to select optimal LLM models for concurrent swarm agents. Sits between dispatcher/agent layer and SubscriptionRouter (ADR-042). Picker **never** makes LLM API calls.
 
-Scope spans **Phase 1 to Phase 6**:
-- **Foundation**: Core interfaces, legacy adapter, and heuristic-based Tier 1 router.
-- **Provider Adapters**: Extending existing and adding new providers (z.ai, MiniMax, Kimi).
-- **Feedback Loop**: SQLite-backed decision logging, Elo updates, and cooldown management.
-- **ML Tiers**: Local ONNX-based classification (BERT) and tiny LLM routing (Qwen).
-- **Admin & UI**: Comprehensive web visibility into subscriptions, models, and routing lineage.
-- **Auto-Retraining**: Automated pipeline for keeping local models sharp based on user feedback.
+The hybrid architecture:
+```
+Request → Tier 1 (Heuristic, <5ms) → Tier 2 (BERT/ONNX, <100ms) → Tier 3 (TinyLLM/ONNX, <300ms)
+    → Task Classification → Policy Resolution → Weighted Scoring → Ranked Candidates
+```
 
-Primary reference: `docs/adr/adr-049-llm-picker.md`.
+Scope: MVP-2 (Phases 1-5), v2 (Phase 6)
+Primary reference: `docs/adr/adr-049-llm-picker.md`
 
 ---
 
-## Issue: DC-LLP-001 — ModelResolver interface + types
+## Phase 1 — Foundation (Sub-epic #390)
 
-### Description
-Define the core architectural contract for model resolution in `@diricode/core`. This interface will be shared by both the legacy tier-based router and the new LLM Picker engine.
-- Create `packages/core/src/llm-picker/types.ts` containing:
-  - `ModelResolver`: The primary execution interface.
-  - `ModelRequest`: Input containing agent metadata, task description, and context hints.
-  - `ModelResolution`: The selection result including the chosen model and confidence.
-  - `DecisionTrace`: Detailed lineage of how a decision was reached.
-  - `ModelDescriptor`, `RoutingRule`, `FallbackCandidate`: Supporting types for the registry and rule engine.
-- Create `packages/core/src/llm-picker/index.ts` for barrel exports.
+### Issue: DC-LLP-001 — ModelResolver interface + types
 
-### Acceptance Criteria
-- All interfaces from ADR-049 section 1 are present and correctly typed.
-- Types are exported via the package entry point.
-- Zero external dependencies in the types file (pure structural definitions).
+**GitHub**: #396 | **Sub-epic**: #390
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 1)
+#### Description
+Define the core `ModelResolver` interface and the TypeScript types that govern the hybrid routing architecture. This foundation must support the 3-tier cascade and provide a unified contract for all routing components.
 
-### Dependencies
+The interface must include:
+- `resolve(request: DecisionRequest): Promise<DecisionResponse>`
+- Support for `model_dimensions` (tier, family, tags, and fallback types mapping from ADR-004/005/006).
+- A `classification_trace` to track how a decision moved through the cascade tiers.
+- Hybrid architecture types for Heuristic, BERT, and TinyLLM routers.
+
+#### Acceptance Criteria
+- [ ] `ModelResolver` interface defined with Zod validation for requests and responses.
+- [ ] `model_dimensions` field implemented in model metadata types.
+- [ ] `classification_trace` accurately captures tier transitions (Tier 1 → Tier 2 → Tier 3).
+- [ ] Exhaustive types for model families and fallback strategies.
+- [ ] Comprehensive unit tests for type validation and interface compliance.
+
+#### References
+- `docs/adr/adr-049-llm-picker.md` (Section 2, 3: Contracts)
+- `swarm-model-picker-plan.md` (lines 145-290: contracts)
+- `docs/adr/adr-004`, `docs/adr/adr-005`, `docs/adr/adr-006` (Model dimensions)
+
+#### Dependencies
 - Depends on: none
-- Required by: DC-LLP-002, DC-LLP-003, DC-LLP-005, DC-LLP-019
+- Required by: DC-LLP-003, DC-LLP-005, DC-LLP-007, DC-LLP-019
 
 ---
 
-## Issue: DC-LLP-002 — Legacy ModelTierResolver adapter
+### Issue: DC-LLP-002 — Legacy ModelTierResolver adapter
 
-### Description
-Ensure backward compatibility by wrapping the existing `ModelTierResolver` to implement the new `ModelResolver` interface.
-- Create `packages/core/src/agents/model-resolver-adapter.ts`.
-- Implementation:
-  - Receives `ModelRequest`.
-  - Maps request to existing tier logic.
-  - Returns `ModelResolution` with `reason: "legacy"`, `confidence: 1.0`.
-  - Populates a minimal `DecisionTrace` to satisfy the interface.
-- **Must NOT** modify the original `ModelTierResolver` code.
+**GitHub**: #397 | **Sub-epic**: #390
 
-### Acceptance Criteria
-- Adapter correctly satisfies the `ModelResolver` interface.
-- Legacy routing behavior remains identical when accessed through the adapter.
-- Unit tests verify the mapping from `ModelRequest` to legacy tier results.
+#### Description
+Create an adapter for the existing `ModelTierResolver` to ensure backward compatibility during the transition to the new LLM Picker. This allows existing agents to continue functioning while the new engine is being integrated.
 
-### References
+#### Acceptance Criteria
+- [ ] Adapter implements `ModelResolver` interface.
+- [ ] Correctly wraps existing `ModelTierResolver` logic.
+- [ ] Minimal latency overhead (<2ms).
+- [ ] Documented deprecation path for legacy calls.
+
+#### References
+- `packages/core/src/agents/model-tier-resolver.ts`
 - `docs/adr/adr-049-llm-picker.md`
-- `docs/adr/adr-004-agent-roster-3-tiers.md`
 
-### Dependencies
+#### Dependencies
 - Depends on: DC-LLP-001
-- Required by: DC-LLP-003
+- Required by: DC-LLP-031
 
 ---
 
-## Issue: DC-LLP-003 — Feature flag and resolver factory
+### Issue: DC-LLP-003 — Feature flag and resolver factory
 
-### Description
-Implement the orchestration logic to switch between legacy and new routing engines.
-- Extend config schema to support `routing.engine`: `"legacy" | "llm-picker" | "split"`.
-- Add `routing.splitPercent` (0-100) for A/B testing.
-- Implement a factory function that:
-  - Returns `ModelResolverAdapter` if `"legacy"`.
-  - Returns `LlmPicker` if `"llm-picker"`.
-  - Implements a random weighted split if `"split"`.
-- Default behavior must remain `"legacy"`.
+**GitHub**: #398 | **Sub-epic**: #390
 
-### Acceptance Criteria
-- Config validation (Zod) rejects invalid engine names or out-of-range split percentages.
-- Factory correctly instantiates the requested implementation.
-- Split mode distribution matches configured percentage over 1000 test iterations.
+#### Description
+Implement a factory pattern to instantiate the appropriate resolver (Legacy vs. Hybrid) based on feature flags. This enables safe rollout and A/B testing of the new picker.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-- `docs/adr/adr-044-elo-scoring-ab-testing.md`
+#### Acceptance Criteria
+- [ ] `ResolverFactory` returns correct implementation based on `.dc/config.jsonc`.
+- [ ] Feature flag `LLM_PICKER_ENABLED` toggles between legacy and cascade modes.
+- [ ] Hot-reloading support for configuration changes without process restart.
 
-### Dependencies
+#### References
+- `docs/adr/adr-009-config-conventions.md`
+
+#### Dependencies
 - Depends on: DC-LLP-001, DC-LLP-002
-- Required by: DC-LLP-019
+- Required by: DC-LLP-031
 
 ---
 
-## Issue: DC-LLP-004 — Routing rules schema and loader
+### Issue: DC-LLP-004 — Routing rules schema and loader
 
-### Description
-Implement the infrastructure for heuristic-based routing rules.
-- Define Zod schema for `RoutingRule` array.
-- Create JSONC loader for `.dc/llm-picker-rules.jsonc`.
-- Implement a file watcher for hot-reloading rules without restarting the process.
-- Provide a default rules file with sensible initial rules (e.g., small tasks to gpt-4o-mini).
+**GitHub**: #399 | **Sub-epic**: #390
 
-### Acceptance Criteria
-- Rules file correctly handles comments via JSONC parsing.
-- Invalid rules trigger descriptive validation errors.
-- Changes to the rules file are detected and reflected in the live engine within 1 second.
-- Unit tests cover schema validation, loading, and hot-reload events.
+#### Description
+Define the JSON schema for static routing rules and implement the loader that populates the policy engine. These rules act as the initial configuration for the heuristic tier.
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 2)
+#### Acceptance Criteria
+- [ ] JSON schema defined for routing rules (Zod-backed).
+- [ ] Loader reads from `packages/providers/src/picker/rules.json`.
+- [ ] Validation ensures no circular fallback references.
 
-### Dependencies
+#### References
+- `docs/adr/adr-049-llm-picker.md` (Section 4: Policy System)
+
+#### Dependencies
 - Depends on: DC-LLP-001
 - Required by: DC-LLP-005
 
 ---
 
-## Issue: DC-LLP-005 — Heuristic router (Tier 1)
+### Issue: DC-LLP-005 — Heuristic router (Tier 1)
 
-### Description
-Implement the rule evaluation engine (Tier 1 of the cascade).
-- Implement the evaluation logic from ADR-049 Section 2.
-- Support matching on:
-  - `agents`: List of agent IDs.
-  - `taskTypes`: Glob patterns.
-  - `tags`: Boolean logic (AND, OR, NOT with `!` prefix).
-  - `context`: Token range checks.
-- Handle priority ordering (0-9 are emergency rules, evaluated first).
-- Return `ModelResolution` with confidence and populated trace.
+**GitHub**: #400 | **Sub-epic**: #390
 
-### Acceptance Criteria
-- Emergency rules (priority < 10) always take precedence.
-- Tag negation (e.g., `!heavy`) works as expected.
-- Multiple matching rules result in the highest priority rule being selected.
-- Unit tests verify all condition types and priority ordering.
+#### Description
+Implement the Tier 1 Heuristic router. This router uses fast, rule-based logic to resolve simple requests in under 5ms. It serves as the entry point of the 3-tier cascade.
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 2)
+#### Acceptance Criteria
+- [ ] Resolution latency < 5ms for standard hits.
+- [ ] Supports exact tag matches and regex-based task classification.
+- [ ] Correctly delegates to Tier 2 if no confident heuristic match is found.
 
-### Dependencies
+#### References
+- `docs/adr/adr-049-llm-picker.md` (Cascade Tier 1)
+
+#### Dependencies
 - Depends on: DC-LLP-001, DC-LLP-004
 - Required by: DC-LLP-019
 
 ---
 
-## Issue: DC-LLP-006 — Tag-based model classification
+### Issue: DC-LLP-006 — Tag-based model classification
 
-### Description
-Move away from hardcoded tiers to a flexible, tag-based model catalog.
-- Implement `ModelDescriptor` with tags (e.g., `tier:pro`, `family:claude`) and attributes.
-- Create model catalog loader from `.dc/model-catalog.jsonc`.
-- Implement backward compatibility mapping:
-  - `AgentTier` → `tier:*` tags.
-  - `ModelFamily` → `family:*` tags.
-- Populate default catalog with GitHub Copilot models (auto-mapped from existing `GITHUB_MODELS`).
+**GitHub**: #401 | **Sub-epic**: #390
 
-### Acceptance Criteria
-- Catalog loader supports JSONC and validates against `ModelDescriptor` schema.
-- Legacy tier/family requests correctly resolve to tagged models.
-- Tag matching supports boolean logic (AND, OR, NOT).
+#### Description
+Implement the model classification system that maps models to specific dimensions (tier, family, tags). This includes adding model dimensions mapping (tier/family/tags/fallback types) as defined in early ADRs.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-- `docs/adr/adr-005-families-model-agent-skill-grouping.md`
+#### Acceptance Criteria
+- [ ] `model_dimensions` mapping implemented for all registered models.
+- [ ] Supports tag inheritance and hierarchical model families.
+- [ ] Queryable interface to find models by dimension subsets.
 
-### Dependencies
+#### References
+- `docs/adr/adr-004`, `docs/adr/adr-005`, `docs/adr/adr-006`
+
+#### Dependencies
 - Depends on: DC-LLP-001
 - Required by: DC-LLP-007
 
 ---
 
-## Issue: DC-LLP-007 — Candidate scorer
+### Issue: DC-LLP-007 — Candidate scorer
 
-### Description
-Implement the multi-dimensional scoring engine for selecting the best model candidate.
-- Create `scorer.ts` to evaluate candidates based on:
-  - `cost_score`: Normalized pricing.
-  - `quality_score`: Baseline model capability.
-  - `elo_score`: Dynamic performance score from feedback.
-  - `availability_score`: Current provider health/rate-limit state.
-- Scoring weights must be configurable.
-- Integrate with `SubscriptionHealth` to penalize/eliminate unhealthy providers.
+**GitHub**: #402 | **Sub-epic**: #390
 
-### Acceptance Criteria
-- Scorer returns a ranked list of candidates with score breakdowns.
-- Models from providers currently in cooldown are correctly eliminated.
-- Weights are applied correctly to the final aggregate score.
+#### Description
+Implement the candidate scoring engine that combines policy resolution with weighted scoring. This merges Version B's policy engine concepts into the candidate evaluation flow.
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 3)
-- `docs/adr/adr-044-elo-scoring-ab-testing.md`
-- `docs/adr/adr-042-multi-subscription-management.md`
+The scorer calculates a final score based on:
+- `quality_score` (0-100)
+- `cost_score` (relative to cheapest)
+- `latency_score` (relative to fastest)
+- `capability_score` (hard filter)
 
-### Dependencies
-- Depends on: DC-LLP-006
-- Required by: DC-LLP-015, DC-LLP-019
+#### Acceptance Criteria
+- [ ] Policy resolution follows priority order (Override > Specific > Role > Task > Default).
+- [ ] Weighted scoring algorithm implemented with 0.01 tolerance for weight sums.
+- [ ] Capability match acts as a hard exclusion filter.
+- [ ] Unit tests for score normalization and weight application.
+
+#### References
+- `docs/adr/adr-049-llm-picker.md` (Section 5: Scoring)
+- `swarm-model-picker-plan.md` (lines 126-140: scoring algorithm)
+
+#### Dependencies
+- Depends on: DC-LLP-001, DC-LLP-006
+- Required by: DC-LLP-019
 
 ---
 
-## Issue: DC-LLP-008 — ProviderAdapter interface and GitHub adapter extension
+## Phase 2 — Providers (Sub-epic #391)
 
-### Description
-Standardize how providers expose metadata to the picker.
-- Define `ProviderAdapter` interface: `listModels()`, `getHealth()`, `getRateLimitState()`.
-- Extend the existing GitHub Copilot adapter to implement this interface.
-- Use GitHub Models API for auto-detection of available models and tags.
-- Provide a fallback mechanism to `model-catalog.jsonc` for missing attributes.
+### Issue: DC-LLP-008 — ProviderAdapter interface + GitHub adapter
 
-### Acceptance Criteria
-- GitHub adapter correctly reports its model list and health state.
-- API-detected models are merged with catalog-defined metadata.
-- Rate limit state is accurately reflected in the adapter output.
+**GitHub**: #403 | **Sub-epic**: #391
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 4)
-- `docs/adr/adr-042-multi-subscription-management.md`
+#### Description
+Define the `ProviderAdapter` interface for external model providers and implement the GitHub Models adapter.
 
-### Dependencies
+#### Acceptance Criteria
+- [ ] Unified interface for model discovery and capability reporting.
+- [ ] GitHub adapter supports token-based authentication and model listing.
+- [ ] Error handling for provider-specific rate limits.
+
+#### Dependencies
 - Depends on: DC-LLP-001
-- Required by: DC-LLP-009, DC-LLP-010, DC-LLP-011
 
 ---
 
-## Issue: DC-LLP-009 — z.ai provider adapter
+### Issue: DC-LLP-009 — z.ai provider adapter
 
-### Description
-Add support for the z.ai provider.
-- Create new provider adapter at `packages/providers/src/zai/`.
-- Implement `ProviderAdapter` interface.
-- Use `DC_ZAI_*` environment variables for authentication.
-- Implement error mapping to ensure compatibility with the existing error classifier.
+**GitHub**: #404 | **Sub-epic**: #391
 
-### Acceptance Criteria
-- Adapter successfully lists models from z.ai.
-- Health checks return appropriate status based on API responsiveness.
-- Rate limit headers are correctly parsed into the shared state.
+#### Description
+Implement the adapter for the z.ai model provider.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-- `docs/adr/adr-025-native-ts-router-fallback-chain.md`
-
-### Dependencies
-- Depends on: DC-LLP-008
+#### Acceptance Criteria
+- [ ] Integration with z.ai API for model metadata.
+- [ ] Correct mapping of z.ai capabilities to internal DiriCode tags.
 
 ---
 
-## Issue: DC-LLP-010 — MiniMax AI provider adapter
+### Issue: DC-LLP-010 — MiniMax AI provider adapter
 
-### Description
-Add support for the MiniMax AI provider.
-- Create new provider adapter at `packages/providers/src/minimax/`.
-- Implement `ProviderAdapter` interface.
-- Use `DC_MINIMAX_*` environment variables for authentication.
-- Ensure model capabilities are correctly tagged in the catalog.
+**GitHub**: #405 | **Sub-epic**: #391
 
-### Acceptance Criteria
-- Adapter successfully authenticates and communicates with MiniMax API.
-- Error payloads are correctly translated into the system's unified error format.
+#### Description
+Implement the adapter for the MiniMax AI provider.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-
-### Dependencies
-- Depends on: DC-LLP-008
+#### Acceptance Criteria
+- [ ] Full support for MiniMax model registry.
+- [ ] Latency tracking for MiniMax endpoints.
 
 ---
 
-## Issue: DC-LLP-011 — Kimi provider adapter enhancement
+### Issue: DC-LLP-011 — Kimi provider adapter enhancement
 
-### Description
-Upgrade the existing Kimi adapter to support the new LLM Picker requirements.
-- Extend Kimi adapter to implement `ProviderAdapter`.
-- Add `listModels()`, `getHealth()`, and `getRateLimitState()`.
-- Ensure Kimi-specific error patterns are correctly handled by the classifier.
+**GitHub**: #406 | **Sub-epic**: #391
 
-### Acceptance Criteria
-- Kimi adapter provides the same level of metadata as newer adapters.
-- Integration with the provider registry remains stable.
+#### Description
+Enhance the existing Kimi provider adapter to support the new `ProviderAdapter` interface and reporting requirements.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-- `epic-router.md` (DC-PROV-007)
-
-### Dependencies
-- Depends on: DC-LLP-008
+#### Acceptance Criteria
+- [ ] Kimi models correctly reported to the Picker registry.
+- [ ] Support for Kimi-specific tool-calling flags.
 
 ---
 
-## Issue: DC-LLP-012 — SQLite migration: routing_decisions table
+## Phase 3 — Persistence & Feedback (Sub-epic #392)
 
-### Description
-Implement persistent storage for routing lineage and feedback.
-- Create migration `0012_routing_decisions.sql`.
-- Table columns: `request_id`, `session_id`, `timestamp`, `request_json`, `trace_json`, `feedback_json`.
-- Implement `RoutingDecisionRepository` with methods for:
-  - `insert`: Storing a new decision.
-  - `findByRequestId`: Retrieval for feedback linking.
-  - `listRecent`: For admin panel display.
-- Add indexes on `session_id` and `timestamp`.
+### Issue: DC-LLP-012 — SQLite migration: routing_decisions
 
-### Acceptance Criteria
-- Migration applies cleanly to SQLite.
-- Repository methods correctly handle JSON serialization/deserialization.
-- Queries are performant under load (indexed lookups).
+**GitHub**: #407 | **Sub-epic**: #392
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 5)
-- `docs/adr/adr-048-sqlite-issue-system.md`
+#### Description
+Define and execute the SQLite migration for the `routing_decisions` table. This table stores every decision made by the Picker for audit and replay.
 
-### Dependencies
-- Depends on: none
-- Required by: DC-LLP-014, DC-LLP-022
+#### Acceptance Criteria
+- [ ] Table schema supports JSON snapshots for requests and candidates.
+- [ ] Indexes on `agent_role`, `model`, and `requested_at`.
+- [ ] Migration script follows DiriCode SQLite conventions.
+
+#### References
+- `swarm-model-picker-plan.md` (lines 528-577: decisions table DDL)
+
+#### Dependencies
+- Depends on: DC-LLP-001
 
 ---
 
-## Issue: DC-LLP-013 — SQLite migration: extend model_scores
+### Issue: DC-LLP-013 — SQLite migration: extend model_scores
 
-### Description
-Extend the model scoring table to support more granular Elo tracking.
-- Create migration `0013_extend_model_scores.sql`.
-- Add `subscription` and `task_type` columns to `model_scores`.
-- Update `ModelScoreRepository` to support queries filtered by these new columns.
-- Ensure backward compatibility for existing simple model lookups.
+**GitHub**: #408 | **Sub-epic**: #392
 
-### Acceptance Criteria
-- Migration succeeds and preserves existing Elo data.
-- Repository correctly updates the specific tuple (model, subscription, task_type).
+#### Description
+Extend the `model_scores` table to support multi-dimensional metrics (quality, cost, speed, reasoning) and versioned quality heuristics.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-- `docs/adr/adr-044-elo-scoring-ab-testing.md`
-
-### Dependencies
-- Depends on: none
-- Required by: DC-LLP-014, DC-LLP-025
+#### Acceptance Criteria
+- [ ] Schema updated to include `reasoning_score` and `speed_score`.
+- [ ] Default values set to 50 for all heuristic dimensions.
+- [ ] Support for tracking score evolution over time.
 
 ---
 
-## Issue: DC-LLP-014 — Feedback ingestion and Elo update
+### Issue: DC-LLP-014 — Feedback ingestion and Elo update
 
-### Description
-Implement the logic to close the loop between user feedback and model scoring.
-- Create `feedback.ts` as a `FeedbackEvent` handler.
-- Logic:
-  - Locate `routing_decision` via `requestId`.
-  - Update `feedback_json` in the database.
-  - Recalculate and update Elo scores for the (model, subscription, task_type) tuple.
-  - Manage provider cooldowns based on failure feedback or rate limit headers.
+**GitHub**: #409 | **Sub-epic**: #392
 
-### Acceptance Criteria
-- Feedback is correctly associated with the original routing decision.
-- Elo updates follow the ADR-044 mathematical model.
-- Cooldowns are persisted and respected by the scorer in subsequent requests.
+#### Description
+Implement the execution feedback loop. This component receives metrics from the orchestrator after an LLM call completes and updates model scores accordingly. This merges Version B's execution feedback (DC-PICK-009) and adds REST/WS contracts for feedback ingestion.
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 5)
-- `docs/adr/adr-044-elo-scoring-ab-testing.md`
+#### Acceptance Criteria
+- [ ] `POST /api/v1/decisions/:id/feedback` endpoint implemented.
+- [ ] WebSocket feedback event handler active.
+- [ ] Correlation between feedback and original decisions verified.
+- [ ] Incremental Elo score updates based on success/failure and overrides.
 
-### Dependencies
+#### References
+- `swarm-model-picker-plan.md` (lines 294-327: feedback contract)
+
+#### Dependencies
 - Depends on: DC-LLP-012, DC-LLP-013
-- Required by: DC-LLP-027
 
 ---
 
-## Issue: DC-LLP-015 — Failure handling and fallback chain
+### Issue: DC-LLP-015 — Failure handling and fallback chain
 
-### Description
-Implement the resilient fallback execution logic.
-- Implement the fallback chain from ADR-049 Section 6.
-- Rules:
-  - If a model fails, skip to the next candidate (do not retry same model).
-  - If rate limited, set cooldown for that subscription and skip.
-  - If all candidates are exhausted, trigger emergency fallback rules.
-  - If no models remain, return a structured error with the full decision trace.
-- Integrate with the existing `RouterError` classifier.
+**GitHub**: #410 | **Sub-epic**: #392
 
-### Acceptance Criteria
-- Fallback chain continues until a success or absolute exhaustion.
-- Cooldowns are triggered immediately upon 429 errors.
-- The final error contains a complete log of all failed attempts.
+#### Description
+Implement the robust failure handling logic and model fallback chains. If the preferred model selection fails, the Picker must provide a valid fallback based on policy constraints.
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 6)
-- `docs/adr/adr-025-native-ts-router-fallback-chain.md`
-
-### Dependencies
-- Depends on: DC-LLP-007, DC-LLP-014
-- Required by: DC-LLP-019
+#### Acceptance Criteria
+- [ ] `is_fallback` flag correctly set in response when primary choice is unavailable.
+- [ ] Fallback chain resolution avoids infinite loops.
+- [ ] Latency overhead for fallback resolution < 10ms.
 
 ---
 
-## Issue: DC-LLP-016 — ONNX Runtime setup and model download script
+## Phase 4 — ML Cascade (Sub-epic #393)
 
-### Description
-Prepare the environment for local ML inference.
-- Add `onnxruntime-node` dependency to `@diricode/core`.
-- Create a setup script `pnpm run llm-picker:setup`.
-- Logic:
-  - Download BERT (classifier) and Qwen2.5-0.5B (tiny LLM) ONNX models.
-  - Verify downloads against a committed manifest of hashes.
-  - Store models in `packages/core/src/llm-picker/models/` (gitignored).
-- Add `.gitkeep` to the models directory.
+### Issue: DC-LLP-016 — ONNX Runtime setup + model download
 
-### Acceptance Criteria
-- Script correctly handles partial downloads and resumes.
-- Hash verification prevents use of corrupted or malicious models.
-- Environment is ready for `onnxruntime-node` execution.
+**GitHub**: #411 | **Sub-epic**: #393
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 7)
+#### Description
+Configure the ONNX Runtime for local ML execution and implement the automated model downloader for Tier 2 (BERT) and Tier 3 (TinyLLM) routers.
 
-### Dependencies
-- Depends on: none
-- Required by: DC-LLP-017, DC-LLP-018
+#### Acceptance Criteria
+- [ ] ONNX Runtime initialized in the `@diricode/providers` package.
+- [ ] Automated download and checksum verification for model files.
+- [ ] Models loaded into memory efficiently with proper cleanup.
+
+#### References
+- `docs/adr/adr-049-llm-picker.md` (ML Cascade architecture)
 
 ---
 
-## Issue: DC-LLP-017 — BERT/MiniLM classifier (Tier 2)
+### Issue: DC-LLP-017 — BERT/MiniLM classifier (Tier 2)
 
-### Description
-Implement the secondary classification tier using local BERT.
-- Create `bert-classifier.ts` to run ONNX inference.
-- Logic:
-  - Tokenize task description + agent metadata.
-  - Classify into: `simple`, `moderate`, `complex`, `expert`.
-  - Use a softmax threshold (default 0.80) to decide whether to stop the cascade.
-  - Gracefully skip if models are missing or if CPU load is too high.
-- Performance target: < 100ms.
+**GitHub**: #412 | **Sub-epic**: #393
 
-### Acceptance Criteria
-- Classifier produces consistent labels for known benchmark tasks.
-- Cascade short-circuits correctly when confidence is high.
-- Inference stays within the 100ms budget on standard CPU.
+#### Description
+Implement the Tier 2 router using a BERT or MiniLM model. This tier performs semantic task classification to narrow down candidate models in under 100ms.
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 7)
-
-### Dependencies
-- Depends on: DC-LLP-016
-- Required by: DC-LLP-019
+#### Acceptance Criteria
+- [ ] Classification latency < 100ms.
+- [ ] High accuracy on standard DiriCode task types (coding, research, planning).
+- [ ] Graceful fallback to Heuristic tier on model failure.
 
 ---
 
-## Issue: DC-LLP-018 — Tiny LLM router (Tier 3)
+### Issue: DC-LLP-018 — Tiny LLM router (Tier 3)
 
-### Description
-Implement the final classification tier using a local tiny LLM.
-- Create `tiny-llm-router.ts` using Qwen2.5-0.5B-Instruct.
-- Logic:
-  - Construct a structured prompt with routing rubrics (complexity, context, latency).
-  - Run inference via ONNX Runtime (INT4 quantized).
-  - Parse JSON output for model recommendation and reasoning.
-  - Fall back to Tier 1 result if inference fails or model is missing.
-- Performance target: < 300ms.
+**GitHub**: #413 | **Sub-epic**: #393
 
-### Acceptance Criteria
-- Router successfully parses model recommendations from LLM output.
-- Reasoning is captured and stored in the `DecisionTrace`.
-- Inference completes within the 300ms budget.
+#### Description
+Implement the Tier 3 router using a TinyLLM (e.g., Qwen-0.5B or Phi-2) running via ONNX. This tier handles complex, multi-constraint reasoning in under 300ms.
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 7)
-
-### Dependencies
-- Depends on: DC-LLP-016
-- Required by: DC-LLP-019
+#### Acceptance Criteria
+- [ ] reasoning latency < 300ms.
+- [ ] Supports complex constraint evaluation (cost vs. quality trade-offs).
+- [ ] Deterministic output for identical inputs.
 
 ---
 
-## Issue: DC-LLP-019 — Cascade orchestrator
+### Issue: DC-LLP-019 — Cascade orchestrator
 
-### Description
-Wire the multi-tier cascade into the final `LlmPicker` engine.
-- Implement the `LlmPicker` class.
-- Orchestration flow:
-  - Run Tier 1 (Heuristics).
-  - If low confidence, run Tier 2 (BERT).
-  - If Tiers disagree or confidence remains low, run Tier 3 (Tiny LLM).
-- Ensure `DecisionTrace` is accurately populated at every step.
-- Implement latency tracking for each tier.
+**GitHub**: #414 | **Sub-epic**: #393
 
-### Acceptance Criteria
-- Orchestrator follows the confidence-based short-circuit logic.
-- Final selection integrates with the `CandidateScorer` for provider selection.
-- All routing events are logged to the database via the repository.
+#### Description
+Implement the core `LlmPicker` class that orchestrates the entire 3-tier cascade. This class wires Tier 1, Tier 2, and Tier 3 routers into a unified resolution flow.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-- `docs/adr/adr-002-dispatcher-first-agent-architecture.md`
+#### Acceptance Criteria
+- [ ] Implements the `ModelResolver` interface.
+- [ ] Orchestrates fallbacks between tiers based on confidence scores.
+- [ ] Aggregates `classification_trace` from all active tiers.
+- [ ] End-to-end latency benchmarks meet performance targets.
 
-### Dependencies
-- Depends on: DC-LLP-003, DC-LLP-005, DC-LLP-007, DC-LLP-015, DC-LLP-017, DC-LLP-018
-- Required by: Main agent execution loop
+#### Dependencies
+- Depends on: DC-LLP-005, DC-LLP-017, DC-LLP-018
 
 ---
 
-## Issue: DC-LLP-020 — Admin panel: SubscriptionList component
+## Phase 5 — Dashboard UI (Sub-epic #394)
 
-### Description
-Build the UI for managing LLM subscriptions in `@diricode/web`.
-- Create `SubscriptionList.tsx`.
-- Features:
-  - Table of all providers/subscriptions.
-  - Active/Inactive toggles.
-  - Health status badges (Green/Yellow/Red).
-  - Rate limit bars and cooldown countdowns.
-- Implement API endpoint for fetching live subscription data.
+### Issue: DC-LLP-020 — Admin: SubscriptionList
 
-### Acceptance Criteria
-- UI reflects real-time status from the core engine.
-- Toggling a subscription immediately affects the router's candidate pool.
-- Cooldown countdowns update without page refresh (SSE or polling).
+**GitHub**: #415 | **Sub-epic**: #394
 
-### References
-- `docs/adr/adr-042-multi-subscription-management.md`
+#### Description
+Implement the Subscription List tab in the Admin panel. Displays active LLM provider subscriptions and their usage status.
 
-### Dependencies
-- Depends on: DC-LLP-008
-- Required by: Admin dashboard parity
+#### Acceptance Criteria
+- [ ] Displays provider name, plan type, and token limits.
+- [ ] Real-time usage indicators.
 
 ---
 
-## Issue: DC-LLP-021 — Admin panel: ModelCatalog component
+### Issue: DC-LLP-021 — Admin: ModelCatalog
 
-### Description
-Create a visibility layer for the model registry.
-- Display all available models with their tags, context windows, and pricing.
-- Support filtering by provider, family, and capability tags.
-- Distinguish between auto-detected models (API) and manual overrides (JSONC).
+**GitHub**: #416 | **Sub-epic**: #394
 
-### Acceptance Criteria
-- Catalog accurately represents the `model-catalog.jsonc` and dynamic provider lists.
-- Filtering is responsive and accurate.
+#### Description
+Implement the Model Catalog tab. Provides a searchable list of all registered models and their capabilities.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-
-### Dependencies
-- Depends on: DC-LLP-006
+#### Acceptance Criteria
+- [ ] Filter by provider, tier, and capability.
+- [ ] View model pricing and heuristic scores.
 
 ---
 
-## Issue: DC-LLP-022 — Admin panel: DecisionLog component
+### Issue: DC-LLP-022 — Admin: DecisionLog
 
-### Description
-Implement a searchable history of routing decisions.
-- Create a paginated table of recent decisions.
-- Columns: Timestamp, Agent, Task Type, Winner Model, Confidence, Duration.
-- Add filters for date range, agent ID, and task type.
-- Support "Click to Expand" to view the full `DecisionTrace`.
+**GitHub**: #417 | **Sub-epic**: #394
 
-### Acceptance Criteria
-- History loads efficiently from the SQLite `routing_decisions` table.
-- Filtering and pagination work correctly.
+#### Description
+Implement the Decision Log tab. This component merges Version B's decision replay feature (DC-PICK-004).
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 5)
+#### Acceptance Criteria
+- [ ] Virtualized table of historical decisions.
+- [ ] Inspection view showing full candidate scores and rejection reasons.
+- [ ] "Replay Decision" action to re-run historical requests against current state.
 
-### Dependencies
-- Depends on: DC-LLP-012
+#### References
+- `swarm-model-picker-plan.md` (Epic 3, Epic 4)
 
 ---
 
-## Issue: DC-LLP-023 — Admin panel: LineageGraph component
+### Issue: DC-LLP-023 — Admin: LineageGraph
 
-### Description
-Visualize the routing decision path using a flow graph.
-- Integrate XYFlow to render the `DecisionTrace`.
-- Nodes: Request → Rules → Candidates → Scorer → Winner → Outcome.
-- Use color coding (Green for winners, Red for eliminated candidates).
-- Interactive nodes show detailed scores/reasoning on click.
+**GitHub**: #418 | **Sub-epic**: #394
 
-### Acceptance Criteria
-- Graph correctly represents the hierarchy and logic of a specific decision.
-- Visual representation matches the internal trace data.
+#### Description
+Implement the Lineage Graph tab. This is the "Live Routing Map" from Version B, visualizing real-time flow from agents to models.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
+#### Acceptance Criteria
+- [ ] Animated graph (React Flow) showing Agent → Policy → Model paths.
+- [ ] Particle animations for live decisions.
+- [ ] Color-coded edges for standard vs. fallback routes.
 
-### Dependencies
-- Depends on: DC-LLP-022
+#### References
+- `swarm-model-picker-plan.md` (Epic 2)
 
 ---
 
-## Issue: DC-LLP-024 — Admin panel: CostDashboard component
+### Issue: DC-LLP-024 — Admin: CostDashboard
 
-### Description
-Implement spend and usage analytics.
-- Create charts for:
-  - Spend per subscription/model.
-  - Request volume over time.
-  - Token usage trends.
-- Use Recharts for data visualization.
+**GitHub**: #419 | **Sub-epic**: #394
 
-### Acceptance Criteria
-- Dashboard provides clear insight into where budget is being spent.
-- Aggregations match the token usage data stored in the database.
+#### Description
+Implement the Cost Dashboard tab showing token usage and spend by agent and model.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-
-### Dependencies
-- Depends on: DC-LLP-012
+#### Acceptance Criteria
+- [ ] Time-series charts for spend.
+- [ ] Breakdown by agent role and model family.
 
 ---
 
-## Issue: DC-LLP-025 — Admin panel: EloRankings component
+### Issue: DC-LLP-025 — Admin: EloRankings
 
-### Description
-Visualize model performance and Elo trends.
-- Display a ranking table of models per `task_type`.
-- Show Elo trend sparklines over time.
-- Include sample counts and "Last Updated" timestamps.
+**GitHub**: #420 | **Sub-epic**: #394
 
-### Acceptance Criteria
-- Rankings reflect the dynamic Elo scores from the `model_scores` table.
-- Sparklines accurately depict recent performance fluctuations.
+#### Description
+Implement the Elo Rankings tab, displaying the relative performance quality of models based on execution feedback.
 
-### References
-- `docs/adr/adr-044-elo-scoring-ab-testing.md`
-
-### Dependencies
-- Depends on: DC-LLP-013, DC-LLP-014
+#### Acceptance Criteria
+- [ ] Leaderboard of models by Elo score.
+- [ ] Delta indicators showing recent ranking changes.
 
 ---
 
-## Issue: DC-LLP-026 — Admin panel: RulesEditor component
+### Issue: DC-LLP-026 — Admin: RulesEditor
 
-### Description
-Provide a GUI for managing routing rules.
-- Support Creating, Editing, and Reordering rules.
-- Implement Drag-and-drop for priority adjustment.
-- Validate rule definitions against the Zod schema before saving to `.dc/llm-picker-rules.jsonc`.
+**GitHub**: #421 | **Sub-epic**: #394
 
-### Acceptance Criteria
-- Changes made in the UI are persisted to the rules file correctly.
-- Validation errors are surfaced clearly to the user.
-- Hot-reloading is triggered upon successful save.
+#### Description
+Implement the Rules Editor tab for managing heuristic routing rules and policies.
 
-### References
-- `docs/adr/adr-049-llm-picker.md`
-
-### Dependencies
-- Depends on: DC-LLP-004
+#### Acceptance Criteria
+- [ ] Form for editing policy weights and hard filters.
+- [ ] Preview mode showing how changes affect recent decisions.
 
 ---
 
-## Issue: DC-LLP-028 — Admin panel: UserInstructionsEditor component
+### Issue: DC-LLP-028 — Admin: UserInstructionsEditor
 
-### Description
-Implement a natural language instructions textarea in the Admin Panel that allows users to define routing preferences in plain text.
-- Create `UserInstructionsEditor.tsx` in `packages/web/src/components/llm-picker/`.
-- Features:
-  - Textarea with placeholder examples (e.g., "Preferuj tańsze modele", "Unikaj GPT-4o na prostych taskach").
-  - Save button that writes to `.dc/config.jsonc` under `routing.userInstructions` via the config API.
-  - Character counter with 2000 character limit.
-  - Live preview section showing best-effort parsing into implicit routing rules (e.g., "avoid X" → blockModels).
-- Implement API endpoint for reading/writing `routing.userInstructions` if not already covered by the config API.
-- Extend config Zod schema to include `routing.userInstructions` as optional string (max 2000 chars).
+**GitHub**: #423 | **Sub-epic**: #394
 
-### How Instructions Are Consumed
-- **Tier 1 (Heuristic Router):** Parsed into implicit rule overrides where possible (e.g., "avoid {model}" → `blockModels`, "prefer {tag}" → `priorityBoost`, "minimize cost" → adjusted scorer weights). Unparseable directives are forwarded to Tier 3.
-- **Tier 2 (BERT Classifier):** Not consumed. Classifier operates on task complexity.
-- **Tier 3 (Tiny LLM Router):** Instructions injected verbatim into the routing prompt's system section. The tiny LLM reasons over them alongside the standard rubric.
+#### Description
+Implement the User Instructions Editor for fine-tuning how specific agent roles should prioritize models.
 
-### Acceptance Criteria
-- Textarea saves and loads instructions from `.dc/config.jsonc` correctly.
-- Character limit enforced in the UI.
-- Live preview shows parsed rules with best-effort accuracy.
-- Unparsed instructions are clearly indicated as "forwarded to Tiny LLM".
-- Config Zod schema validates `routing.userInstructions` as optional string, max 2000 chars.
-- Component follows existing DiriCode UI patterns (shadcn/ui, Zustand store).
-
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 12)
-- `docs/adr/adr-009-jsonc-config-c12-loader.md`
-
-### Dependencies
-- Depends on: DC-LLP-004 (config loader), DC-LLP-005 (heuristic router — for parsing integration)
-- Required by: DC-LLP-019 (cascade orchestrator — instructions feed into routing prompt)
+#### Acceptance Criteria
+- [ ] Text area for agent-specific routing hints.
+- [ ] Persistence to the `policies` table metadata.
 
 ---
 
-## Issue: DC-LLP-027 — Auto re-training pipeline
+### Issue: DC-LLP-029 — WebSocket telemetry and live events
 
-### Description
-Automate the improvement of local ML models.
-- Create `retrain.ts` to manage the training lifecycle.
-- Features:
-  - Threshold check: Trigger when feedback exceeds `feedbackThreshold` (default 100).
-  - Data export: Extract training pairs from `routing_decisions` table.
-  - Training trigger: Run local training script for BERT classifier.
-  - Validation: Perform 20% holdout validation.
-  - Safe swap: Rollback to `classifier-prev.onnx` if accuracy drops > 2%.
-- Set up a cron job (default 24h) to check for retraining needs.
+**Sub-epic**: #394 (New)
 
-### Acceptance Criteria
-- Pipeline runs without manual intervention.
-- Rollback mechanism prevents regression in classification accuracy.
-- Training data is correctly filtered and stratified by task type.
+#### Description
+Implement the WebSocket event bus for real-time Picker telemetry. This powers the live animations in the dashboard (from Version B's DC-PICK-005).
 
-### References
-- `docs/adr/adr-049-llm-picker.md` (Section 8)
+Events:
+- `picker.stats`: Global metrics (D/s, latency, fallbacks).
+- `picker.decision.live`: Summary of each decision for the stream.
+- `picker.error`: Internal error alerts.
+- `picker.graph.edge`: Path data for the lineage graph.
 
-### Dependencies
-- Depends on: DC-LLP-014, DC-LLP-017
+#### Acceptance Criteria
+- [ ] WebSocket server emits `picker.*` events.
+- [ ] In-memory ring buffer for 300s of history for stats computation.
+- [ ] Event payloads validated with Zod.
+
+#### References
+- `swarm-model-picker-plan.md` (Section 4: Internal Events)
 
 ---
 
-## Must NOT (Epic-specific)
+### Issue: DC-LLP-030 — Mock data engine for development
 
-- Must NOT modify `ModelTierResolver` (wrap it via adapter, never touch its internals).
-- Must NOT introduce Python sidecar or proxy (must remain pure TypeScript + ONNX Runtime).
-- Must NOT break existing routing when `routing.engine = "legacy"` (ensure it remains the default).
-- Must NOT add external LLM API calls for the routing decision process itself (all classification/routing ML must be local).
-- Must NOT skip `DecisionTrace` generation on any routing path, including legacy paths.
-- Must NOT hardcode model capabilities (all logic must be derived from tags and attributes).
-- Must NOT commit ONNX model binaries directly to the repository (use download script).
+**Sub-epic**: #394 (New)
+
+#### Description
+Build a mock data generator to simulate a live swarm, enabling dashboard development without a running agent system (from Version B's DC-PICK-008).
+
+#### Acceptance Criteria
+- [ ] Generator produces realistic `picker.*` events.
+- [ ] Supports disturbance modes (fallback spikes, outages).
+- [ ] Configurable event frequency.
+
+#### References
+- `swarm-model-picker-plan.md` (Epic 5)
+
+---
+
+### Issue: DC-LLP-031 — Integration with existing routing stack
+
+**Sub-epic**: #394 (New)
+
+#### Description
+Wire the LLM Picker into the DiriCode routing stack (from Version B's DC-PICK-007).
+
+Integration points:
+- `ModelTierResolver`: Replaces static resolution.
+- `SubscriptionRouter`: Consumes Picker output to select best subscription.
+- `ABExperimentManager`: Adjusts weights for active experiments.
+
+#### Acceptance Criteria
+- [ ] Agent requests route through Picker with <50ms overhead.
+- [ ] Graceful degradation to legacy resolver on failure.
+- [ ] Integration tests for full agent-to-provider path.
+
+---
+
+## Phase 6 — Optimization (Sub-epic #395)
+
+### Issue: DC-LLP-027 — Auto re-training pipeline
+
+**GitHub**: #422 | **Sub-epic**: #395
+
+#### Description
+Implement the automated pipeline for re-training Tier 2 and Tier 3 models based on collected decision and feedback data.
+
+#### Acceptance Criteria
+- [ ] Automated extraction of training pairs from SQLite.
+- [ ] Pipeline produces updated ONNX model files.
+
+---
+
+### Issue: DC-LLP-032 — Auto-policy tuning from feedback data
+
+**Sub-epic**: #395 (New)
+
+#### Description
+Implement statistical analysis of feedback data to automatically suggest or apply policy weight adjustments (from Version B's DC-PICK-010).
+
+#### Acceptance Criteria
+- [ ] Analytical engine identifies sub-optimal weight configurations.
+- [ ] Suggests improvements in the Rules Editor UI.
+
+---
+
+### Issue: DC-LLP-033 — Historical analytics dashboard
+
+**Sub-epic**: #395 (New)
+
+#### Description
+Add time-series visualizations for long-term trends in model efficiency, cost, and quality (from Version B's DC-PICK-011).
+
+#### Acceptance Criteria
+- [ ] Multi-day trend charts for cost efficiency.
+- [ ] Policy effectiveness comparison views.
+
+---
+
+## Must NOT
+
+- Must NOT skip ONNX/ML tiers — they are non-negotiable for the cascade.
+- Must NOT separate dashboard into multiple panels — must be one panel with tabs.
+- Must NOT make LLM API calls from the Picker — it is a decision engine only.
+- Must NOT handle streaming, retries, or provider failures — those remain with ADR-025/ADR-042.
+- Must NOT store conversation content or agent outputs — only decision metadata and metrics.
 
 ---
 
 ## Dependencies
 
 ### Upstream / External
-- **ONNX Runtime for Node.js**: Required for Tier 2 and Tier 3 local inference.
-- **Vercel AI SDK**: Core provider abstraction layer.
-- **Provider APIs**: Availability of z.ai, MiniMax, and Kimi endpoints.
+- Existing model registry data (provider capabilities, pricing) for seed data.
+- WebSocket infrastructure coexisting with SSE (ADR-001).
+- React Flow library for LineageGraph visualization.
+- `@tanstack/react-virtual` for virtualized request stream.
+- ONNX Runtime for Tier 2/3 classification.
 
 ### Cross-epic
-- **epic-router**: Integration with error classifier and existing Kimi adapter.
-- **epic-config**: Config schema extensions for routing engine flags.
-- **epic-memory**: SQLite repository patterns and migration infrastructure.
-- **epic-web-ui**: UI component patterns and state management (Zustand).
-- **epic-observability**: Event bus for feedback and routing logs.
-
-### Delivery sequencing
-- **Phase 1**: Foundations (DC-LLP-001 to DC-LLP-007).
-- **Phase 2**: Provider Ecosystem (DC-LLP-008 to DC-LLP-011).
-- **Phase 3**: Data Persistence (DC-LLP-012 to DC-LLP-015).
-- **Phase 4**: ML Intelligence (DC-LLP-016 to DC-LLP-019).
-- **Phase 5**: Visibility (DC-LLP-020 to DC-LLP-026, DC-LLP-028).
-- **Phase 6**: Optimization (DC-LLP-027).
+- **epic-router**: Picker feeds recommendations into the retry/fallback pipeline.
+- **epic-memory**: Picker uses SQLite repositories for persistence.
+- **epic-observability**: Picker emits events through the EventStream.
+- **epic-agents-core**: Agent requests flow through the Picker resolver.
 
 ---
 
-## v2 follow-up routing task
+## Delivery sequencing
 
-### DC-LLP-F01: A2A interface integration
-Implement Agent-to-Agent (A2A) handshake protocol. Support reading `.well-known/agent.json` (Agent Cards) to dynamically discover capabilities and task lifecycle hooks via the A2A-JS SDK.
+1. **Phase 1: Foundation** (DC-LLP-001 to 007) — Schema, types, and Heuristic router.
+2. **Phase 2: Providers** (DC-LLP-008 to 011) — Connect external model data.
+3. **Phase 3: Persistence** (DC-LLP-012 to 015) — Logging and feedback loop.
+4. **Phase 4: ML Cascade** (DC-LLP-016 to 019) — ONNX integration and Tier 2/3 routers.
+5. **Phase 5: Dashboard** (DC-LLP-020 to 026, 028 to 031) — Unified admin UI and system integration.
+6. **Phase 6: Optimization** (DC-LLP-027, 032, 033) — Auto-tuning and historical analytics.
 
-### DC-LLP-F02: Multi-model parallelism
-Enable parallel dispatch of the same request to 2+ candidate models. The engine selects the first successful response or uses a consensus mechanism to improve reliability and latency.
-
-### DC-LLP-F03: Cost optimization dashboard
-Add advanced budgetary controls, including per-subscription spend limits, real-time cost alerts, and automated engine switching to cheaper models when budget thresholds are reached.
+MVP-2 exit requires: Phases 1 through 5 operational with 3-tier cascade and dashboard.
+v2 exit requires: Phase 6 active with auto-tuning and deep analytics.

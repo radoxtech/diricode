@@ -80,3 +80,13 @@ The four fallback types are implemented as wrappers: Round Robin, Priority, Cost
 - **Tool retry** (`wrap_tool_call` from ADR-033): Handles tool execution failures
 
 These compose in the middleware pipeline.
+
+### Addendum — Swarm Model Picker as Higher-Level Consumer (2026-03-28)
+
+ADR-049 introduces the **Swarm Model Picker** — a decision engine that sits above this router. The Picker receives per-agent, per-task model selection requests from the dispatcher, evaluates candidates against configurable policies, and outputs a `{ provider, model }` recommendation. This recommendation then flows into the retry/fallback pipeline defined by this ADR.
+
+**Relationship:**
+- **Picker** (ADR-049): decides *which* model to use (policy-driven scoring, multi-dimensional constraints)
+- **Router** (this ADR): decides *how* to call that model (retries, backoff, fallback chain, stream management)
+
+The Picker does not replace or modify the router's retry/fallback behavior. When the Picker selects a model and the router encounters a provider failure, the router's existing retry → fallback chain still applies. The Picker only re-enters the flow if the dispatcher explicitly requests a new decision after all router-level recovery is exhausted.
