@@ -1,7 +1,7 @@
 # DiriCode — Architecture Decision Records
 
 > All ADRs in English. Consistent with all 13 analysis documents and user decisions.
-> Last updated: 2026-03-23
+> Last updated: 2026-03-28
 
 ## Index
 
@@ -55,6 +55,7 @@
 | [046](adr-046-swarm-coordination.md) | Swarm Coordination | MVP | Architecture |
 | [047](adr-047-governance-policy-engine.md) | Governance & Policy Engine | MVP | Pipeline |
 | [048](adr-048-sqlite-issue-system.md) | SQLite Issue System (supersedes ADR-022) | MVP | State |
+| [049](adr-049-llm-picker.md) | LLM Picker: Intelligent Model Routing Engine | MVP-2+v2 | Router |
 
 ## Template
 
