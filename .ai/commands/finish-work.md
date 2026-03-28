@@ -29,7 +29,7 @@ delegate_task({
 
 | Condition                    | Result                              |
 | ---------------------------- | ----------------------------------- |
-| You're in the main repo      | ❌ ERROR — use `/start-work` first  |
+| You're in the main repo      | ❌ ERROR — use `/start` first       |
 | You have uncommitted changes | ❌ ERROR — commit first             |
 | PR not yet merged            | ❌ ERROR — merge or use `--abandon` |
 
@@ -63,7 +63,7 @@ if [ "$COMMON_DIR" = "$GIT_DIR" ]; then
   echo "📂 Current directory: $(pwd)"
   echo ""
   echo "This command can only be run from inside a worktree."
-  echo "Use /start-work to create a worktree first."
+  echo "Use /start to create a worktree first."
   exit 1
 fi
 
@@ -361,7 +361,7 @@ echo "   Issue #$ISSUE_NUMBER → Done"
 echo "   PR #$PR_NUMBER merged into main"
 echo "   Worktree preserved at: $WORKTREE_PATH"
 echo ""
-echo "Ready for next task: /start-work"
+echo "Ready for next task: /start"
 ```
 
 ---
@@ -440,7 +440,7 @@ echo "   Issue #$ISSUE_NUMBER: Blocked (reassess in backlog)"
 📂 Current directory: /Users/{USER}/repos/{REPO}
 
 This command can only be run from within a worktree.
-Use /start-work to create a worktree first.
+Use /start to create a worktree first.
 ```
 
 ### Uncommitted Changes
@@ -539,7 +539,7 @@ git worktree list  # Confirm clean
 
 echo "✅ Work finished! Issue #42: Done | PR #15: Merged"
 echo "   Worktree preserved for future reference"
-echo "Ready for next task: /start-work"
+echo "Ready for next task: /start"
 ```
 
 ---
@@ -563,7 +563,7 @@ Backlog → Todo → Ready → In Progress → Review → Done
 
 | Event                            | Transition              |
 | -------------------------------- | ----------------------- |
-| /start-work executed             | `Ready → In Progress`   |
+| /start executed                  | `Ready → In Progress`   |
 | /finish-work started, PR created | `In Progress → Review`  |
 | PR merged successfully           | `Review → Done`         |
 | Merge failed / CI failure        | `Review → Blocked`      |
@@ -602,7 +602,7 @@ git worktree list
 
 ## See Also
 
-- **[start-work.md](./start-work.md)** — Create worktree, begin task
+- **[start.md](./start.md)** — Create worktree, begin task
 - **[gh-workflow.md](./gh-workflow.md)** — Complete GitHub CLI reference
 - **[epic-hierarchy.md](../knowledge/epic-hierarchy.md)** — Epic levels, naming, status rules
 - **[worktree-isolation.md](../knowledge/worktree-isolation.md)** — Worktree safety rules
