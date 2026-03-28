@@ -15,6 +15,20 @@ export type { ClassifiedError, ProviderErrorKind } from "./error-classifier.js";
 
 export { classifyError, deriveRetryable, parseRetryAfter } from "./error-classifier.js";
 
+export type {
+  ProviderAttemptRecord,
+  ProviderFallbackEvent,
+  ProviderRouterOptions,
+} from "./router.js";
+
+export {
+  MAX_RETRIES,
+  MAX_RETRIES_AFTER_FALLBACK,
+  MAX_RETRY_DELAY_MS,
+  ProviderRouter,
+  ProviderRouterError,
+} from "./router.js";
+
 export { GeminiProvider } from "./providers/gemini.js";
 export type { GeminiProviderConfig } from "./providers/gemini.js";
 
