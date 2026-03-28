@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import { resolve } from "node:path";
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
 import { ToolError } from "@diricode/core";
@@ -316,10 +315,7 @@ interface GitAddResult {
   truncated: boolean;
 }
 
-function buildGitAddCommand(
-  params: GitAddParams,
-  workspaceRoot: string,
-): { command: string; blocked: boolean } {
+function buildGitAddCommand(params: GitAddParams): { command: string; blocked: boolean } {
   // ADR-027: Never `git add .` without explicit review of staged files - Hard block
   const hasDotAdd = params.files.includes(".") || params.files.includes("./");
 
@@ -352,7 +348,7 @@ export const gitAddTool: Tool<GitAddParams, GitAddResult> = {
     context.emit("tool.start", { tool: "git-add", params });
 
     // ADR-027: Hard block on `git add .`
-    const { blocked } = buildGitAddCommand(params, context.workspaceRoot);
+    const { blocked } = buildGitAddCommand(params);
     if (blocked) {
       throw new ToolError(
         "GIT_ADD_BLOCKED",
@@ -455,7 +451,7 @@ function validateCommitMessage(message: string): string | null {
   }
 
   if (firstLine.length > 72) {
-    return `Commit message first line exceeds 72 characters (currently ${firstLine.length}). Consider rewriting for readability.`;
+    return `Commit message first line exceeds 72 characters (currently ${String(firstLine.length)}). Consider rewriting for readability.`;
   }
 
   if (message.toLowerCase().includes("fixes:#") || message.toLowerCase().includes("fixes #")) {
@@ -614,15 +610,14 @@ function parseLogEntry(entry: string, _format: string): GitLogEntry | null {
   if (!firstLine) return null;
 
   const firstLineMatch = /^([a-f0-9]+)\s+(.+)\s+\(([^)]+)\)$/.exec(firstLine);
-  if (!firstLineMatch || !firstLineMatch[1] || !firstLineMatch[2] || !firstLineMatch[3])
-    return null;
+  if (!firstLineMatch || firstLineMatch.length < 4) return null;
 
-  const hash = firstLineMatch[1];
-  const subject = firstLineMatch[2];
-  const authorInfo = firstLineMatch[3];
+  const hash = firstLineMatch[1]!;
+  const subject = firstLineMatch[2]!;
+  const authorInfo = firstLineMatch[3]!;
 
   const authorMatch = /^([^<]+)\s+<([^>]+)>,\s+(.+)$/.exec(authorInfo.trim());
-  if (!authorMatch || !authorMatch?.[1] || !authorMatch?.[2] || !authorMatch?.[3]) {
+  if (!authorMatch || authorMatch.length < 4) {
     return {
       hash,
       abbrevHash: hash.slice(0, 7),
@@ -635,9 +630,9 @@ function parseLogEntry(entry: string, _format: string): GitLogEntry | null {
     };
   }
 
-  const authorName = authorMatch[1];
-  const authorEmail = authorMatch[2];
-  const relativeDate = authorMatch[3];
+  const authorName = authorMatch[1]!;
+  const authorEmail = authorMatch[2]!;
+  const relativeDate = authorMatch[3]!;
 
   return {
     hash,
