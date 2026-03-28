@@ -29,6 +29,10 @@ export {
   ProviderRouterError,
 } from "./router.js";
 
+export type { RetryConfig, RetryResult } from "./retry-engine.js";
+
+export { computeDelay, withRetry } from "./retry-engine.js";
+
 export { GeminiProvider } from "./providers/gemini.js";
 export type { GeminiProviderConfig } from "./providers/gemini.js";
 
