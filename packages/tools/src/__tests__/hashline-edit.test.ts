@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ToolError, hashlineEditTool, computeLineHash, formatAnchor } from "../index.js";
+import { hashlineEditTool, computeLineHash, formatAnchor } from "../index.js";
 import type { ToolContext } from "@diricode/core";
 
 describe("hashlineEditTool", () => {

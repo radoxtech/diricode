@@ -23,7 +23,7 @@ describe("computeLineHash", () => {
 
   it("different content produces different hashes (with high probability)", () => {
     const hashes = new Set(
-      Array.from({ length: 50 }, (_, i) => computeLineHash(1, `line content ${i}`)),
+      Array.from({ length: 50 }, (_, i) => computeLineHash(1, `line content ${String(i)}`)),
     );
     // With 8-bit hash and 50 unique inputs, expect >> 25 unique hashes
     expect(hashes.size).toBeGreaterThan(25);
@@ -182,7 +182,7 @@ describe("resolveAnchor", () => {
   it("returns relocated when similar content found outside local radius", () => {
     const hash = computeLineHash(3, "line three");
     // Target is at line 55 — outside the ±50 local radius of anchor line 3
-    const manyLines = Array.from({ length: 60 }, (_, i) => `filler ${i + 1}`);
+    const manyLines = Array.from({ length: 60 }, (_, i) => `filler ${String(i + 1)}`);
     manyLines[2] = "DIFFERENT";
     manyLines[54] = "line three";
 
@@ -211,24 +211,25 @@ describe("annotateFile", () => {
     const content = "hello\nworld\nfoo";
     const result = annotateFile(content);
     expect(result).toHaveLength(3);
-    expect(result[0]!.line).toBe(1);
-    expect(result[0]!.content).toBe("hello");
-    expect(result[0]!.anchor).toMatch(/^\d#[A-Z]{2}$/);
-    expect(result[1]!.line).toBe(2);
-    expect(result[2]!.line).toBe(3);
+    expect(result[0] ?? undefined).toBeDefined();
+    expect((result[0] ?? undefined)?.line).toBe(1);
+    expect((result[0] ?? undefined)?.content).toBe("hello");
+    expect((result[0] ?? undefined)?.anchor).toMatch(/^\d#[A-Z]{2}$/);
+    expect((result[1] ?? undefined)?.line).toBe(2);
+    expect((result[2] ?? undefined)?.line).toBe(3);
   });
 
   it("anchors are deterministic", () => {
     const content = "hello\nworld";
     const a = annotateFile(content);
     const b = annotateFile(content);
-    expect(a[0]!.anchor).toBe(b[0]!.anchor);
+    expect((a[0] ?? undefined)?.anchor).toBe((b[0] ?? undefined)?.anchor);
   });
 
   it("handles empty file", () => {
     const result = annotateFile("");
     expect(result).toHaveLength(1);
-    expect(result[0]!.line).toBe(1);
-    expect(result[0]!.content).toBe("");
+    expect((result[0] ?? undefined)?.line).toBe(1);
+    expect((result[0] ?? undefined)?.content).toBe("");
   });
 });

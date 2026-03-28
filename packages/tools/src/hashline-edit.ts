@@ -3,7 +3,7 @@ import { normalize, resolve } from "node:path";
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
 import { ToolError } from "@diricode/core";
-import { computeLineHash, type AnchorStatus, normalizeLine, resolveAnchor } from "./hashline.js";
+import { type AnchorStatus, resolveAnchor } from "./hashline.js";
 import {
   type FileWriteSafetyConfig,
   DEFAULT_FILE_SAFETY_CONFIG,
@@ -40,9 +40,9 @@ function describeStatus(status: AnchorStatus): string {
     case "exact":
       return "exact";
     case "drifted":
-      return `drifted (line shifted by ${status.delta})`;
+      return `drifted (line shifted by ${String(status.delta)})`;
     case "relocated":
-      return `relocated to line ${status.foundAt} (similarity: ${status.score.toFixed(2)})`;
+      return `relocated to line ${String(status.foundAt)} (similarity: ${status.score.toFixed(2)})`;
     case "conflict":
       return `conflict: ${status.reason}`;
   }

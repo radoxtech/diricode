@@ -67,7 +67,7 @@ function xxh32(body: string, seed: number): number {
   }
 
   while (offset < len) {
-    h32 = (h32 + buf[offset]! * PRIME32_5) >>> 0;
+    h32 = (h32 + (buf[offset] ?? 0) * PRIME32_5) >>> 0;
     h32 = Math.imul(h32 >>> 11, PRIME32_1) >>> 0;
     offset++;
   }
@@ -134,7 +134,7 @@ export function parseAnchor(anchor: string): HashlineAnchor {
 }
 
 export function formatAnchor(line: number, hash: string): string {
-  return `${line}#${hash}`;
+  return `${String(line)}#${hash}`;
 }
 
 /**
@@ -170,12 +170,12 @@ function lcsLength(a: string, b: string): number {
 
   for (let i = 1; i <= lenA; i++) {
     curr[0] = 0;
-    const charA = a[i - 1]!;
+    const charA = a[i - 1] ?? "";
     for (let j = 1; j <= lenB; j++) {
-      if (charA === b[j - 1]!) {
-        curr[j] = prev[j - 1]! + 1;
-        if (curr[j]! > maxMatch) {
-          maxMatch = curr[j]!;
+      if (charA === b[j - 1]) {
+        curr[j] = (prev[j - 1] ?? 0) + 1;
+        if ((curr[j] ?? 0) > maxMatch) {
+          maxMatch = curr[j] ?? 0;
         }
       } else {
         curr[j] = 0;
@@ -231,12 +231,12 @@ export function resolveAnchor(
       matched: false,
       status: {
         kind: "conflict",
-        reason: `Anchor line ${parsed.line} is out of range (file has ${lineCount} lines)`,
+        reason: `Anchor line ${String(parsed.line)} is out of range (file has ${String(lineCount)} lines)`,
       },
     };
   }
 
-  const expectedHash = computeLineHash(parsed.line, lines[parsed.line - 1]!);
+  const expectedHash = computeLineHash(parsed.line, lines[parsed.line - 1] ?? "");
   if (expectedHash === parsed.hash) {
     return { matched: true, resolvedLine: parsed.line, status: { kind: "exact" } };
   }
@@ -247,7 +247,7 @@ export function resolveAnchor(
 
   for (let i = localStart; i < localEnd; i++) {
     if (i + 1 === parsed.line) continue;
-    const lineHash = computeLineHash(i + 1, lines[i]!);
+    const lineHash = computeLineHash(i + 1, lines[i] ?? "");
     if (lineHash === parsed.hash) {
       return {
         matched: true,
@@ -259,7 +259,7 @@ export function resolveAnchor(
 
   // Phase 3: Global hash search (outside local radius)
   for (let i = 0; i < localStart; i++) {
-    const lineHash = computeLineHash(i + 1, lines[i]!);
+    const lineHash = computeLineHash(i + 1, lines[i] ?? "");
     if (lineHash === parsed.hash) {
       return {
         matched: true,
@@ -269,7 +269,7 @@ export function resolveAnchor(
     }
   }
   for (let i = localEnd; i < lineCount; i++) {
-    const lineHash = computeLineHash(i + 1, lines[i]!);
+    const lineHash = computeLineHash(i + 1, lines[i] ?? "");
     if (lineHash === parsed.hash) {
       return {
         matched: true,
@@ -280,7 +280,7 @@ export function resolveAnchor(
   }
 
   // Phase 4: Fallback similarity search
-  const anchorLineContent = normalizeLine(lines[parsed.line - 1]!);
+  const anchorLineContent = normalizeLine(lines[parsed.line - 1] ?? "");
   if (anchorLineContent.length === 0) {
     return {
       matched: false,
@@ -291,7 +291,7 @@ export function resolveAnchor(
   let bestMatch = { score: 0, line: -1 };
   for (let i = 0; i < lineCount; i++) {
     if (i + 1 === parsed.line) continue;
-    const score = similarityRatio(anchorLineContent, normalizeLine(lines[i]!));
+    const score = similarityRatio(anchorLineContent, normalizeLine(lines[i] ?? ""));
     if (score > bestMatch.score) {
       bestMatch = { score, line: i + 1 };
     }
