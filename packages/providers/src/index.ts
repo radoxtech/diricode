@@ -11,6 +11,10 @@ export { ProviderPriorities } from "./types.js";
 
 export { ProviderAlreadyRegisteredError, ProviderNotFoundError, Registry } from "./registry.js";
 
+export type { ClassifiedError, ProviderErrorKind } from "./error-classifier.js";
+
+export { classifyError, deriveRetryable, parseRetryAfter } from "./error-classifier.js";
+
 export { GeminiProvider } from "./providers/gemini.js";
 export type { GeminiProviderConfig } from "./providers/gemini.js";
 
