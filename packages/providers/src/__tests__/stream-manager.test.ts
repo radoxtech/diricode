@@ -62,9 +62,17 @@ async function* makeChunks(chunks: StreamChunk[]): AsyncIterable<StreamChunk> {
   }
 }
 
-async function* makeErrorStream(err: Error): AsyncIterable<StreamChunk> {
-  await Promise.resolve();
-  throw err;
+function makeErrorStream(err: Error): AsyncIterable<StreamChunk> {
+  return {
+    [Symbol.asyncIterator]() {
+      return {
+        async next() {
+          await Promise.resolve();
+          throw err;
+        },
+      };
+    },
+  };
 }
 
 async function* makeChunksThenError(chunks: StreamChunk[], err: Error): AsyncIterable<StreamChunk> {
@@ -191,7 +199,8 @@ describe("StreamManager", () => {
               });
               return { value: undefined as unknown as StreamChunk, done: true };
             },
-            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: () =>
+              Promise.resolve({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -201,10 +210,8 @@ describe("StreamManager", () => {
 
       // Poll until the source signals it is inside the usage-wait phase.
       // This is more reliable than counting microtask ticks.
-      let pollCount = 0;
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      while (pollCount < 50 && !usagePhaseReached) {
-        pollCount++;
+      for (let i = 0; i < 50 && !usagePhaseReached; i++) {
         await Promise.resolve();
       }
 
@@ -235,7 +242,8 @@ describe("StreamManager", () => {
               });
               return { value: { delta: "late", done: true }, done: false };
             },
-            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: () =>
+              Promise.resolve({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -277,7 +285,8 @@ describe("StreamManager", () => {
               releaseBlock();
               return { value: undefined as unknown as StreamChunk, done: true };
             },
-            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: () =>
+              Promise.resolve({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -355,7 +364,8 @@ describe("StreamManager", () => {
                 done: false,
               };
             },
-            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: () =>
+              Promise.resolve({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -364,10 +374,8 @@ describe("StreamManager", () => {
       const runPromise = manager.run();
 
       // Poll until the source confirms it is inside the usage-wait phase.
-      let pollCount = 0;
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      while (pollCount < 50 && !usagePhaseReached) {
-        pollCount++;
+      for (let i = 0; i < 50 && !usagePhaseReached; i++) {
         await Promise.resolve();
       }
 
@@ -461,7 +469,8 @@ describe("StreamManager", () => {
               }
               return { value: undefined as unknown as StreamChunk, done: true };
             },
-            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: () =>
+              Promise.resolve({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -486,15 +495,19 @@ describe("StreamManager", () => {
         [Symbol.asyncIterator]() {
           let phase = 0;
           return {
-            async next() {
+            next() {
               if (phase === 0) {
                 phase = 1;
-                return { value: { delta: "partial data", done: false }, done: false };
+                return Promise.resolve({
+                  value: { delta: "partial data", done: false },
+                  done: false,
+                });
               }
               controller.abort();
-              return { value: undefined as unknown as StreamChunk, done: true };
+              return Promise.resolve({ value: undefined as unknown as StreamChunk, done: true });
             },
-            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: () =>
+              Promise.resolve({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -567,10 +580,10 @@ describe("StreamManager", () => {
     });
 
     it("handles source that ends without done=true chunk gracefully", async () => {
-      function noFinalChunk(): AsyncIterable<StreamChunk> {
-        return (async function* (): AsyncIterable<StreamChunk> {
-          yield { delta: "partial", done: false };
-        })();
+      // eslint-disable-next-line @typescript-eslint/require-await
+      async function* noFinalChunk(): AsyncGenerator<StreamChunk> {
+        yield { delta: "partial", done: false };
+        // Intentionally no final done=true chunk
       }
 
       const manager = new StreamManager(noFinalChunk(), {
@@ -599,11 +612,12 @@ describe("StreamManager", () => {
                 return { value: { delta: "pre-timeout", done: false }, done: false };
               }
               await new Promise<void>(() => {
-                /* intentionally never resolves */
+                // Intentional infinite wait for timeout testing
               });
               return { value: undefined as unknown as StreamChunk, done: true };
             },
-            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: () =>
+              Promise.resolve({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -660,7 +674,7 @@ describe("StreamManager", () => {
         },
       );
       const mockClearTimeout = vi.fn((_id: ReturnType<typeof globalThis.setTimeout>): void => {
-        /* no-op for testing */
+        // noop - mock implementation
       });
 
       const source = makeChunks([{ delta: "x", done: true }]);

@@ -147,7 +147,8 @@ export class StreamManager {
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       while (true) {
-        if (this.#signal?.aborted) {
+        const isAborted = this.#signal && this.#signal.aborted;
+        if (isAborted) {
           return;
         }
 
@@ -164,10 +165,7 @@ export class StreamManager {
           return;
         }
 
-        const iterResult = raceResult.result as unknown as IteratorResult<StreamChunk>;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const chunk: StreamChunk = iterResult.value;
-        const iterDone: boolean = iterResult.done ?? false;
+        const [chunk, iterDone] = getChunkResult(raceResult);
 
         if (iterDone) {
           break;
@@ -208,6 +206,11 @@ export class StreamManager {
         try {
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           while (true) {
+            const isAborted = this.#signal && this.#signal.aborted;
+            if (isAborted) {
+              break;
+            }
+
             const raceResult = await Promise.race([
               iter.next().then((r) => ({ tag: "chunk" as const, result: r })),
               usageInterruptPromise.then((reason) => ({ tag: "interrupt" as const, reason })),
@@ -217,10 +220,7 @@ export class StreamManager {
               break;
             }
 
-            const iterResult = raceResult.result as unknown as IteratorResult<StreamChunk>;
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const chunk: StreamChunk = iterResult.value;
-            const iterDone: boolean = iterResult.done ?? false;
+            const [chunk, iterDone] = getChunkResult(raceResult);
 
             if (iterDone) {
               break;
@@ -296,6 +296,11 @@ export class StreamManager {
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+function getChunkResult(raceResult: unknown): [chunk: StreamChunk, done: boolean] {
+  const typed = raceResult as { tag: "chunk"; result: IteratorResult<StreamChunk> };
+  return [typed.result.value, typed.result.done ?? false];
+}
 
 function hasUsageData(chunk: StreamChunk): boolean {
   const c = chunk as unknown as Record<string, unknown>;
