@@ -1,4 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
+
+const mockGetPassword = vi.hoisted(() => vi.fn<() => string | null>().mockReturnValue(null));
+
+vi.mock("@napi-rs/keyring", () => {
+  class MockEntry {
+    getPassword = mockGetPassword;
+    setPassword = vi.fn();
+    deletePassword = vi.fn<() => boolean>().mockReturnValue(true);
+  }
+  return { Entry: MockEntry, findCredentials: vi.fn().mockReturnValue([]) };
+});
+
 import { CopilotProvider, createCopilotProvider } from "../copilot/adapter.js";
 import { DEFAULT_COPILOT_MODEL, getGithubModelInfo, isKnownModel } from "../copilot/models.js";
 import { getGithubToken, hasGithubAuth } from "../copilot/auth.js";
