@@ -31,7 +31,7 @@ export {
 
 export type { RetryConfig, RetryResult } from "./retry-engine.js";
 
-export { computeDelay, withRetry } from "./retry-engine.js";
+export { BASE_DELAY_MS, computeDelay, withRetry } from "./retry-engine.js";
 
 export { GeminiProvider } from "./providers/gemini.js";
 export type { GeminiProviderConfig } from "./providers/gemini.js";

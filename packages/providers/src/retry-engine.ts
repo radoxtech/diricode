@@ -148,14 +148,12 @@ export async function withRetry<T>(
   let attempts = 0;
   let lastClassified: ClassifiedError | undefined;
 
-  while (true) {
-    // Check for abort before attempting
-    if (signal?.aborted) {
-      // lastClassified must be defined here because we only abort after the
-      // first attempt sets it (loop condition ensures this path is hit only
-      // after at least one failure that set lastClassified).
+  for (;;) {
+    if (attempts > 0 && signal?.aborted) {
+      // attempts > 0 means lastClassified was set in previous catch block
       return {
         ok: false,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         error: lastClassified!,
         attempts,
       };

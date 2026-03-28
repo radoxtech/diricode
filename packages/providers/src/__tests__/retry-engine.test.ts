@@ -34,7 +34,7 @@ function failThenSucceed<T>(failures: number, result: T): () => Promise<T> {
   return (): Promise<T> => {
     calls += 1;
     if (calls <= failures) {
-      return Promise.reject(new Error(`failure ${calls}`));
+      return Promise.reject(new Error("failure " + String(calls)));
     }
     return Promise.resolve(result);
   };
@@ -137,7 +137,7 @@ describe("withRetry", () => {
 
     it("uses last classified error when retries exhausted", async () => {
       let callCount = 0;
-      const fn = (): Promise<never> => Promise.reject(new Error(`error ${++callCount}`));
+      const fn = (): Promise<never> => Promise.reject(new Error("error " + String(++callCount)));
       const classify = (err: unknown): ClassifiedError =>
         makeClassifiedError({ retryable: true, raw: err });
 
@@ -147,7 +147,7 @@ describe("withRetry", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect((result.error.raw as Error).message).toBe(`error ${callCount}`);
+        expect((result.error.raw as Error).message).toBe("error " + String(callCount));
       }
     });
 
@@ -203,10 +203,10 @@ describe("withRetry", () => {
 
     it("cancels immediately when signal is already aborted on first check after failure", async () => {
       const controller = new AbortController();
-      controller.abort(); // Pre-aborted
-      let callCount = 0;
+      controller.abort();
+      let _callCount = 0;
       const fn = (): Promise<never> => {
-        callCount += 1;
+        _callCount += 1;
         return Promise.reject(new Error("fail"));
       };
 
@@ -238,11 +238,9 @@ describe("withRetry", () => {
 
       expect(result.ok).toBe(true);
       // The delay used should be at least retryAfterMs
-      const lastCall = setTimeoutSpy.mock.calls.at(-1);
-      if (lastCall !== undefined) {
-        const usedDelay = lastCall[1] as number;
-        expect(usedDelay).toBeGreaterThanOrEqual(retryAfterMs);
-      }
+      const lastCall = setTimeoutSpy.mock.calls.at(-1) ?? [];
+      const usedDelay = lastCall[1] ?? 0;
+      expect(usedDelay).toBeGreaterThanOrEqual(retryAfterMs);
       setTimeoutSpy.mockRestore();
     });
   });
@@ -260,13 +258,11 @@ describe("withRetry", () => {
       const result = await resultPromise;
 
       expect(result.ok).toBe(true);
-      const lastCall = setTimeoutSpy.mock.calls.at(-1);
-      if (lastCall !== undefined) {
-        const usedDelay = lastCall[1] as number;
-        // With baseDelayMs=500, attempt 0: 500*1 + jitter(0..250) ≈ 500–750
-        expect(usedDelay).toBeLessThanOrEqual(10_000);
-        expect(usedDelay).toBeGreaterThan(0);
-      }
+      const lastCall = setTimeoutSpy.mock.calls.at(-1) ?? [];
+      const usedDelay = lastCall[1] ?? 0;
+      // With baseDelayMs=500, attempt 0: 500*1 + jitter(0..250) ≈ 500–750
+      expect(usedDelay).toBeLessThanOrEqual(10_000);
+      expect(usedDelay).toBeGreaterThan(0);
       setTimeoutSpy.mockRestore();
     });
 
@@ -282,11 +278,9 @@ describe("withRetry", () => {
       const result = await resultPromise;
 
       expect(result.ok).toBe(true);
-      const lastCall = setTimeoutSpy.mock.calls.at(-1);
-      if (lastCall !== undefined) {
-        const usedDelay = lastCall[1] as number;
-        expect(usedDelay).toBeLessThanOrEqual(100);
-      }
+      const lastCall = setTimeoutSpy.mock.calls.at(-1) ?? [];
+      const usedDelay = lastCall[1] ?? 0;
+      expect(usedDelay).toBeLessThanOrEqual(100);
       setTimeoutSpy.mockRestore();
     });
   });
