@@ -48,6 +48,15 @@ export type {
   TaskDescriptor,
 } from "./ab/ABExperimentManager.js";
 
+export type { StreamManagerOptions, StreamManagerResult, StreamUsage } from "./stream-manager.js";
+
+export {
+  STREAM_INACTIVITY_TIMEOUT_MS,
+  StreamManager,
+  StreamTimeoutError,
+  USAGE_CHUNK_TIMEOUT_MS,
+} from "./stream-manager.js";
+
 export { CopilotProvider, createCopilotProvider } from "./copilot/index.js";
 export {
   DEFAULT_COPILOT_MODEL,
