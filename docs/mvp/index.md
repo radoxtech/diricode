@@ -55,6 +55,7 @@ Epics active:
 - [epic-observability.md](epic-observability.md) — richer observability on top of stable event layer
 - [epic-tools.md](epic-tools.md) — additional smart tooling, MCP basics, tool annotations
 - [epic-agents-roster.md](epic-agents-roster.md) — +4 agents (git-operator, debugger, test-writer, project-builder)
+- [epic-llm-picker.md](epic-llm-picker.md) — LLM Picker decision engine + dashboard
 
 **Exit**: Full Interview→Plan→Execute→Verify path works on top of the already-trustworthy runtime substrate.
 
@@ -112,6 +113,7 @@ Epics active:
 | [web-ui](epic-web-ui.md) | @diricode/web | MVP-3 | DC-WEB-001..007 |
 | [cli](epic-cli.md) | apps/cli | POC→MVP-1 | DC-CLI-001..004 |
 | [testing-infra](epic-testing-infra.md) | root, test-utils | POC | DC-TEST-001..004 |
+| [llm-picker](epic-llm-picker.md) | @diricode/providers, web | MVP-2→v2 | DC-LLP-001..033 |
 
 ---
 
