@@ -1,571 +1,247 @@
-# ADR-049 — LLM Picker: Intelligent Model Selection Engine
+## ADR-049 — LLM Picker
 
-| Field       | Value                                                                         |
-|-------------|-------------------------------------------------------------------------------|
-| Status      | Draft                                                                         |
-| Date        | 2026-03-28                                                                    |
-| Scope       | MVP-2                                                                         |
-| References  | ADR-004 (3 tiers), ADR-005 (model families), ADR-006 (4 fallback types), ADR-025 (native TS router), ADR-042 (multi-subscription), ADR-044 (Elo/AB testing) |
+| Field       | Value                                                                                          |
+|-------------|------------------------------------------------------------------------------------------------|
+| Status      | Accepted                                                                                       |
+| Date        | 2026-03-28                                                                                     |
+| Scope       | MVP-2 (core engine + telemetry), v2 (feedback + ML classifiers + Elo integration)              |
+| References  | ADR-004, ADR-005, ADR-006, ADR-025, ADR-042, ADR-044, ADR-046                                  |
 
 ### Context
 
-DiriCode currently routes model selection via `ModelTierResolver` — a static resolver that maps `AgentTier` + `ModelFamily` + `ContextSize` to a specific model. This works for simple cases but has three structural limitations:
+DiriCode's model routing has progressed from simple fallback chains to multi-subscription management. However, as the system moves toward swarm coordination (ADR-046), several critical gaps have emerged:
 
-1. **Fixed dimensions.** Tier × family × context is too rigid. New models with unusual capability profiles (e.g., fast reasoning, vision + tool-calling, large context at low cost) do not map cleanly to the existing enum lattice.
-2. **No quality feedback loop.** Routing decisions are fire-and-forget. There is no mechanism for the system to learn that model X underperforms for task type Y.
-3. **No multi-subscription awareness.** ADR-042 introduced multiple subscriptions per provider. `ModelTierResolver` selects a model but does not reason about which subscription to route through, its rate-limit state, or its cost.
+1.  **No unified decision point.** Model selection is currently fragmented across static tier resolvers. There is no central engine to weigh quality, cost, and latency dynamically.
+2.  **No decision explainability.** The system lacks a record of why a specific model was chosen over others, making it difficult to debug or optimize routing.
+3.  **No policy system.** Different tasks (e.g., architectural planning vs. bulk refactoring) require different routing strategies that can't be easily toggled.
+4.  **Inflexible classification.** Static rules can't accurately categorize the complexity of diverse coding tasks, leading to either over-provisioning (wasted cost) or under-provisioning (poor quality).
 
-**LLM Picker** is a new routing engine that replaces `ModelTierResolver` — but not immediately. Per the key constraint, the legacy system must remain fully operational while LLM Picker is validated. LLM Picker is introduced as a parallel implementation behind a feature flag. When it reaches satisfactory quality, the flag is flipped and the legacy system is deprecated.
+To address these, the **LLM Picker** provides a hybrid decision engine. It combines a high-performance **3-tier ML cascade** for task classification with a **weighted policy scoring** system for final model selection.
 
----
+Industry references like RouteLLM (classifier-based), Martian (capability-matching), and LiteLLM (strategy-based) inform this design. DiriCode's Picker is a hybrid that integrates these approaches into a single, observable, local-first component.
 
-## Decision
+### Decision
 
-### 1. Coexistence Strategy
+Introduce the **LLM Picker** as the central intelligence for model selection. It sits between the agent dispatcher and the SubscriptionRouter, acting as a "brain" that picks the right tool for the job.
 
-LLM Picker is **additive**. It does not touch `ModelTierResolver`. Both systems implement a shared `ModelResolver` interface. The dispatcher selects which implementation to use based on a runtime config value.
+#### 1. Picker as Decision Engine
 
-Config toggle in `.dc/config.jsonc`:
+The Picker is a pure decision engine. It selects models but does not execute LLM calls. The caller (e.g., a specialist agent) sends a request to the Picker, receives a recommendation, and then uses the SubscriptionRouter (ADR-042) to perform the actual network call.
 
-```jsonc
-{
-  "routing": {
-    "engine": "legacy"  // "legacy" | "llm-picker"
-  }
-}
-```
+#### 2. Hybrid Architecture: 3-Tier Cascade + Policy Scoring
 
-Default is `"legacy"`. Changing to `"llm-picker"` activates the new engine for all requests. A percentage-based split (e.g., route 10% of requests through LLM Picker) is supported via:
+The Picker uses a hierarchical cascade to classify tasks with increasing depth, short-circuiting as soon as high confidence is reached.
 
-```jsonc
-{
-  "routing": {
-    "engine": "split",
-    "splitPercent": 10  // 0-100, only meaningful when engine = "split"
-  }
-}
-```
+**The Cascade Flow:**
 
-**Shared interface** (lives in `packages/core/src/llm-picker/types.ts`):
+1.  **Tier 1: Heuristic Rules (<5ms)**
+    *   Regex and rule-based engine for obvious cases.
+    *   Rules are loaded from `.dc/llm-picker-rules.jsonc` and validated with Zod.
+    *   If confidence ≥ threshold, it outputs the classification and skips remaining tiers.
+2.  **Tier 2: BERT/MiniLM Classifier (<100ms)**
+    *   Runs via **ONNX Runtime** (`onnxruntime-node`).
+    *   Classifies task complexity (simple/moderate/complex/expert).
+    *   If confidence ≥ 0.80, short-circuits.
+3.  **Tier 3: TinyLLM (Qwen2.5-0.5B INT4) (<300ms)**
+    *   Runs via **ONNX Runtime**.
+    *   Produces structured JSON output for deep task analysis.
+    *   Only invoked if Tier 1 and Tier 2 are ambiguous.
 
-```typescript
-interface ModelResolver {
-  resolve(request: ModelRequest): Promise<ModelResolution>;
-}
+**Post-Classification Flow:**
 
-interface ModelRequest {
-  agentName: string;
-  agentTier: AgentTier;
-  taskType: string;
-  contextTokens: number;
-  tags: string[];
-  modelHints?: ModelHints;
-  sessionId: string;
-}
+*   **Task Classification**: Complexity is mapped to simple, moderate, complex, or expert.
+*   **Policy Resolution**: Matches `task_type` and `agent_role` to the best policy.
+*   **Weighted Scoring**: Calculates a score for each candidate based on quality, cost, latency, and capability.
+*   **Ranked Candidates**: Returns the winner with a trace of the decision process.
 
-interface ModelResolution {
-  model: string;
-  subscription: string;
-  provider: string;
-  reason: ResolutionReason | string;
-  confidence: number;
-  trace: DecisionTrace;
-  fallbackChain: FallbackCandidate[];
-}
-```
+#### 3. Integration of Model Dimensions
 
-`ModelTierResolver` is wrapped in a thin adapter that implements `ModelResolver`. The dispatcher imports `ModelResolver`, not a concrete class.
+The Picker respects and utilizes dimensions defined in previous ADRs:
 
-**Migration path:** Once LLM Picker quality metrics (Elo convergence, latency p95, error rate) meet defined thresholds, change the default to `"llm-picker"`, mark `ModelTierResolver` as `@deprecated`, and remove it in the subsequent release.
+*   **Tiers (ADR-004)**: Maps legacy `AgentTier` to `tier:heavy`, `tier:medium`, `tier:low` tags.
+*   **Families (ADR-005)**: Filters by `family:coding`, `family:reasoning`, or `family:creative`.
+*   **Fallback Types (ADR-006)**: Includes `largeContext`, `largeOutput`, `error`, and `strong` candidates in the response.
+*   **Tags (ADR-004)**: Uses the 7 core tags (orchestration, planning, coding, quality, research, creative, utility) for policy matching.
+*   **Elo Scoring (ADR-044)**: Augments static quality scores using Bradley-Terry models (v2).
 
----
+#### 4. Decision Request Contract
 
-### 2. Decision Engine — Three-Tier Cascade
-
-All three tiers are implemented in MVP. Each tier is a separate class with a defined contract.
-
-```
-Request
-  |
-  v
-[Tier 1: Heuristic Router]  <1ms
-  |-- confident match? -------> ModelResolution (done)
-  |-- ambiguous / no match
-  v
-[Tier 2: BERT/MiniLM Classifier]  50-100ms CPU
-  |-- confident match? -------> ModelResolution (done)
-  |-- low confidence
-  v
-[Tier 3: Tiny LLM Router]  100-300ms CPU
-  |
-  v
-ModelResolution (done)
-```
-
-**Tier 1: Heuristic Router**
-
-- Evaluates routing rules from `.dc/llm-picker-rules.jsonc` in priority order.
-- Conditions: agent name, task type (glob), required/excluded tags, context token range.
-- If a rule produces a unique, unambiguous match with no conflicting rules at the same priority level, the result is marked confident and the cascade stops.
-- Confidence threshold for stopping: single matching rule with `priority < 10` (emergency range) OR a rule that explicitly sets `forceModel`.
-
-**Tier 2: BERT/MiniLM Classifier**
-
-- Fine-tuned DistilBERT or MiniLM-L6 on task complexity classification.
-- Input: task description concatenated with agent metadata (name, tier, tags).
-- Output: complexity class (`simple` | `moderate` | `complex` | `expert`) + recommended model tier.
-- Runs via ONNX Runtime in Node.js — no Python process, no sidecar.
-- Confidence threshold for stopping: softmax probability of top class >= 0.80.
-- Training data: production routing decisions annotated with quality feedback from reviewer agents.
-
-**Tier 3: Tiny LLM Router**
-
-- Qwen2.5-0.5B-Instruct or SmolLM2 quantized to INT4, exported to ONNX.
-- Invoked only when Tier 1 and Tier 2 disagree or both have confidence below threshold.
-- Input prompt: structured rubric covering four criteria — task complexity, required capabilities, context size, latency sensitivity.
-- Output: JSON with `{ model: string, reasoning: string }`. Reasoning stored in `DecisionTrace.tinyLlm.reasoning`.
-- Runs entirely local; no external API call.
-
-ONNX model binaries are gitignored and downloaded on first run via a setup script (`pnpm run llm-picker:setup`). Stored at `packages/core/src/llm-picker/models/`.
-
----
-
-### 3. Tag-Based Model Classification
-
-Models are not classified by fixed enum dimensions. Each model has:
-
-```typescript
-interface ModelDescriptor {
-  id: string;                                    // e.g., "gpt-5.4"
-  provider: Provider;
-  tags: string[];                                // e.g., ["reasoning", "fast", "code", "tool-calling"]
-  attributes: Record<string, number | string>;  // context_window, cost_per_1k_input, cost_per_1k_output, max_output, speed_tps
-}
-```
-
-**Backward compatibility:** Existing `AgentTier` and `ModelFamily` values map into tags at resolution time:
-
-| Existing value         | Tag injected             |
-|------------------------|--------------------------|
-| `AgentTier.Heavy`      | `tier:heavy`             |
-| `AgentTier.Balanced`   | `tier:balanced`          |
-| `AgentTier.Light`      | `tier:light`             |
-| `ModelFamily.Reasoning`| `family:reasoning`       |
-| `ModelFamily.Fast`     | `family:fast`            |
-| `ModelFamily.Code`     | `family:code`            |
-
-Tag matching in routing rules supports AND/OR/NOT:
-
-- `["reasoning", "tool-calling"]` — model must have both.
-- `["reasoning", "!vision"]` — model must have reasoning and must NOT have vision.
-- Tag prefix `!` means negation.
-
-Model tags are auto-detected from provider APIs where available. Providers without a model listing API use a static `model-catalog.jsonc` config file.
-
----
-
-### 4. Multi-Dimensional Routing Rules
-
-Rules are stored in `.dc/llm-picker-rules.jsonc` (git-tracked). Evaluated in ascending `priority` order. First match wins.
-
-```typescript
-interface RoutingRule {
-  id: string;
-  name: string;
-  priority: number;        // lower = evaluated first; 0-9 = emergency
-  conditions: {
-    agents?: string[];
-    taskTypes?: string[];  // glob patterns, e.g., "code-*"
-    tags?: string[];       // request tags; supports ! negation
-    contextTokensMin?: number;
-    contextTokensMax?: number;
-    custom?: Record<string, unknown>;
-  };
-  action: {
-    forceModel?: string;
-    forceTags?: string[];
-    forceSubscription?: string;
-    priorityBoost?: number;
-    blockModels?: string[];
-    blockSubscriptions?: string[];
-  };
-  enabled: boolean;
-}
-```
-
-Rules with `priority` in range 0-9 are treated as emergency overrides and are always evaluated before normal rules regardless of file order.
-
-Example rule:
+The orchestrator sends a structured request to the Picker.
 
 ```jsonc
 {
-  "id": "rule-code-reviewer-force-family",
-  "name": "Code reviewer always uses reasoning-capable model",
-  "priority": 20,
-  "conditions": {
-    "agents": ["code-reviewer"],
-    "taskTypes": ["review-*"]
+  "request_id": "pick_a8f3c",
+  "agent": { "id": "coder_1", "role": "coder" },
+  "task": { "type": "refactor", "description": "Update imports" },
+  "model_dimensions": {
+    "tier": "medium",
+    "family": "coding",
+    "tags": ["coding", "quality"],
+    "fallback_type": null // null, or "largeContext"/"error"/etc
   },
-  "action": {
-    "forceTags": ["reasoning", "code"]
-  },
-  "enabled": true
+  "constraints": { "max_cost_usd": 0.05 }
 }
 ```
 
----
+#### 5. Decision Response Contract
 
-### 5. Subscription Management
-
-Four providers supported on day 1: GitHub Copilot, z.ai, MiniMax AI, Kimi.
-
-Provider enum extended (additive, no breaking change):
-
-```typescript
-type Provider = "openai" | "anthropic" | "google" | "github" | "zai" | "minimax" | "kimi";
-```
-
-Provider adapters live in `packages/providers/src/`. Each adapter implements:
-
-```typescript
-interface ProviderAdapter {
-  listModels(): Promise<ModelDescriptor[]>;
-  getHealth(): Promise<SubscriptionHealth>;
-  getRateLimitState(): Promise<RateLimitState>;
-}
-```
-
-Where a provider does not expose a model listing API, the adapter falls back to a static catalog section in `.dc/model-catalog.jsonc`.
-
-`SubscriptionSchema` and `SubscriptionHealth` from ADR-042 are used as-is.
-
----
-
-### 6. Failure Handling
-
-Failure handling operates on the `fallbackChain` returned with every `ModelResolution`.
-
-| Failure scenario                     | Response                                                                                      |
-|--------------------------------------|-----------------------------------------------------------------------------------------------|
-| Model call fails (any error)         | Immediately try next candidate in `fallbackChain`. No retry on same model.                   |
-| Rate limit (429)                     | Read `Retry-After` or `x-ratelimit-reset` header. Set `cooldown.until` on that subscription. Skip in future resolutions until `cooldown.until` passes. |
-| Model fails on specific task type    | Record failure in `model_scores` table. Lower Elo score for that (model, task_type) pair.    |
-| All preferred candidates exhausted   | Activate emergency priority rules (priority 0-9) to find fallback outside normal constraints. |
-| No model available at all            | Surface error to dispatcher with `reason: "no_model_available"`. Dispatcher escalates to user. |
-
-Cooldown state is stored in SQLite (`subscriptions` table, `cooldown_until` column). It survives process restarts.
-
----
-
-### 7. Quality Feedback Loop
-
-```
-Routing decision made
-  |
-  v
-Decision stored in routing_decisions (SQLite) with sessionId
-  |
-  v
-Agent executes with selected model
-  |
-  v
-Reviewer agent evaluates output quality
-  |
-  v
-Dispatcher sends FeedbackEvent { sessionId, success, quality: 0-1, feedbackSource }
-  |
-  v
-Feedback linked to routing decision via sessionId
-  |
-  v
-Elo update: (model, subscription, task_type) score updated
-  |
-  v
-Threshold check: if new_feedback_count >= retraining_threshold (default: 100)
-  |-- threshold met --> flag "retraining available"
-  |
-  v
-Cron job (every 24h): if "retraining available"
-  --> export training data from SQLite
-  --> fine-tune BERT classifier
-  --> validate on holdout set (20% of data)
-  --> if accuracy improved: swap model file, clear flag
-  --> if accuracy regressed: keep previous model, log warning
-```
-
-Previous BERT model version is retained as `classifier-prev.onnx`. Auto-rollback is triggered if new model's holdout accuracy is more than 2% below the previous model.
-
-Elo schema is extended from ADR-044 `ModelScore`:
-
-```typescript
-interface ModelScore {
-  model: string;
-  subscription: string;
-  taskType: string;
-  eloScore: number;
-  sampleCount: number;
-  lastUpdated: string;
-}
-```
-
----
-
-### 8. Decision Trace and Lineage
-
-Every call to `ModelResolver.resolve()` produces a `DecisionTrace`. It is stored asynchronously in SQLite and returned inline in `ModelResolution` for immediate debugging.
-
-```typescript
-interface DecisionTrace {
-  requestId: string;
-  timestamp: string;
-  request: ModelRequest;
-  heuristic: {
-    ran: boolean;
-    result?: string;
-    confident: boolean;
-    durationMs: number;
-    rulesMatched: string[];
-  };
-  classifier: {
-    ran: boolean;
-    result?: string;
-    confidence: number;
-    durationMs: number;
-  };
-  tinyLlm: {
-    ran: boolean;
-    result?: string;
-    reasoning?: string;
-    durationMs: number;
-  };
-  candidates: Array<{
-    model: string;
-    subscription: string;
-    score: number;
-    scoreBreakdown: Record<string, number>; // cost_score, quality_score, availability_score, elo_score
-    eliminated: boolean;
-    eliminationReason?: string;
-  }>;
-  selected: {
-    model: string;
-    subscription: string;
-    totalDurationMs: number;
-  };
-  feedback?: {
-    success: boolean;
-    eloUpdate?: number;
-    feedbackSource: string;
-  };
-}
-```
-
-SQLite migration adds table `routing_decisions` with columns: `request_id`, `session_id`, `timestamp`, `request_json`, `trace_json`, `feedback_json` (nullable).
-
-The admin panel renders live lineage via XYFlow. Nodes: Request, each rule checked, candidate list, scoring step, winner, outcome. Edges show the path taken. Resolved nodes are colored green; eliminated candidates are red.
-
----
-
-### 9. Admin Panel
-
-Eight features, all required in MVP. Implemented as React components in `packages/web/src/components/llm-picker/`. Embedded in the DiriCode web app but architecturally separable (no web-app-specific dependencies in component internals).
-
-Stack: React 19, Vite, Tailwind, shadcn/ui, Zustand, XYFlow. State fetched via existing DiriCode API layer.
-
-| Feature | Component | Description |
-|---|---|---|
-| 1. Subscription list + status | `SubscriptionList` | Active/inactive toggle, health badge, rate limit bar, cooldown countdown, reset time |
-| 2. Costs and usage | `CostDashboard` | Spend per subscription/model, request count, token usage, daily/monthly trend charts |
-| 3. Model catalog | `ModelCatalog` | All available models, tags, attributes, context window, pricing (auto-detected or manual) |
-| 4. Routing decisions log | `DecisionLog` | Searchable/filterable history; columns: time, agent, task_type, selected model, confidence, duration |
-| 5. Lineage visualization | `LineageGraph` | XYFlow graph per decision: Request -> Rules -> Candidates -> Scoring -> Winner -> Outcome |
-| 6. Elo/quality scores | `EloRankings` | Ranking table per task_type, Elo trend sparklines, sample count, last updated |
-| 7. Routing rules config | `RulesEditor` | Create/edit/reorder/enable/disable routing rules; writes to `.dc/llm-picker-rules.jsonc` via API |
-| 8. User prompt preferences | `UserInstructionsEditor` | Textarea for natural language routing instructions; saved to `.dc/config.jsonc` `routing.userInstructions`; see Section 12 |
-
----
-
-### 10. Package Structure
-
-```
-packages/
-  core/src/
-    llm-picker/
-      index.ts                   -- exports ModelResolver, LlmPicker
-      types.ts                   -- ModelRequest, ModelResolution, DecisionTrace, RoutingRule, ModelDescriptor
-      cascade/
-        heuristic-router.ts
-        bert-classifier.ts
-        tiny-llm-router.ts
-      scorer.ts                  -- candidate scoring: cost_score, quality_score, availability_score, elo_score
-      feedback.ts                -- FeedbackEvent ingestion, Elo update
-      retrain.ts                 -- threshold check, cron trigger, model swap logic
-      models/                    -- ONNX binaries (gitignored, downloaded on first run)
-        .gitkeep
-    agents/
-      model-resolver-adapter.ts  -- wraps ModelTierResolver to implement ModelResolver
-  providers/src/
-    github/                      -- GitHub Copilot adapter
-    zai/                         -- z.ai adapter
-    minimax/                     -- MiniMax AI adapter
-    kimi/                        -- Kimi adapter
-  memory/src/db/
-    migrations/
-      0012_routing_decisions.sql
-      0013_extend_model_scores.sql
-  web/src/components/llm-picker/
-    SubscriptionList.tsx
-    CostDashboard.tsx
-    ModelCatalog.tsx
-    DecisionLog.tsx
-    LineageGraph.tsx
-    EloRankings.tsx
-    RulesEditor.tsx
-    UserInstructionsEditor.tsx
-.dc/
-  llm-picker-rules.jsonc         -- routing rules (git-tracked)
-  model-catalog.jsonc            -- static model catalog fallback (git-tracked)
-```
-
-ONNX model binaries are downloaded by `pnpm run llm-picker:setup` (script in `packages/core/package.json`). Hash-verified against a manifest committed to the repo.
-
----
-
-### 11. Auto Re-Training Pipeline
-
-```
-[Production routing + feedback]
-        |
-        v
-  SQLite: routing_decisions + model_scores
-        |
-        v
-  Threshold check (every 24h cron OR on each feedback write):
-    new_feedback_count_since_last_train >= 100?
-        |-- no  --> wait
-        |-- yes --> set flag "retraining_available"
-        |
-        v
-  Export training data: SELECT from routing_decisions WHERE feedback IS NOT NULL
-        |
-        v
-  Fine-tune BERT classifier (Node.js child process running Python training script
-  OR ONNX fine-tuning via JavaScript — decision deferred to implementation)
-        |
-        v
-  Validate on holdout set (last 20% of exported data, stratified by task_type)
-        |
-        v
-  Compare accuracy: new_accuracy > prev_accuracy - 0.02?
-        |-- yes --> swap classifier.onnx, archive prev as classifier-prev.onnx, reset flag
-        |-- no  --> keep classifier-prev.onnx as active, log regression warning, reset flag
-```
-
-Retraining threshold and cron interval are configurable in `.dc/config.jsonc`:
+The Picker returns the selection along with a classification trace for explainability.
 
 ```jsonc
 {
-  "routing": {
-    "retraining": {
-      "feedbackThreshold": 100,
-      "cronIntervalHours": 24
+  "status": "resolved",
+  "selected": { "provider": "openai", "model": "gpt-4o-mini", "score": 95 },
+  "decision_meta": {
+    "policy_used": "balanced",
+    "classification_trace": {
+      "tier_used": 2,
+      "confidence": 0.88,
+      "classification": "moderate",
+      "latency_ms": 85
     }
   }
 }
 ```
 
----
+#### 6. Policy System & Scoring Algorithm
 
-### 12. User Prompt Preferences
+Policies define how candidates are weighted. A standard scoring formula is used:
+`score = (w_quality × quality) + (w_cost × cost) + (w_latency × latency) + (w_capability × capability)`
 
-Users can write **natural language instructions** that influence how LLM Picker routes requests. These instructions are entered via a textarea in the Admin Panel, persisted to config, and read by the routing engine at decision time.
+*   **quality**: Static rating + Elo (ADR-044).
+*   **cost/latency**: Inverse relative to the cheapest/fastest candidate.
+*   **capability**: Binary filter (100 or 0) for required features (e.g., tool calling).
 
-**Use cases:**
-- "Preferuj tańsze modele gdy task jest prosty"
-- "Unikaj GPT-4o na prostych taskach"
-- "Zawsze używaj Claude na code review"
-- "Minimalizuj koszty, jakość jest drugorzędna"
-- "Dla agentów tier:heavy używaj wyłącznie modeli z tagiem reasoning"
+#### 6b. Policy Resolution Order
 
-**Config location** (`.dc/config.jsonc`):
+Policy resolution follows a 5-step priority:
+1. `policy_override` from request (if specified)
+2. Policy matching both `agent_role` AND `task_type` (most specific wins)
+3. Policy matching `agent_role` only
+4. Policy matching `task_type` only
+5. Default policy (`is_default = true`)
 
-```jsonc
-{
-  "routing": {
-    "engine": "llm-picker",
-    "userInstructions": "Preferuj tańsze modele. Unikaj GPT-4o na prostych taskach. Zawsze używaj Claude na code review."
-  }
+Example policies:
+
+| Policy | Quality | Cost | Latency | Capability | Use Case |
+|--------|---------|------|---------|------------|----------|
+| `quality_first` | 0.5 | 0.1 | 0.2 | 0.2 | Architectural planning, complex reasoning |
+| `cost_optimized` | 0.2 | 0.5 | 0.1 | 0.2 | Bulk refactoring, utility tasks |
+| `speed_first` | 0.1 | 0.1 | 0.6 | 0.2 | Quick lookups, trivial tasks |
+| `balanced` | 0.3 | 0.3 | 0.2 | 0.2 | Default for most agents |
+
+#### 7. ProviderAdapter Interface
+
+Adapters normalize different providers for the Picker:
+
+```typescript
+interface ProviderAdapter {
+  readonly providerId: string;
+  listModels(): Promise<ModelDescriptor[]>;
+  getHealth(): Promise<ProviderHealth>;
+  getRateLimitState(): Promise<RateLimitState>;
 }
 ```
+Initial implementations: GitHub Copilot, z.ai, MiniMax, Kimi.
 
-**Admin Panel component** (`UserInstructionsEditor`):
-- Textarea with placeholder examples.
-- Save button writes to `.dc/config.jsonc` via the existing config API.
-- Live preview showing which routing rules the instructions map to (best-effort).
-- Character limit: 2000 characters.
+#### 8. ONNX Runtime Setup
 
-**How instructions are consumed:**
+The ML cascade is powered by `onnxruntime-node`.
+*   Models (BERT, Qwen2.5) are downloaded with hash verification to `.dc/picker-models/`.
+*   If ONNX is unavailable, the Picker gracefully degrades to Tier 1 (heuristics) only.
 
-| Tier | Consumption method |
-|---|---|
-| Tier 1: Heuristic Router | Instructions are parsed into implicit rule overrides where possible (e.g., "avoid X" → `blockModels: ["X"]`). Parsing is best-effort; unparseable instructions are silently passed to Tier 3. |
-| Tier 2: BERT Classifier | Not directly consumed. Classifier operates on task complexity, not user preferences. |
-| Tier 3: Tiny LLM Router | Instructions are injected verbatim into the routing prompt's system section. The tiny LLM reasons over them alongside the standard rubric (complexity, capabilities, context, latency). |
+#### 8b. Decision Logging and Telemetry
 
-**Parsing pipeline for Tier 1:**
+Every decision is persisted to SQLite with:
+- Full request payload (agent, task, constraints)
+- Full candidate ranking with scores and rejection reasons
+- Selected model and policy used
+- Selection latency and classification trace
+- Fallback flag and reason
 
-1. Instructions text is split into individual directives (sentence-level).
-2. Each directive is matched against known patterns:
-   - `"avoid {model}"` / `"unikaj {model}"` → `blockModels`
-   - `"prefer {tag}"` / `"preferuj {tag}"` → `priorityBoost` on matching tags
-   - `"always use {model} for {agent/task}"` → `forceModel` with conditions
-   - `"minimize cost"` → adjust scorer weights (`cost_score` weight increased)
-3. Unmatched directives are stored as `unparsedInstructions` and forwarded to Tier 3.
+WebSocket events for dashboard:
+- `picker.stats` (1/s) — aggregated metrics
+- `picker.decision.live` (per-decision) — for request stream
+- `picker.error` — for error log
+- `picker.graph.edge` — for live routing map animation
 
-**Validation:** No strict validation on the text content — the textarea accepts free-form natural language. The config Zod schema validates it as an optional string with max length 2000.
+#### 8c. Execution Feedback Loop (v2)
 
----
+After execution, the orchestrator can send feedback:
+- Actual token counts and cost
+- Actual latency and TTFT
+- Success/failure and finish reason
+- Override tracking (was_overridden, override_model, override_reason)
 
-### 13. A2A Compatibility (Deferred)
+Feeds into: model quality heuristics, ADR-044 Elo scoring, override pattern analysis.
 
-The `ModelResolver` interface and `ModelRequest`/`ModelResolution` shapes are designed to align with the A2A Agent Card task lifecycle. No A2A-specific code is written in MVP. When implemented in a future version:
+#### 9. Dashboard UI
 
-- Expose Agent Card at `.well-known/agent.json`.
-- Implement task lifecycle via A2A-JS SDK.
-- `ModelRequest` maps to A2A Task input; `ModelResolution` maps to Task output artifact.
+A unified dashboard with multiple tabs provides deep visibility:
+1. **Live Routing Map** — animated React Flow graph showing decision paths.
+2. **Request Stream** — virtualized scrolling table (`@tanstack/react-virtual`) for real-time monitoring.
+3. **Decision Inspector** — click a row to see winner, runner-ups, rejection reasons, and replay the decision.
+4. **Error Log** — separated view for Picker-internal errors and warnings.
+5. **Subscription List** — health badges, rate limit bars, and cooldown countdowns.
+6. **Model Catalog** — all available models, filterable by tags, pricing, and context window.
+7. **Cost Dashboard** — spend per subscription/model with Recharts trend charts.
+8. **Elo Rankings** — ranking table per task_type with Elo trend sparklines.
+9. **Rules Editor** — UI to create, edit, and reorder Tier 1 rules with drag-and-drop and Zod validation.
+10. **User Instructions** — editor for natural language routing preferences and the parsing pipeline.
 
-A2A implementation is out of scope for this ADR.
+#### 10. SQLite Schema
 
----
+Persistent storage uses 6 tables: `models`, `policies`, `decisions`, `execution_feedback`, `picker_errors`, and `agents_registry`. The `models` table includes columns for `tier`, `family`, and `tags` to support advanced filtering.
 
-## Alternatives Considered
+#### 11. REST + WebSocket API
 
-| Alternative | Reason Rejected |
-|---|---|
-| LiteLLM proxy (Python sidecar) | Adds operational complexity and a Python runtime dependency. DiriCode is pure TypeScript. Violates the constraint established in epic-router.md. |
-| Replace ModelTierResolver immediately | Risk of breaking existing DiriCode routing while LLM Picker is unproven. Coexistence behind a feature flag is the safer path; replacement happens when quality metrics are satisfied. |
-| Fixed dimension model classification (tier x family x context) | Too rigid. New models with cross-cutting capability profiles do not fit the enum lattice. Tag-based classification is extensible without schema changes. Existing dimensions map into tags for backward compatibility. |
-| Heuristic-only routing (no ML tiers) | Heuristics cannot reliably classify 20-40% of ambiguous requests. The three-tier cascade provides better routing quality on that long tail at acceptable latency. |
-| External LLM as router (e.g., GPT-4o to decide which model to use) | 1-3s latency, per-call cost, and creates a dependency on an external provider for the routing layer itself. Local ONNX inference is faster, free, and offline-capable. |
-| OpenRouter as universal proxy | Third-party dependency, markup on costs, added latency, and violates the self-hosted principle. Does not integrate with DiriCode's subscription management. |
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/v1/decisions` | Synchronous decision request |
+| GET | `/api/v1/decisions` | List decisions (paginated, filterable) |
+| GET | `/api/v1/decisions/:id` | Single decision details |
+| POST | `/api/v1/decisions/:id/replay` | Replay decision with current state |
+| POST | `/api/v1/decisions/:id/feedback` | Submit execution feedback |
+| GET | `/api/v1/models` | Model registry |
+| GET/PUT | `/api/v1/policies` / `/:id` | Policy CRUD |
+| GET | `/api/v1/agents/:id/stats` | Agent decision statistics |
+| GET | `/api/v1/stats` | Aggregated metrics |
+| WS | `/ws` | Live telemetry events |
 
----
+#### 12. Integration Points
 
-## Consequences
+| Existing Component | Integration |
+|-------------------|-------------|
+| ModelTierResolver (packages/core) | Picker replaces static tier resolution. TierResolver becomes fallback when Picker unavailable. |
+| SubscriptionRouter (ADR-042) | Picker outputs { provider, model } for subscription selection. |
+| ABExperimentManager (ADR-044) | Picker checks A/B experiment filters and adjusts candidate weights. |
+| ModelScoreRepository (packages/memory) | Picker reads Elo scores to augment quality ratings (v2). |
+| EventStream (ADR-031) | Picker emits typed events for dashboard. |
+| Swarm Coordinator (ADR-046) | Each swarm member's request goes through Picker independently. |
 
-### Positive
+### Consequences
 
-- Zero-risk migration: `ModelTierResolver` is untouched. LLM Picker is opt-in via config. The legacy path continues to work during the transition period.
-- Tag-based model classification is flexible and extensible. New models with novel capability profiles are supported without enum changes.
-- Full `DecisionTrace` on every routing decision enables root-cause debugging and A/B analysis.
-- Elo feedback loop creates a self-improving system: routing quality increases over time as more feedback is collected.
-- Auto re-training with holdout validation and rollback protects against classifier regression.
-- Admin panel provides complete visibility into costs, subscription health, and routing quality — observability that does not exist in the current system.
-- Architecturally separable: `packages/core/src/llm-picker/` has no hard dependency on the DiriCode web app and can be extracted as a standalone library.
+**Positive:**
+*   **Unified Decision Point**: Replaces fragmented logic with a central, policy-driven engine.
+*   **Explainability**: Every routing choice is logged with a trace and reasoning.
+*   **Intelligent Classification**: ML cascade ensures tasks get the right model tier without manual tuning.
+*   **Observable**: Real-time dashboard for cost, performance, and routing health.
 
-### Negative / Trade-offs
+**Negative:**
+*   **Dependency**: Requires ONNX binaries (`onnxruntime-node`).
+*   **Latency**: Adds 5ms to 300ms overhead depending on the cascade depth reached.
+*   **Complexity**: Increases the configuration surface area.
+*   **Registry staleness**: Model pricing changes. Initially static config, later provider API auto-detection.
+*   **Feedback dependency**: Quality heuristics degrade without reliable orchestrator feedback.
+*   **Dashboard as additional surface**: Integrated as tabs within the main Web UI panel.
 
-- ONNX Runtime adds approximately 50MB to `node_modules`. The BERT model binary is an additional ~80MB downloaded on first run. This is a one-time setup cost.
-- Full cascade (Tier 2 + Tier 3) adds 100-300ms latency on ambiguous requests. Mitigation: the majority of production requests are resolved by Tier 1 heuristics in under 1ms.
-- Auto re-training requires careful validation logic. A regression in the classifier would degrade routing quality until detected and rolled back. The holdout accuracy check and `classifier-prev.onnx` rollback mechanism mitigate this, but they add implementation surface.
-- The eight-feature admin panel represents significant UI work. It is scoped to MVP-2 and implemented incrementally — the routing decisions log and lineage visualization are highest priority.
-- Tag-based classification requires initial tag assignment for all models in the catalog. For providers with a model listing API this is automated. For others it requires a one-time manual catalog entry.
+### Delivery Sequencing
+
+| Phase | Scope | Deliverables |
+|-------|-------|-------------|
+| Phase 1 | Foundation | ModelResolver, Tier 1 Heuristics, Tag classification, Scorer |
+| Phase 2 | Providers | ProviderAdapter interface + GitHub/z.ai/MiniMax/Kimi adapters |
+| Phase 3 | Persistence | SQLite migrations, feedback ingestion, Elo integration |
+| Phase 4 | ML Cascade | ONNX setup, Tier 2 (BERT), Tier 3 (TinyLLM), Orchestrator |
+| Phase 5 | Dashboard | All UI tabs (Map, Logs, Rules, Analytics) |
+| Phase 6 | Optimization | Auto-training pipeline, historical analytics |
