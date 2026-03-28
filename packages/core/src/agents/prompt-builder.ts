@@ -11,6 +11,7 @@ import type {
   TemplateVars,
 } from "./types.js";
 import type { Tool } from "../tools/types.js";
+import type { PromptCache } from "./prompt-cache.js";
 
 export const DEFAULT_BUDGET: PromptBudget = {
   system: { maxTokens: 2000 },
@@ -40,6 +41,7 @@ export class PromptBuilder {
   private modelHints?: ModelHints;
   private customVars: Record<string, string> = {};
   private capabilities: readonly string[] = [];
+  private promptCache?: PromptCache;
 
   constructor(config: PromptBuilderConfig) {
     this.config = config;
@@ -82,22 +84,66 @@ export class PromptBuilder {
     return this;
   }
 
+  withPromptCache(cache: PromptCache): this {
+    this.promptCache = cache;
+    return this;
+  }
+
   build(userMessage: string, _injections: ContextInjection[]): BuiltPrompt {
-    const systemPrompt = this.renderSystemPrompt();
+    const useCache = this.promptCache !== undefined && !this.hasDynamicContext();
+
+    let systemPrompt: string;
+    let systemTokenEstimate: number;
+
+    if (useCache && this.promptCache) {
+      const cached = this.promptCache.get(
+        this.config.metadata.name,
+        this.config.workspaceRoot ?? "",
+        this.config.metadata.tier,
+      );
+
+      if (cached) {
+        systemPrompt = cached.systemPrompt;
+        systemTokenEstimate = cached.tokenEstimate;
+      } else {
+        const rendered = this.renderSystemPrompt();
+        systemPrompt = this.truncate(rendered, this.budget.system.maxTokens);
+        systemTokenEstimate = this.estimateTokens(systemPrompt);
+        this.promptCache.set(
+          this.config.metadata.name,
+          this.config.workspaceRoot ?? "",
+          this.config.metadata.tier,
+          { systemPrompt, tokenEstimate: systemTokenEstimate },
+        );
+      }
+    } else {
+      systemPrompt = this.renderSystemPrompt();
+      systemTokenEstimate = this.estimateTokens(systemPrompt);
+    }
+
     const toolsSection = this.tools.map((t) => `${t.name}: ${t.description}`).join("\n");
     const tokenEstimate =
-      this.estimateTokens(systemPrompt) +
-      this.estimateTokens(userMessage) +
-      this.estimateTokens(toolsSection);
+      systemTokenEstimate + this.estimateTokens(userMessage) + this.estimateTokens(toolsSection);
 
     return {
-      systemPrompt: this.truncate(systemPrompt, this.budget.system.maxTokens),
+      systemPrompt: useCache
+        ? systemPrompt
+        : this.truncate(systemPrompt, this.budget.system.maxTokens),
       userMessage: this.truncate(userMessage, this.budget.userInput.maxTokens),
       toolsSection: this.truncate(toolsSection, this.budget.tools.maxTokens),
       tokenBudget: this.budget,
       modelHints: this.modelHints ?? {},
       tokenEstimate,
     };
+  }
+
+  private hasDynamicContext(): boolean {
+    return (
+      this.repoMap !== undefined ||
+      this.files.length > 0 ||
+      this.history.length > 0 ||
+      this.plan !== undefined
+    );
   }
 
   private renderSystemPrompt(): string {

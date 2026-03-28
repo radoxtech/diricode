@@ -46,6 +46,8 @@ export type {
 } from "./agents/types.js";
 export { PromptBuilder, DEFAULT_BUDGET } from "./agents/prompt-builder.js";
 export type { PromptBuilderConfig } from "./agents/prompt-builder.js";
+export { PromptCache } from "./agents/prompt-cache.js";
+export type { PromptCacheConfig, CachedEntry } from "./agents/prompt-cache.js";
 export { AgentProtocolError } from "./agents/protocol.js";
 export type {
   ContextHandoffEnvelope,
@@ -88,6 +90,12 @@ export type {
   TierResolution,
   AvailabilityChecker,
 } from "./agents/model-tier-resolver.js";
+
+export {
+  DefaultModelTierResolver,
+  DEFAULT_MODEL_CONFIG_RESOLVER,
+} from "./agents/model-config-resolver.js";
+export type { ModelConfig, ModelConfigResolver } from "./agents/model-config-resolver.js";
 
 export {
   SubscriptionSchema,
