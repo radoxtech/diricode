@@ -5,12 +5,14 @@ import type {
   AgentMetadata,
   AgentResult,
   ContextInheritanceRules,
+  ModelConfigResolver,
   ResultPropagationContract,
   SandboxConfig,
 } from "@diricode/core";
 import {
   AgentError,
   DEFAULT_INHERITANCE_RULES,
+  DEFAULT_MODEL_CONFIG_RESOLVER,
   DEFAULT_RESULT_CONTRACT,
   DEFAULT_SANDBOX_CONFIG,
   generateExecutionId,
@@ -25,6 +27,7 @@ export interface DispatcherConfig {
   readonly registry: AgentRegistry;
   readonly maxDelegationDepth: number;
   readonly sandboxConfig?: SandboxConfig;
+  readonly modelTierResolver?: ModelConfigResolver;
 }
 
 interface ClassifiedIntent {
@@ -228,6 +231,7 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
 
   const graph = new DelegationGraph();
   const sandboxConfig = config.sandboxConfig ?? DEFAULT_SANDBOX_CONFIG;
+  const modelTierResolver = config.modelTierResolver ?? DEFAULT_MODEL_CONFIG_RESOLVER;
 
   return {
     metadata,
@@ -297,6 +301,16 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
       });
 
       const agent = config.registry.get(selected.agent.name);
+      const modelConfig = modelTierResolver.resolve(agent.metadata);
+
+      context.emit("dispatcher.model-resolved", {
+        agent: selected.agent.name,
+        model: modelConfig.model,
+        maxTokens: modelConfig.maxTokens,
+        temperature: modelConfig.temperature,
+        executionId,
+      });
+
       const envelope = createHandoffEnvelope({
         parentExecutionId: executionId,
         parentAgentName: metadata.name,
