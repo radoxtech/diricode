@@ -167,7 +167,7 @@ export class StreamManager {
         const iterResult = raceResult.result as unknown as IteratorResult<StreamChunk>;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const chunk: StreamChunk = iterResult.value;
-        const iterDone: boolean = iterResult.done;
+        const iterDone: boolean = iterResult.done ?? false;
 
         if (iterDone) {
           break;
@@ -220,7 +220,7 @@ export class StreamManager {
             const iterResult = raceResult.result as unknown as IteratorResult<StreamChunk>;
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const chunk: StreamChunk = iterResult.value;
-            const iterDone: boolean = iterResult.done;
+            const iterDone: boolean = iterResult.done ?? false;
 
             if (iterDone) {
               break;

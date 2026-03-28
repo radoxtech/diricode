@@ -62,7 +62,7 @@ async function* makeChunks(chunks: StreamChunk[]): AsyncIterable<StreamChunk> {
   }
 }
 
-async function makeErrorStream(err: Error): Promise<AsyncIterable<StreamChunk>> {
+async function* makeErrorStream(err: Error): AsyncIterable<StreamChunk> {
   await Promise.resolve();
   throw err;
 }
@@ -191,7 +191,7 @@ describe("StreamManager", () => {
               });
               return { value: undefined as unknown as StreamChunk, done: true };
             },
-            return: () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -235,7 +235,7 @@ describe("StreamManager", () => {
               });
               return { value: { delta: "late", done: true }, done: false };
             },
-            return: () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -277,7 +277,7 @@ describe("StreamManager", () => {
               releaseBlock();
               return { value: undefined as unknown as StreamChunk, done: true };
             },
-            return: () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -355,7 +355,7 @@ describe("StreamManager", () => {
                 done: false,
               };
             },
-            return: () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -461,7 +461,7 @@ describe("StreamManager", () => {
               }
               return { value: undefined as unknown as StreamChunk, done: true };
             },
-            return: () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -486,7 +486,7 @@ describe("StreamManager", () => {
         [Symbol.asyncIterator]() {
           let phase = 0;
           return {
-            next() {
+            async next() {
               if (phase === 0) {
                 phase = 1;
                 return { value: { delta: "partial data", done: false }, done: false };
@@ -494,7 +494,7 @@ describe("StreamManager", () => {
               controller.abort();
               return { value: undefined as unknown as StreamChunk, done: true };
             },
-            return: () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
@@ -568,7 +568,7 @@ describe("StreamManager", () => {
 
     it("handles source that ends without done=true chunk gracefully", async () => {
       function noFinalChunk(): AsyncIterable<StreamChunk> {
-        return (function* (): AsyncIterable<StreamChunk> {
+        return (async function* (): AsyncIterable<StreamChunk> {
           yield { delta: "partial", done: false };
         })();
       }
@@ -603,7 +603,7 @@ describe("StreamManager", () => {
               });
               return { value: undefined as unknown as StreamChunk, done: true };
             },
-            return: () => ({ value: undefined as unknown as StreamChunk, done: true }),
+            return: async () => ({ value: undefined as unknown as StreamChunk, done: true }),
           };
         },
       };
