@@ -61,7 +61,7 @@ function executeGitCommand(
 
       let truncated = false;
       let stdout = rawStdout;
-      let stderr = rawStderr;
+      const stderr = rawStderr;
 
       if (Buffer.byteLength(rawStdout, "utf-8") > MAX_OUTPUT_BYTES) {
         stdout = Buffer.from(rawStdout, "utf-8").subarray(0, MAX_OUTPUT_BYTES).toString("utf-8");
@@ -249,7 +249,7 @@ export const gitDiffTool: Tool<GitDiffParams, GitDiffResult> = {
     if (params.commit) args.push(params.commit);
     if (params.commit2) args.push(params.commit2);
     if (params.stat) args.push("--stat");
-    args.push(`-U${params.context}`);
+    args.push(`-U${String(params.context)}`);
 
     const result = await executeGitCommand(args, context.workspaceRoot);
 
@@ -257,7 +257,7 @@ export const gitDiffTool: Tool<GitDiffParams, GitDiffResult> = {
     let stats: GitDiffResult["stats"] | undefined;
     if (params.stat && result.stdout) {
       const statMatch =
-        /(\d+)\s+files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(\-\))?/.exec(
+        /(\d+)\s+files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?(-))?/.exec(
           result.stdout.split("\n").slice(-1)[0] ?? "",
         );
       if (statMatch) {
@@ -330,11 +330,7 @@ function buildGitAddCommand(
     };
   }
 
-  // Validate files are within workspace
-  const validatedFiles = params.files.map((f) => {
-    const resolved = resolve(workspaceRoot, f);
-    return f;
-  });
+  const validatedFiles = params.files;
 
   return {
     command: `git add ${validatedFiles.join(" ")}`,
@@ -610,7 +606,7 @@ interface GitLogResult {
   truncated: boolean;
 }
 
-function parseLogEntry(entry: string, format: string): GitLogEntry | null {
+function parseLogEntry(entry: string, _format: string): GitLogEntry | null {
   const lines = entry.split("\n").filter((l) => l.length > 0);
   if (lines.length < 2) return null;
 
@@ -626,7 +622,7 @@ function parseLogEntry(entry: string, format: string): GitLogEntry | null {
   const authorInfo = firstLineMatch[3];
 
   const authorMatch = /^([^<]+)\s+<([^>]+)>,\s+(.+)$/.exec(authorInfo.trim());
-  if (!authorMatch || !authorMatch[1] || !authorMatch[2] || !authorMatch[3]) {
+  if (!authorMatch || !authorMatch?.[1] || !authorMatch?.[2] || !authorMatch?.[3]) {
     return {
       hash,
       abbrevHash: hash.slice(0, 7),
@@ -668,7 +664,7 @@ export const gitLogTool: Tool<GitLogParams, GitLogResult> = {
   async execute(params: GitLogParams, context: ToolContext): Promise<ToolResult<GitLogResult>> {
     context.emit("tool.start", { tool: "git-log", params });
 
-    const args = ["log", `--max-count=${params.n}`, `--format=${params.format}`];
+    const args = ["log", `--max-count=${String(params.n)}`, `--format=${params.format}`];
     if (params.author) args.push(`--author=${params.author}`);
     if (params.since) args.push(`--since=${params.since}`);
     if (params.until) args.push(`--until=${params.until}`);
@@ -810,7 +806,10 @@ export const gitBlameTool: Tool<GitBlameParams, GitBlameResult> = {
     const args = ["blame"];
     if (params.porcelain) args.push("--porcelain");
     if (params.lastRevision) args.push("-M");
-    if (params.startLine) args.push(`-L ${params.startLine},${params.endLine ?? "$"}`);
+    if (params.startLine)
+      args.push(
+        `-L ${String(params.startLine)},${params.endLine != null ? String(params.endLine) : "$"}`,
+      );
 
     args.push("--", params.file);
 
