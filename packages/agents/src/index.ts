@@ -6,7 +6,13 @@ export {
 } from "./registry.js";
 export type { TierConstraint, AgentRegistryOptions } from "./registry.js";
 export { createDispatcher } from "./dispatcher.js";
-export type { DispatcherConfig, SwarmConfig, SwarmTask, SwarmResult } from "./dispatcher.js";
+export type {
+  DispatcherConfig,
+  DispatcherDelegationOptions,
+  SwarmConfig,
+  SwarmTask,
+  SwarmResult,
+} from "./dispatcher.js";
 export { createCodeWriterAgent } from "./code-writer.js";
 export type { CodeWriterConfig } from "./code-writer.js";
 export { createPlannerQuickAgent } from "./planner-quick.js";
@@ -28,6 +34,7 @@ export {
   MAX_DELEGATION_DEPTH,
   INLINE_ARTIFACT_THRESHOLD_BYTES,
 } from "./protocol.js";
+export { AgentError, DEFAULT_SANDBOX_CONFIG, DEFAULT_MODEL_CONFIG_RESOLVER } from "@diricode/core";
 export type {
   Agent,
   AgentCategory,
@@ -57,5 +64,6 @@ export type {
   SandboxRetryPolicy,
   SandboxAttemptResult,
   SandboxExecutionResult,
+  ModelConfig,
+  ModelConfigResolver,
 } from "@diricode/core";
-export { AgentError, DEFAULT_SANDBOX_CONFIG } from "@diricode/core";
