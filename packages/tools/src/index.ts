@@ -51,6 +51,26 @@ export { lspSymbolsTool } from "./lsp-symbols.js";
 export type { LspSymbolsResult, SymbolInfo, SymbolKind } from "./lsp-symbols.js";
 export { diagnosticsTool } from "./diagnostics.js";
 export type { Diagnostic, DiagnosticsResult } from "./diagnostics.js";
+export {
+  lspGotoDefinitionTool,
+  lspFindReferencesTool,
+  lspPrepareRenameTool,
+  lspRenameSymbolTool,
+  lspFileDiagnosticsTool,
+  lspNavigationTools,
+} from "./lsp-navigation.js";
+export type {
+  GotoDefinitionLocation,
+  GotoDefinitionResult,
+  ReferenceLocation,
+  FindReferencesResult,
+  PrepareRenameResult,
+  RenameEdit,
+  RenameSymbolResult,
+  DiagnosticSeverity,
+  LspDiagnosticItem,
+  LspDiagnosticsResult,
+} from "./lsp-navigation.js";
 export { planParserTool } from "./plan-parser.js";
 export type { ParsedTask, PlanParserResult } from "./plan-parser.js";
 export type { Tool, ToolAnnotations, ToolContext, ToolResult } from "@diricode/core";
