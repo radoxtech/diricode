@@ -46,6 +46,8 @@ export type {
 } from "./agents/types.js";
 export { PromptBuilder, DEFAULT_BUDGET } from "./agents/prompt-builder.js";
 export type { PromptBuilderConfig } from "./agents/prompt-builder.js";
+export { PromptCache } from "./agents/prompt-cache.js";
+export type { PromptCacheConfig, CachedEntry } from "./agents/prompt-cache.js";
 export { AgentProtocolError } from "./agents/protocol.js";
 export type {
   ContextHandoffEnvelope,
