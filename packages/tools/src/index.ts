@@ -20,6 +20,29 @@ export {
   addProtectedBranch,
   removeProtectedBranch,
 } from "./git-safety.js";
+export {
+  gitStatusTool,
+  gitDiffTool,
+  gitAddTool,
+  gitCommitTool,
+  gitLogTool,
+  gitBlameTool,
+  gitTools,
+} from "./git.js";
+export type {
+  GitStatusParams,
+  GitStatusResult,
+  GitDiffParams,
+  GitDiffResult,
+  GitAddParams,
+  GitAddResult,
+  GitCommitParams,
+  GitCommitResult,
+  GitLogParams,
+  GitLogResult,
+  GitBlameParams,
+  GitBlameResult,
+} from "./git.js";
 export { globTool } from "./glob.js";
 export { grepTool } from "./grep.js";
 export { astGrepTool } from "./ast-grep.js";
