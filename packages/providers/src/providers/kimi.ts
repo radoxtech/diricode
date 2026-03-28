@@ -85,10 +85,10 @@ export class KimiProvider implements Provider {
         ? DEFAULT_KIMI_BASE_URL
         : (config.baseURL ?? DEFAULT_KIMI_BASE_URL);
 
-    const resolvedApiKey =
-      rawApiKey || process.env["DC_KIMI_API_KEY"] || process.env["KIMI_API_KEY"] || "";
+    const envApiKey = process.env.DC_KIMI_API_KEY ?? process.env.KIMI_API_KEY ?? "";
+    const resolvedApiKey = rawApiKey.trim() || envApiKey;
 
-    if (!resolvedApiKey || resolvedApiKey.trim() === "") {
+    if (!resolvedApiKey) {
       throw new Error(
         "KimiProvider requires an API key. " +
           "Provide it via constructor or DC_KIMI_API_KEY environment variable.",
