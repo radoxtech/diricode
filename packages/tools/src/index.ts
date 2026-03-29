@@ -47,6 +47,8 @@ export { globTool } from "./glob.js";
 export { grepTool } from "./grep.js";
 export { astGrepTool } from "./ast-grep.js";
 export type { AstGrepMatch, AstGrepResult } from "./ast-grep.js";
+export { astGrepReplaceTool } from "./ast-grep-replace.js";
+export type { AstGrepReplaceChange, AstGrepReplaceResult } from "./ast-grep-replace.js";
 export { lspSymbolsTool } from "./lsp-symbols.js";
 export type { LspSymbolsResult, SymbolInfo, SymbolKind } from "./lsp-symbols.js";
 export { diagnosticsTool } from "./diagnostics.js";
