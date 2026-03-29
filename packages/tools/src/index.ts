@@ -77,6 +77,8 @@ export { planParserTool } from "./plan-parser.js";
 export type { ParsedTask, PlanParserResult } from "./plan-parser.js";
 export { treeSitterParseTool } from "./tree-sitter-parse.js";
 export type { TreeSitterSymbolInfo, TreeSitterParseResult } from "./tree-sitter-parse.js";
+export { webFetchTool } from "./web-fetch.js";
+export type { WebFetchParams, WebFetchResult } from "./web-fetch.js";
 export { hashlineEditTool } from "./hashline-edit.js";
 export {
   annotateFile,
