@@ -114,3 +114,98 @@ export interface ProviderEntry {
   readonly provider: Provider;
   readonly priority: ProviderPriority;
 }
+
+// ---------------------------------------------------------------------------
+// ProviderAdapter — LLM Picker interface
+// ---------------------------------------------------------------------------
+
+/**
+ * Describes a single model available from a provider.
+ *
+ * Each quality variant is a separate entry (per Decision #12).
+ * Used by the LLM Picker to match tasks to suitable models.
+ */
+export interface ModelDescriptor {
+  /** API model identifier (e.g. "gpt-4o", "moonshot-v1-8k"). */
+  readonly apiModel: string;
+
+  /** Context window size in tokens. */
+  readonly contextWindow: number;
+
+  /** Maximum output tokens the model can generate. */
+  readonly maxOutput: number;
+
+  /** Whether the model supports reasoning capabilities. */
+  readonly canReason: boolean;
+
+  /** Whether the model supports tool/function calling. */
+  readonly toolCall: boolean;
+
+  /** Whether the model supports vision/image inputs. */
+  readonly vision: boolean;
+
+  /** Whether the model supports file attachments. */
+  readonly attachment: boolean;
+
+  /**
+   * Budget pacing multiplier. Reasoning models may cost 2x.
+   * Defaults to 1 when not specified.
+   */
+  readonly quotaMultiplier: number;
+}
+
+/**
+ * Per-model quota information.
+ *
+ * Tracks remaining quota and reset time for rate-limited providers.
+ */
+export interface ModelQuota {
+  /** API model identifier. */
+  readonly apiModel: string;
+
+  /** Remaining quota for this model. */
+  readonly remaining: number;
+
+  /** UTC ISO 8601 timestamp when quota resets. */
+  readonly resetAt: string;
+}
+
+/**
+ * Adapter interface that all provider packages must implement for LLM Picker integration.
+ *
+ * This replaces the old Provider/SubscriptionProvider pattern and provides
+ * a standardized way for the picker to discover available models and their quotas.
+ *
+ * Design decisions:
+ * - No lifecycle methods (init/refresh/cleanup) — provider just works (Decision #31)
+ * - No temperature field — provider hardcodes where required (Decision #15)
+ * - Static listModels() returns all models including quality variants (Decision #12)
+ */
+export interface ProviderAdapter {
+  /**
+   * Unique provider identifier.
+   *
+   * Must match the provider name: "copilot", "kimi", "zai", "minimax" (Decision #30).
+   */
+  readonly providerId: string;
+
+  /**
+   * Returns a static list of all models this provider supports.
+   *
+   * Each quality variant should be a separate entry. The picker uses this
+   * to build its candidate model list.
+   *
+   * @returns Array of model descriptors.
+   */
+  listModels(): ModelDescriptor[];
+
+  /**
+   * Returns per-model quota data.
+   *
+   * For providers with quota APIs, returns remaining calls and reset time
+   * per model. Returns null if the provider has no quota API (Decisions #28, #29, #32).
+   *
+   * @returns Array of model quotas, or null if quota unavailable.
+   */
+  getQuota(): ModelQuota[] | null;
+}
