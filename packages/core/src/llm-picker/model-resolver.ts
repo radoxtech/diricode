@@ -19,26 +19,26 @@ export class Tier1HeuristicRouter implements ModelRouter {
     const taskType = request.task.type.toLowerCase();
 
     if (taskType === "simple" || taskType === "ping" || taskType === "echo") {
-      return {
+      return Promise.resolve({
         tier: 1,
         confidence: 0.95,
         classification: "simple",
-      };
+      });
     }
 
     if (taskType.includes("complex") || taskType.includes("architect")) {
-      return {
+      return Promise.resolve({
         tier: 1,
         confidence: 0.8,
         classification: "complex",
-      };
+      });
     }
 
-    return {
+    return Promise.resolve({
       tier: 1,
       confidence: 0.4,
       classification: "moderate",
-    };
+    });
   }
 }
 
@@ -53,12 +53,12 @@ export class Tier2BertRouter implements ModelRouter {
 
   async classify(request: DecisionRequest): Promise<RouterClassification> {
     void request;
-    return {
+    return Promise.resolve({
       tier: 2,
       confidence: 0.7,
       classification: "moderate",
       reasoning: "BERT router: placeholder — full ONNX implementation in DC-LLP-016",
-    };
+    });
   }
 }
 
@@ -73,12 +73,12 @@ export class Tier3TinyLLMRouter implements ModelRouter {
 
   async classify(request: DecisionRequest): Promise<RouterClassification> {
     void request;
-    return {
+    return Promise.resolve({
       tier: 3,
       confidence: 0.85,
       classification: "complex",
       reasoning: "TinyLLM router: placeholder — full implementation in DC-LLP-017/018",
-    };
+    });
   }
 }
 
@@ -123,7 +123,7 @@ export class CascadeModelResolver implements ModelResolver {
 
     let finalClassification: RouterClassification | null = null;
     let tierUsed: 1 | 2 | 3 = 1;
-    const tierHistory: Array<{ tier: 1 | 2 | 3; confidence: number; reached: boolean }> = [];
+    const tierHistory: { tier: 1 | 2 | 3; confidence: number; reached: boolean }[] = [];
 
     for (const router of this.routers) {
       const routerTier = router.name === "heuristic" ? 1 : router.name === "bert" ? 2 : 3;
