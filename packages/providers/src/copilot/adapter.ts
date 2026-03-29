@@ -6,14 +6,11 @@ import { getGithubToken } from "./auth.js";
 export class CopilotProvider implements Provider {
   readonly name = "copilot";
   readonly defaultModel: ModelConfig;
-  readonly #client: ReturnType<typeof createGitHubModels>;
+  #client: ReturnType<typeof createGitHubModels> | undefined;
   readonly #token: string | undefined;
 
   constructor(token?: string) {
     this.#token = token ?? getGithubToken();
-    this.#client = createGitHubModels({
-      apiKey: this.#token,
-    });
     this.defaultModel = {
       modelId: DEFAULT_COPILOT_MODEL,
     };
@@ -27,7 +24,7 @@ export class CopilotProvider implements Provider {
     const modelId = this.resolveModel(options.model);
     const { generateText } = await import("ai");
     const { text } = await generateText({
-      model: this.#client.languageModel(modelId),
+      model: this.getClient().languageModel(modelId),
       prompt: options.prompt,
       maxOutputTokens: options.model?.maxTokens,
       temperature: options.model?.temperature,
@@ -40,7 +37,7 @@ export class CopilotProvider implements Provider {
     const modelId = this.resolveModel(options.model);
     const { streamText } = await import("ai");
     const result = streamText({
-      model: this.#client.languageModel(modelId),
+      model: this.getClient().languageModel(modelId),
       prompt: options.prompt,
       maxOutputTokens: options.model?.maxTokens,
       temperature: options.model?.temperature,
@@ -61,6 +58,16 @@ export class CopilotProvider implements Provider {
       throw new Error(`Unknown GitHub model: "${id}". Add it to the model mapping table.`);
     }
     return info.modelId;
+  }
+
+  private getClient(): ReturnType<typeof createGitHubModels> {
+    if (this.#client === undefined) {
+      this.#client = createGitHubModels({
+        apiKey: this.#token,
+      });
+    }
+
+    return this.#client;
   }
 }
 
