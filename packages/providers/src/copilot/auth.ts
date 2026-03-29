@@ -4,10 +4,16 @@ export const GITHUB_TOKEN_ENV_VARS = ["DC_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOK
 
 export type GithubTokenSource = (typeof GITHUB_TOKEN_ENV_VARS)[number] | "keychain" | "none";
 
-const _keychainService = new KeychainService();
+let keychainService: KeychainService | undefined;
+
+function getKeychainService(): KeychainService {
+  keychainService ??= new KeychainService();
+
+  return keychainService;
+}
 
 export function getGithubTokenFromKeychain(): string | undefined {
-  const token = _keychainService.get(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
+  const token = getKeychainService().get(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
   return token ?? undefined;
 }
 

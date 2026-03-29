@@ -2,6 +2,11 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../paths.js", () => ({
+  getGlobalConfigDir: () => join(tmpdir(), "dc-test-global-config-does-not-exist"),
+}));
+
 import { loadConfig } from "../loader.js";
 
 function makeTempDir(): string {
