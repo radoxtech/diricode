@@ -23,7 +23,7 @@ The goal is to ship the fastest believable prototype with these properties:
 - **Semantic navigation + structural tooling** raise coding quality early.
 - **Local SQLite state** keeps runtime operations offline-first and low-latency.
 
-Later capabilities — broader swarm execution, richer approval UX, advanced context autopilot, full ReasoningBank live integration, and smarter LLM intent routing — remain in the roadmap, but they are not the first delivery target.
+Later capabilities — broader swarm execution, richer approval UX, advanced context autopilot, full ReasoningBank live integration, and **intelligent model selection via the LLM Picker** (ADR-049) — remain in the roadmap, but they are not the first delivery target.
 
 ## What Exists Today
 
@@ -51,6 +51,7 @@ These parts are already real in the repository:
   - provider registry
   - router foundations
   - model scoring / experiment primitives
+  - LLM Picker design (ADR-049)
 
 The biggest remaining gap is **integration**, not “missing ideas.”
 
@@ -83,6 +84,7 @@ After the first runtime path works:
 - ReasoningBank foundations and cross-session memory querying
 - stronger intent gate evolution
 - richer router/cost intelligence
+- LLM Picker decision engine (ADR-049)
 
 ### Later priorities
 
@@ -129,6 +131,7 @@ graph TD
 
     subgraph Providers
         Registry[Provider registry]
+        Picker[LLM Picker]
         Router[Routing foundations]
     end
 
@@ -144,7 +147,8 @@ graph TD
     Specialists --> Git
     Dispatcher --> SQLite
     Specialists --> SQLite
-    Specialists --> Router
+    Specialists --> Picker
+    Picker --> Router
     Router --> Registry
 ```
 
@@ -241,6 +245,7 @@ docs/
 | SQLite memory backbone              | ✅ Partial-real | Repositories and local-first direction are real      |
 | SSE / transport                     | ✅ Partial-real | Transport exists; full event model still in progress |
 | Provider layer                      | ✅ Partial-real | Registry exists; richer routing still evolving       |
+| LLM Picker                          | 📐 Designed     | ADR-049 accepted; implementation in MVP-2            |
 | End-to-end pipeline                 | 🏗️ In progress  | Core integration still being wired                   |
 | Checkpoint / resume                 | 🏗️ In progress  | Explicit MVP-1 requirement                           |
 | Semantic navigation / refactoring   | 🏗️ In progress  | High-priority prototype multiplier                   |
