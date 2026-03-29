@@ -4,8 +4,9 @@
 > **Tier**: MEDIUM
 > **Category**: research
 > **Ships in**: MVP
-> **MCP Server**: [mrkrsl/web-search-mcp](https://github.com/mrkrsl/web-search-mcp) v0.3.2 (MIT)
-> **References**: ADR-004 (agent roster), ADR-015 (tool annotations), ADR-041 (MCP server selection)
+> **Native Tools**: `@diricode/web-search` (web_search, web_fetch, code_context, searxng_search)
+> **Default Search**: Exa Search (free, no API key required via public MCP server)
+> **References**: ADR-004 (agent roster), ADR-015 (tool annotations), ADR-041 (native tool approach)
 
 ---
 
@@ -38,9 +39,10 @@ It is the counterpart to `browser-agent`: where `web-researcher` focuses on broa
 
 - Act as an external web research specialist
 - Prioritize authoritative sources: official docs, GitHub repos, MDN, RFC standards
-- Use `get-web-search-summaries` for quick lookups (multiple results, snippets only)
-- Use `full-web-search` for deep research (fewer results, full content extraction)
-- Use `get-single-web-page-content` to fetch a specific known URL
+- Use `webSearch` for general web search through Exa
+- Use `webFetch` first for a known URL, then `exaCrawl`, then `playwrightFetch` only if the page is still hard to extract
+- Use `searxngSearch` as an additional metasearch tool when SearXNG is available
+- Use both `webSearch` and `searxngSearch` when a thorough search benefits from multiple sources
 - Always cite the source URL alongside any finding
 - Do not invent information not found on the web
 - Synthesize results into clear, concise answers — avoid raw dumps of page content
@@ -50,22 +52,30 @@ It is the counterpart to `browser-agent`: where `web-researcher` focuses on broa
 
 ## Tool Access
 
-All tools come from `web-search` MCP server (mrkrsl/web-search-mcp). Tool whitelist is strictly enforced.
+Native tools from `@diricode/web-search` package. Tool whitelist is strictly enforced.
 
-| Tool | Description | readOnlyHint | destructiveHint | idempotentHint |
-|------|-------------|-------------|-----------------|----------------|
-| `full-web-search` | Multi-engine search with full content extraction | true | false | true |
-| `get-web-search-summaries` | Lightweight search returning snippets only | true | false | true |
-| `get-single-web-page-content` | Extract full content from a specific URL | true | false | true |
+| Tool | Description | Notes |
+|------|-------------|-------|
+| `webSearch` | Default dispatcher: SearXNG when configured, otherwise Exa | Preferred default search surface |
+| `webFetch` | HTML parsing and content extraction | Fetch step 1 |
+| `searxngSearch` | SearXNG metasearch (self-hosted) | Direct SearXNG access when you want to force or compare it |
+| `exaSearch` | Exa AI-optimized search (free) | Direct Exa access when you want to force or compare it |
+| `exaCodeContext` | Code search from GitHub/StackOverflow | Uses Exa MCP (free) |
+| `exaCrawl` | Full page extraction via Exa | Fetch step 2 |
+| `playwrightFetch` | Browser-rendered fetch via Playwright | Fetch step 3 for JS-heavy or stubborn pages |
 
-**All 3 tools are read-only** — they will auto-approve under ADR-014 smart approval rules. No user confirmation required for search operations.
+**All tools are read-only** — they will auto-approve under ADR-014 smart approval rules. No user confirmation required for search operations.
 
-**Search engine fallback chain** (automatic, built into the MCP server):
-1. Bing (primary)
-2. Brave Search (fallback)
-3. DuckDuckGo (final fallback)
+**Search strategy:**
+1. `webSearch` - use SearXNG by default when DIRICODE_SEARXNG_URL or SEARXNG_BASE_URL is configured; otherwise use Exa
+2. `searxngSearch` - direct SearXNG search when you explicitly want that engine
+3. `exaSearch` - direct Exa search when you explicitly want that engine
+4. Use both `searxngSearch` and `exaSearch` when you want broader coverage or cross-checking across providers
 
-No API keys required at any level. All search requests use public search frontends via headless Chromium.
+**Fetch strategy:**
+1. `webFetch` - fast default fetch
+2. `exaCrawl` - stronger extraction step when the first fetch is weak
+3. `playwrightFetch` - browser-rendered last resort for stubborn pages
 
 ---
 
@@ -114,29 +124,23 @@ No API keys required at any level. All search requests use public search fronten
 
 ---
 
-## MCP Server Configuration
+## SearXNG Setup (Optional)
 
-Managed via `.dc/config.jsonc` (ADR-011 config hierarchy):
+For an additional self-hosted search source, run SearXNG:
+
+```bash
+docker run -d -p 8888:8080 -e SEARCH_RESULTS_PER_PAGE=20 --name searxng searxng/searxng:latest
+```
+
+Configure in `.dc/config.jsonc`:
 
 ```jsonc
-"web-search": {
-  "command": "node",
-  "args": ["~/.diricode/mcp-servers/web-search-mcp/dist/index.js"],
-  "env": {
-    "MAX_CONTENT_LENGTH": "10000",
-    "DEFAULT_TIMEOUT": "6000",
-    "MAX_BROWSERS": "2",
-    "BROWSER_TYPES": "chromium,firefox",
-    "BROWSER_HEADLESS": "true",
-    "ENABLE_RELEVANCE_CHECKING": "true",
-    "RELEVANCE_THRESHOLD": "0.3"
-  }
+"searxng": {
+  "baseUrl": "http://localhost:8888"
 }
 ```
 
-**Installation**: `scripts/setup-mcp-servers.sh` (one-time setup). Requires Node.js >= 18 and Playwright browser binaries (~450MB for chromium+firefox).
-
-**Version**: web-search-mcp v0.3.2 (pinned, no `@latest`).
+**When to use**: You want a second independent search engine alongside Exa for broader or cross-checked research.
 
 ---
 
@@ -155,11 +159,11 @@ No special MCP treatment — tools are first-class citizens in the middleware st
 
 ## Limitations
 
-- **Rate limiting**: web-search-mcp uses public search frontends without API keys. Heavy usage may trigger rate limits from Bing, Brave, or DuckDuckGo.
 - **Content currency**: Search results reflect the web's current state. Documentation may be outdated for rapidly evolving libraries.
-- **Browser footprint**: Each search instance spawns a headless Chromium browser. `MAX_BROWSERS: 2` limits parallelism.
-- **Content length**: `MAX_CONTENT_LENGTH: 10000` chars per page. Very long pages are truncated.
-- **No JavaScript-heavy SPAs**: Some single-page applications may not render content correctly in headless mode without interaction.
+- **No JavaScript rendering**: `webFetch` parses static HTML only. JavaScript-heavy SPAs may not render correctly.
+- **Content length**: Pages are truncated at ~500KB. Very long pages are partially extracted.
+- **SearXNG requires Docker**: Self-hosted alternative requires running a SearXNG container.
+- **Exa public MCP limits**: Public MCP access may have provider-side limits under heavy usage.
 
 ---
 
