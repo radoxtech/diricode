@@ -4,7 +4,6 @@ import { ToolError } from "@diricode/core";
 
 const EXA_MCP_ENDPOINT = "https://mcp.exa.ai/mcp";
 const DEFAULT_TIMEOUT_SECONDS = 30;
-const DEFAULT_SEARCH_COUNT = 10;
 
 const searchParametersSchema = z.object({
   query: z.string().min(1, "Search query is required"),
@@ -47,11 +46,11 @@ interface ExaSearchResponse {
 interface ExaCodeContextResponse {
   query: string;
   provider: "exa";
-  results: Array<{
+  results: {
     url: string;
     text: string;
     score: number;
-  }>;
+  }[];
 }
 
 interface ExaCrawlResponse {
@@ -59,8 +58,6 @@ interface ExaCrawlResponse {
   content: string;
   text: string;
 }
-
-type ExaResultData = ExaSearchResponse | ExaCodeContextResponse | ExaCrawlResponse;
 
 interface McpRequest {
   jsonrpc: "2.0";
@@ -107,8 +104,8 @@ function parseExaTextResults(text: string): ExaSearchResult[] {
   return results;
 }
 
-function parseExaCodeResults(text: string): Array<{ url: string; text: string; score: number }> {
-  const results: Array<{ url: string; text: string; score: number }> = [];
+function parseExaCodeResults(text: string): { url: string; text: string; score: number }[] {
+  const results: { url: string; text: string; score: number }[] = [];
   const entries = text.split(/---\n/);
 
   for (const entry of entries) {
@@ -116,7 +113,7 @@ function parseExaCodeResults(text: string): Array<{ url: string; text: string; s
     const urlMatch = /URL:\s*(.+)/.exec(entry);
     const codeMatch = /Code\/Highlights:\n([\s\S]*?)(?=^---|$)/m.exec(entry);
 
-    if (urlMatch && urlMatch[1]) {
+    if (urlMatch?.[1]) {
       const url = urlMatch[1].trim();
       const codeText = codeMatch?.[1]?.trim() ?? titleMatch?.[1]?.trim() ?? "";
       results.push({
@@ -138,7 +135,7 @@ async function callMcpTool(
   timeoutMs: number,
 ): Promise<unknown> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => { controller.abort(); }, timeoutMs);
 
   const request: McpRequest = {
     jsonrpc: "2.0",
@@ -167,7 +164,7 @@ async function callMcpTool(
       const text = await response.text();
       throw new ToolError(
         "MCP_ERROR",
-        `Exa MCP server error (${response.status}): ${text || response.statusText}`,
+        `Exa MCP server error (${String(response.status)}): ${text || response.statusText}`,
       );
     }
 
@@ -196,7 +193,7 @@ async function callMcpTool(
     }
 
     if (error instanceof Error && error.name === "AbortError") {
-      throw new ToolError("TIMEOUT", `Exa search timed out after ${timeoutMs}ms`);
+      throw new ToolError("TIMEOUT", `Exa search timed out after ${String(timeoutMs)}ms`);
     }
 
     throw new ToolError("MCP_ERROR", `Exa MCP call failed: ${(error as Error).message}`);
@@ -229,11 +226,11 @@ export const exaSearchTool: Tool<SearchParams, ExaSearchResponse> = {
         "web_search_exa",
         {
           query: params.query,
-          numResults: params.numResults ?? DEFAULT_SEARCH_COUNT,
-          type: params.type ?? "auto",
+          numResults: params.numResults,
+          type: params.type,
         },
         timeoutMs,
-      )) as { content?: Array<{ type: string; text: string }> };
+      )) as { content?: { type: string; text: string }[] } | undefined;
 
       const results = parseExaTextResults(rawResult?.content?.[0]?.text ?? "");
 
@@ -285,10 +282,10 @@ export const exaCodeContextTool: Tool<CodeContextParams, ExaCodeContextResponse>
         "get_code_context_exa",
         {
           query: params.query,
-          tokensNum: params.tokensNum ?? 5000,
+          tokensNum: params.tokensNum,
         },
         timeoutMs,
-      )) as { content?: Array<{ type: string; text: string }> };
+      )) as { content?: { type: string; text: string }[] } | undefined;
 
       const results = parseExaCodeResults(rawResult?.content?.[0]?.text ?? "");
 
@@ -334,7 +331,7 @@ export const exaCrawlTool: Tool<CrawlParams, ExaCrawlResponse> = {
           ...(params.prompt && { prompt: params.prompt }),
         },
         timeoutMs,
-      )) as { content?: Array<{ type: string; text: string }> };
+      )) as { content?: { type: string; text: string }[] } | undefined;
 
       const text = rawResult?.content?.[0]?.text ?? "";
 
