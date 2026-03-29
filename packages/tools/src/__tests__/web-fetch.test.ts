@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { webFetchTool } from "../web-fetch.js";
-import { ToolContext } from "@diricode/core";
+import type { ToolContext } from "@diricode/core";
 
 describe("web-fetch tool", () => {
   let context: ToolContext;
@@ -23,13 +23,16 @@ describe("web-fetch tool", () => {
       text: vi.fn().mockResolvedValue("<h1>Hello World</h1>"),
       headers: new Map([["content-type", "text/html"]]),
     };
-    (global.fetch as any).mockResolvedValue(mockResponse);
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
-    const result = await webFetchTool.execute({ url: "https://example.com", format: "markdown" }, context);
+    const result = await webFetchTool.execute({ url: "https://example.com", format: "markdown", timeout: 30000 }, context);
 
     expect(result.success).toBe(true);
-    expect(result.data?.content.trim()).toBe("Hello World\n===========");
-    expect(result.data?.url).toBe("https://example.com");
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (result.success) {
+      expect(result.data.content.trim()).toBe("Hello World\n===========");
+      expect(result.data.url).toBe("https://example.com");
+    }
     expect(context.emit).toHaveBeenCalledWith("tool.start", expect.any(Object));
     expect(context.emit).toHaveBeenCalledWith("tool.end", expect.any(Object));
   });
@@ -40,27 +43,29 @@ describe("web-fetch tool", () => {
       status: 404,
       statusText: "Not Found",
     };
-    (global.fetch as any).mockResolvedValue(mockResponse);
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
-    await expect(webFetchTool.execute({ url: "https://example.com/404" }, context))
+    await expect(webFetchTool.execute({ url: "https://example.com/404", format: "markdown", timeout: 30000 }, context))
       .rejects.toThrow("Failed to fetch https://example.com/404: 404 Not Found");
   });
 
   it("throws for invalid protocols", async () => {
-    await expect(webFetchTool.execute({ url: "ftp://example.com" }, context))
+    await expect(webFetchTool.execute({ url: "ftp://example.com", format: "markdown", timeout: 30000 }, context))
       .rejects.toThrow("Only http and https protocols are supported");
   });
 
   it("handles timeouts", async () => {
-    (global.fetch as any).mockImplementation(() => new Promise((resolve) => {
-        // Never resolves
-    }));
+    vi.mocked(fetch).mockImplementation(async () => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const err = new Error("Fetch timeout");
+          err.name = "AbortError";
+          reject(err);
+        }, 100);
+      });
+    });
 
-    // Mock setTimeout and AbortController if needed, or use a very short timeout
-    // For now, testing the logic branch
-    const promise = webFetchTool.execute({ url: "https://example.com", timeout: 1000 }, context);
-    
-    // We can't easily test real timeout without long wait, but we can verify the ToolError for TIMEOUT
-    // in a controlled mock if needed.
+    const promise = webFetchTool.execute({ url: "https://example.com", timeout: 50, format: "markdown" }, context);
+    await expect(promise).rejects.toThrow("Fetch timeout after 50ms");
   });
 });

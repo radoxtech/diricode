@@ -9,9 +9,9 @@ const parametersSchema = z.object({
   timeout: z.number().int().min(1000).max(60000).default(30000).describe("Timeout in milliseconds (max 60000)"),
 });
 
-type WebFetchParams = z.infer<typeof parametersSchema>;
+export type WebFetchParams = z.infer<typeof parametersSchema>;
 
-interface WebFetchResult {
+export interface WebFetchResult {
   content: string;
   url: string;
   format: string;
@@ -41,7 +41,9 @@ export const webFetchTool: Tool<WebFetchParams, WebFetchResult> = {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, timeout);
 
     try {
       const response = await fetch(url, {
@@ -55,7 +57,7 @@ export const webFetchTool: Tool<WebFetchParams, WebFetchResult> = {
       if (!response.ok) {
         throw new ToolError(
           "HTTP_ERROR",
-          `Failed to fetch ${url}: ${response.status} ${response.statusText}`
+          `Failed to fetch ${url}: ${String(response.status)} ${response.statusText}`
         );
       }
 
@@ -89,11 +91,12 @@ export const webFetchTool: Tool<WebFetchParams, WebFetchResult> = {
       context.emit("tool.end", { tool: "web-fetch", url, truncated });
       return { success: true, data: result };
 
-    } catch (err: any) {
-      if (err.name === "AbortError") {
-        throw new ToolError("TIMEOUT", `Fetch timeout after ${timeout}ms`);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new ToolError("TIMEOUT", `Fetch timeout after ${String(timeout)}ms`);
       }
-      throw new ToolError("FETCH_ERROR", `Failed to fetch ${url}: ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      throw new ToolError("FETCH_ERROR", `Failed to fetch ${url}: ${message}`);
     } finally {
       clearTimeout(timeoutId);
     }
