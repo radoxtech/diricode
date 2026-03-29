@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const mockGetPassword = vi.hoisted(() => vi.fn<() => string | null>().mockReturnValue(null));
 
@@ -19,8 +19,12 @@ import { CopilotProvider, createCopilotProvider } from "../copilot/adapter.js";
 import { DEFAULT_COPILOT_MODEL, getGithubModelInfo, isKnownModel } from "../copilot/models.js";
 import { getGithubToken, hasGithubAuth } from "../copilot/auth.js";
 import { Registry, ProviderPriorities } from "../index.js";
+import * as auth from "../copilot/auth.js";
 
 describe("CopilotProvider", () => {
+  beforeEach(() => {
+    vi.spyOn(auth, "getGithubTokenFromKeychain").mockReturnValue(undefined);
+  });
   describe("constructor", () => {
     it("creates provider with default model", () => {
       const provider = new CopilotProvider("test-token");

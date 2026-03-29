@@ -8,6 +8,7 @@ vi.mock("../paths.js", () => ({
 }));
 
 import { loadConfig } from "../loader.js";
+import * as paths from "../paths.js";
 
 function makeTempDir(): string {
   const dir = join(
@@ -20,15 +21,20 @@ function makeTempDir(): string {
 
 describe("loadConfig", () => {
   let tempDir: string;
+  let globalTempDir: string;
 
   beforeEach(() => {
     tempDir = makeTempDir();
+    globalTempDir = makeTempDir();
     vi.unstubAllEnvs();
+    vi.spyOn(paths, "getGlobalConfigDir").mockReturnValue(globalTempDir);
   });
 
   afterEach(() => {
     rmSync(tempDir, { recursive: true, force: true });
+    rmSync(globalTempDir, { recursive: true, force: true });
     vi.unstubAllEnvs();
+    vi.restoreAllMocks();
   });
 
   it("returns Zod defaults when no config files exist", async () => {
