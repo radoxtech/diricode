@@ -229,14 +229,14 @@ export const astGrepReplaceTool: Tool<AstGrepReplaceParams, AstGrepReplaceResult
       filePath: string;
       content: string;
       fileMode: number;
-      changes: Array<{
+      changes: {
         line: number;
         column: number;
         matchedText: string;
         replacement: string;
         startOffset: number;
         endOffset: number;
-      }>;
+      }[];
     }
 
     const fileMatches: FileMatch[] = [];
@@ -343,7 +343,7 @@ export const astGrepReplaceTool: Tool<AstGrepReplaceParams, AstGrepReplaceResult
         let fileMode: number;
         try {
           const fileStat = await stat(filePath);
-          fileMode = Number(fileStat.mode) & 0o777;
+          fileMode = fileStat.mode & 0o777;
         } catch {
           continue;
         }
