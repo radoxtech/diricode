@@ -116,7 +116,7 @@ async function runSearxngSearch(params: {
   const startedAt = Date.now();
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => { controller.abort(); }, timeoutMs);
 
   try {
     const response = await fetch(endpoint.toString(), {
@@ -134,7 +134,7 @@ async function runSearxngSearch(params: {
       const detail = await response.text();
       throw new ToolError(
         "SEARCH_ERROR",
-        `SearXNG error (${response.status}): ${detail || response.statusText}`,
+        `SearXNG error (${String(response.status)}): ${detail || response.statusText}`,
       );
     }
 
@@ -174,7 +174,7 @@ async function runSearxngSearch(params: {
     }
 
     if (error instanceof Error && error.name === "AbortError") {
-      throw new ToolError("TIMEOUT", `Search timed out after ${timeoutMs}ms`);
+      throw new ToolError("TIMEOUT", `Search timed out after ${String(timeoutMs)}ms`);
     }
 
     throw new ToolError(

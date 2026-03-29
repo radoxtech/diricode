@@ -100,10 +100,6 @@ export const webSearchTool: Tool<WebSearchParams, WebSearchResponse> = {
         { emit: () => undefined, workspaceRoot: process.cwd() },
       );
 
-      if (!result.success) {
-        throw new ToolError("SEARCH_ERROR", "Exa search did not succeed.");
-      }
-
       const normalized: WebSearchResponse = {
         query: result.data.query,
         provider: "exa",

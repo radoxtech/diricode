@@ -80,7 +80,7 @@ function extractTitle(element: ReturnType<typeof parse>): string {
 
   const ogTitle = element.querySelector('meta[property="og:title"]');
   if (ogTitle) {
-    return ogTitle.getAttribute("content") || "";
+    return ogTitle.getAttribute("content") ?? "";
   }
 
   return "";
@@ -131,7 +131,7 @@ async function resolvePlaywrightModule(): Promise<PlaywrightModule | null> {
     try {
       await access(candidate);
       const imported = (await import(pathToFileURL(candidate).href)) as PlaywrightModule;
-      if (imported.chromium) {
+      if ("chromium" in imported) {
         return imported;
       }
     } catch {
@@ -187,7 +187,7 @@ async function runPlaywrightFetch(params: {
 
     const root = parse(html);
     const title = extractTitle(root);
-    const body = root.querySelector("body") || root;
+    const body = root.querySelector("body") ?? root;
     let content = extractTextContent(body);
     if (content.length > maxLength) {
       content = content.slice(0, maxLength) + "...[truncated]";

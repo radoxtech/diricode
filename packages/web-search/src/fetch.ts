@@ -55,7 +55,7 @@ function extractTitle(element: ReturnType<typeof parse>): string {
 
   const ogTitle = element.querySelector('meta[property="og:title"]');
   if (ogTitle) {
-    return ogTitle.getAttribute("content") || "";
+    return ogTitle.getAttribute("content") ?? "";
   }
 
   return "";
@@ -93,7 +93,7 @@ async function runWebFetch(params: {
   const timeoutMs = (params.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => { controller.abort(); }, timeoutMs);
 
   try {
     const response = await fetch(params.url, {
@@ -110,11 +110,11 @@ async function runWebFetch(params: {
     if (!response.ok) {
       throw new ToolError(
         "FETCH_ERROR",
-        `Failed to fetch ${params.url} (${response.status}): ${response.statusText}`,
+        `Failed to fetch ${params.url} (${String(response.status)}): ${response.statusText}`,
       );
     }
 
-    const contentType = response.headers.get("content-type") || "";
+      const contentType = response.headers.get("content-type") ?? "";
 
     if (!contentType.includes("text/html")) {
       throw new ToolError(
@@ -137,7 +137,7 @@ async function runWebFetch(params: {
 
     const title = extractTitle(root);
 
-    const body = root.querySelector("body") || root;
+    const body = root.querySelector("body") ?? root;
 
     let content = extractTextContent(body);
 
@@ -162,7 +162,7 @@ async function runWebFetch(params: {
     }
 
     if (error instanceof Error && error.name === "AbortError") {
-      throw new ToolError("TIMEOUT", `Fetch timed out after ${timeoutMs}ms`);
+      throw new ToolError("TIMEOUT", `Fetch timed out after ${String(timeoutMs)}ms`);
     }
 
     throw new ToolError(
