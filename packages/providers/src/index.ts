@@ -1,7 +1,10 @@
 export type {
   GenerateOptions,
   ModelConfig,
+  ModelDescriptor,
+  ModelQuota,
   Provider,
+  ProviderAdapter,
   ProviderEntry,
   ProviderPriority,
   StreamChunk,
