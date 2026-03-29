@@ -75,5 +75,22 @@ export { planParserTool } from "./plan-parser.js";
 export type { ParsedTask, PlanParserResult } from "./plan-parser.js";
 export { treeSitterParseTool } from "./tree-sitter-parse.js";
 export type { TreeSitterSymbolInfo, TreeSitterParseResult } from "./tree-sitter-parse.js";
+export { hashlineEditTool } from "./hashline-edit.js";
+export {
+  annotateFile,
+  computeLineHash,
+  formatAnchor,
+  normalizeLine,
+  parseAnchor,
+  resolveAnchor,
+  similarityRatio,
+} from "./hashline.js";
+export type {
+  AnchorStatus,
+  HashlineAnnotatedLine,
+  HashlineAnchor,
+  ReResolutionConfig,
+  ResolveResult,
+} from "./hashline.js";
 export type { Tool, ToolAnnotations, ToolContext, ToolResult } from "@diricode/core";
 export { ToolError } from "@diricode/core";
