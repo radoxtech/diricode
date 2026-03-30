@@ -1,4 +1,4 @@
-import type { Tool } from "../tools/types.js";
+import type { Tool, ToolAccessPolicy } from "../tools/types.js";
 import type { PromptBuilder } from "./prompt-builder.js";
 
 export type AgentTier = "heavy" | "medium" | "light";
@@ -222,6 +222,12 @@ export interface AgentMetadata {
   readonly category: AgentCategory;
   readonly capabilities: readonly string[];
   readonly tags: readonly string[];
+  /**
+   * Explicit tool access policy for this agent.
+   * When defined, the agent may ONLY use the listed tools.
+   * This enforces tool filtering at both prompt-build and runtime layers.
+   */
+  readonly toolPolicy?: ToolAccessPolicy;
 }
 
 export interface AgentContext {

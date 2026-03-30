@@ -16,6 +16,7 @@ import {
   DEFAULT_RESULT_CONTRACT,
   DEFAULT_SANDBOX_CONFIG,
   generateExecutionId,
+  createPolicyEnforcingToolRegistry,
 } from "@diricode/core";
 
 import type { AgentRegistry } from "./registry.js";
@@ -161,6 +162,12 @@ async function executeSwarm(
           ...context,
           parentAgentId: "dispatcher",
           sessionId: envelope.parent.sessionId,
+          tools: createPolicyEnforcingToolRegistry(
+            context.tools,
+            agent.metadata.toolPolicy ?? {},
+            agent.metadata.name,
+            context.emit,
+          ),
         };
 
         const result = await agent.execute(task.description, childContext);
@@ -340,6 +347,12 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         ...context,
         parentAgentId: metadata.name,
         sessionId: envelope.parent.sessionId,
+        tools: createPolicyEnforcingToolRegistry(
+          context.tools,
+          agent.metadata.toolPolicy ?? {},
+          agent.metadata.name,
+          context.emit,
+        ),
       };
 
       context.emit("delegation.child.started", {
