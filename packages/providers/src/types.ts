@@ -21,6 +21,7 @@ export const ProviderPriorities = {
   COPILOT: 1,
   ZAI: 1,
   KIMI: 2,
+  MINIMAX: 3,
 } as const satisfies Record<string, ProviderPriority>;
 
 // ---------------------------------------------------------------------------
