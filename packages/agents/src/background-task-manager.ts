@@ -67,7 +67,6 @@ export interface BackgroundTask {
 export class BackgroundTaskManager {
   readonly #registry: AgentRegistry;
   readonly #repository: BackgroundTaskRepository;
-  readonly #_maxConcurrent: number;
   readonly #activeTasks = new Map<string, BackgroundTask>();
   readonly #sandboxConfig = {
     tokenBudget: {
@@ -90,24 +89,19 @@ export class BackgroundTaskManager {
   constructor(config: BackgroundTaskManagerConfig) {
     this.#registry = config.registry;
     this.#repository = config.repository;
-    this.#_maxConcurrent = config.maxConcurrentTasks ?? 5;
   }
 
   /**
    * Start a background task for async subagent execution.
    * Only HEAVY tier agents can run in background mode.
    */
-  async startJob(
+  startJob(
     request: StartBackgroundTaskRequest,
     parentContext: AgentContext,
     parentExecutionId: string,
     parentAgentName: string,
-  ): Promise<StartBackgroundTaskResponse> {
+  ): StartBackgroundTaskResponse {
     const agent = this.#registry.get(request.agentName);
-
-    if (!agent) {
-      throw new AgentError("NO_AGENT_FOUND", `Agent not found: ${request.agentName}`);
-    }
 
     if (agent.metadata.tier !== "heavy") {
       throw new AgentError(
@@ -168,7 +162,7 @@ export class BackgroundTaskManager {
       .then((result) => {
         this.#handleTaskCompletion(jobId, result, parentContext);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         this.#handleTaskFailure(jobId, error, parentContext);
       })
       .finally(() => {
@@ -237,7 +231,7 @@ export class BackgroundTaskManager {
   /**
    * Cancel a running or pending background task.
    */
-  async cancelJob(jobId: string, context: AgentContext): Promise<void> {
+  cancelJob(jobId: string, context: AgentContext): void {
     const task = this.#activeTasks.get(jobId);
 
     if (task) {
@@ -366,7 +360,7 @@ export class BackgroundTaskManager {
       return result;
     } catch (error) {
       if (abortController.signal.aborted) {
-        throw new Error("Task was cancelled");
+        throw new Error("Task was cancelled", { cause: error });
       }
       throw error;
     }

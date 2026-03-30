@@ -6,7 +6,6 @@ import type {
   BackgroundTaskRecord,
   TaskPayload,
   ContextSnapshot,
-  ResultPayload,
 } from "@diricode/memory";
 import type { Agent, AgentContext, AgentResult, AgentMetadata } from "@diricode/core";
 
@@ -14,10 +13,9 @@ type MockFn = ReturnType<typeof vi.fn>;
 
 function createMockRepository(): BackgroundTaskRepository {
   const records = new Map<string, BackgroundTaskRecord>();
-  let idCounter = 0;
 
   return {
-    create: vi.fn((record) => {
+    create: vi.fn((record: BackgroundTaskRecord) => {
       const fullRecord: BackgroundTaskRecord = {
         ...record,
         createdAt: new Date().toISOString(),
@@ -26,27 +24,29 @@ function createMockRepository(): BackgroundTaskRepository {
       records.set(record.jobId, fullRecord);
       return fullRecord;
     }),
-    getById: vi.fn((jobId) => records.get(jobId)),
-    getByParentExecutionId: vi.fn((parentExecutionId) =>
-      Array.from(records.values()).filter((r) => r.parentExecutionId === parentExecutionId),
+    getById: vi.fn((jobId: string) => records.get(jobId)),
+    getByParentExecutionId: vi.fn((parentExecutionId: string) =>
+      Array.from(records.values()).filter(
+        (r: BackgroundTaskRecord) => r.parentExecutionId === parentExecutionId,
+      ),
     ),
     getBySessionId: vi.fn(() => []),
     getActive: vi.fn(() => []),
     updateStatus: vi.fn(),
     markRunning: vi.fn(),
-    markCompleted: vi.fn((jobId, result) => {
+    markCompleted: vi.fn((jobId: string, result: unknown) => {
       const record = records.get(jobId);
       if (record) {
         record.status = "completed";
-        record.resultPayload = result;
+        record.resultPayload = result as BackgroundTaskRecord["resultPayload"];
         record.completedAt = new Date().toISOString();
       }
     }),
-    markFailed: vi.fn((jobId, error) => {
+    markFailed: vi.fn((jobId: string, error: unknown) => {
       const record = records.get(jobId);
       if (record) {
         record.status = "failed";
-        record.errorDetails = error;
+        record.errorDetails = error as BackgroundTaskRecord["errorDetails"];
         record.completedAt = new Date().toISOString();
       }
     }),
@@ -88,7 +88,13 @@ function createMockRegistry(agents: Agent[] = []): AgentRegistry {
 
   return {
     register: vi.fn(),
-    get: vi.fn((name: string) => agentMap.get(name)),
+    get: vi.fn((name: string) => {
+      const agent = agentMap.get(name);
+      if (agent === undefined) {
+        throw new Error(`Agent not found: ${name}`);
+      }
+      return agent;
+    }),
     search: vi.fn(() => []),
     getAll: vi.fn(() => Array.from(agentMap.values())),
   } as unknown as AgentRegistry;
@@ -123,7 +129,7 @@ describe("BackgroundTaskManager", () => {
   });
 
   describe("startJob", () => {
-    it("creates a background task for HEAVY tier agents", async () => {
+    it("creates a background task for HEAVY tier agents", () => {
       const heavyAgent = createMockAgent("code-writer", "heavy");
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
@@ -132,7 +138,7 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Write some code" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      const result = await manager.startJob(
+      const result = manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
@@ -142,7 +148,9 @@ describe("BackgroundTaskManager", () => {
       expect(result.jobId).toBeDefined();
       expect(result.status).toBe("pending");
       expect(result.worktreePath).toContain("bg-task");
-      expect(repository.create).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const createMock = repository.create as MockFn;
+      expect(createMock).toHaveBeenCalledWith(
         expect.objectContaining({
           childAgentName: "code-writer",
           agentTier: "heavy",
@@ -152,7 +160,7 @@ describe("BackgroundTaskManager", () => {
       );
     });
 
-    it("emits background_task.created event", async () => {
+    it("emits background_task.created event", () => {
       const heavyAgent = createMockAgent("code-writer", "heavy");
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
@@ -161,7 +169,7 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Write some code" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      await manager.startJob(
+      manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
@@ -177,7 +185,7 @@ describe("BackgroundTaskManager", () => {
       );
     });
 
-    it("throws error for non-HEAVY tier agents", async () => {
+    it("throws error for non-HEAVY tier agents", () => {
       const mediumAgent = createMockAgent("quick-fix", "medium");
       registry = createMockRegistry([mediumAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
@@ -186,32 +194,32 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Quick fix" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      await expect(
+      expect(() =>
         manager.startJob(
           { agentName: "quick-fix", task, context: contextSnapshot },
           ctx,
           "parent-exec-123",
           "dispatcher",
         ),
-      ).rejects.toThrow("Background tasks only supported for HEAVY tier agents");
+      ).toThrow("Background tasks only supported for HEAVY tier agents");
     });
 
-    it("throws error when agent not found", async () => {
+    it("throws error when agent not found", () => {
       const { ctx } = createMockContext();
       const task: TaskPayload = { description: "Some task" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      await expect(
+      expect(() =>
         manager.startJob(
           { agentName: "nonexistent", task, context: contextSnapshot },
           ctx,
           "parent-exec-123",
           "dispatcher",
         ),
-      ).rejects.toThrow("Agent not found: nonexistent");
+      ).toThrow("Agent not found: nonexistent");
     });
 
-    it("stores tool allowlist from agent policy", async () => {
+    it("stores tool allowlist from agent policy", () => {
       const heavyAgent = createMockAgent("code-writer", "heavy");
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
@@ -220,15 +228,18 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Write some code" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      await manager.startJob(
+      manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
         "dispatcher",
       );
 
-      expect(repository.create).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const createMock = repository.create as MockFn;
+      expect(createMock).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           toolAllowlist: expect.arrayContaining(["read", "write"]),
         }),
       );
@@ -236,7 +247,7 @@ describe("BackgroundTaskManager", () => {
   });
 
   describe("checkStatus", () => {
-    it("returns current status of a task", async () => {
+    it("returns current status of a task", () => {
       const heavyAgent = createMockAgent("code-writer", "heavy");
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
@@ -245,14 +256,12 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Write some code" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      const startResult = await manager.startJob(
+      const startResult = manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
         "dispatcher",
       );
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const status = manager.checkStatus(startResult.jobId);
 
@@ -276,7 +285,7 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Write some code" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      const startResult = await manager.startJob(
+      const startResult = manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
@@ -292,7 +301,7 @@ describe("BackgroundTaskManager", () => {
       expect(result.result).toBeDefined();
     });
 
-    it("throws error for incomplete task", async () => {
+    it("throws error for incomplete task", () => {
       const heavyAgent = createMockAgent("code-writer", "heavy");
       (heavyAgent.execute as MockFn).mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 1000)),
@@ -304,7 +313,7 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Slow task" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      const startResult = await manager.startJob(
+      const startResult = manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
@@ -316,7 +325,7 @@ describe("BackgroundTaskManager", () => {
   });
 
   describe("cancelJob", () => {
-    it("cancels a pending task", async () => {
+    it("cancels a pending task", () => {
       const heavyAgent = createMockAgent("code-writer", "heavy");
       (heavyAgent.execute as MockFn).mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 5000)),
@@ -328,16 +337,18 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Long task" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      const startResult = await manager.startJob(
+      const startResult = manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
         "dispatcher",
       );
 
-      await manager.cancelJob(startResult.jobId, ctx);
+      manager.cancelJob(startResult.jobId, ctx);
 
-      expect(repository.markCancelled).toHaveBeenCalledWith(startResult.jobId);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const markCancelledMock = repository.markCancelled as MockFn;
+      expect(markCancelledMock).toHaveBeenCalledWith(startResult.jobId);
       expect(emit).toHaveBeenCalledWith(
         "background_task.cancelled",
         expect.objectContaining({ jobId: startResult.jobId }),
@@ -346,7 +357,7 @@ describe("BackgroundTaskManager", () => {
   });
 
   describe("parent/child relationship", () => {
-    it("tracks parent execution ID", async () => {
+    it("tracks parent execution ID", () => {
       const heavyAgent = createMockAgent("code-writer", "heavy");
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
@@ -355,7 +366,7 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Write some code" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      await manager.startJob(
+      manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-456",
@@ -367,7 +378,7 @@ describe("BackgroundTaskManager", () => {
       expect(tasks[0]?.parentExecutionId).toBe("parent-exec-456");
     });
 
-    it("emits status transition events", async () => {
+    it("emits status transition events", () => {
       const heavyAgent = createMockAgent("code-writer", "heavy");
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
@@ -376,7 +387,7 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Write some code" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      await manager.startJob(
+      manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
@@ -388,7 +399,7 @@ describe("BackgroundTaskManager", () => {
   });
 
   describe("tool allowlist enforcement", () => {
-    it("preserves tool policy from agent metadata", async () => {
+    it("preserves tool policy from agent metadata", () => {
       const heavyAgent = createMockAgent("code-writer", "heavy");
       (
         heavyAgent as { metadata: { toolPolicy?: { allowedTools: string[] } } }
@@ -402,14 +413,16 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Write some code" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      await manager.startJob(
+      manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
         "dispatcher",
       );
 
-      expect(repository.create).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const createMock = repository.create as MockFn;
+      expect(createMock).toHaveBeenCalledWith(
         expect.objectContaining({
           toolAllowlist: ["read", "write", "edit"],
         }),
@@ -427,7 +440,7 @@ describe("BackgroundTaskManager", () => {
       const task: TaskPayload = { description: "Write some code" };
       const contextSnapshot: ContextSnapshot = { mode: "isolated" };
 
-      const startResult = await manager.startJob(
+      const startResult = manager.startJob(
         { agentName: "code-writer", task, context: contextSnapshot },
         ctx,
         "parent-exec-123",
