@@ -1,5 +1,18 @@
-export { ToolError } from "./tools/types.js";
-export type { Tool, ToolAnnotations, ToolContext, ToolResult } from "./tools/types.js";
+export {
+  ToolError,
+  ToolAccessDeniedError,
+  filterToolsByAllowlist,
+  isToolAllowed,
+  createPolicyEnforcingTool,
+  createPolicyEnforcingToolRegistry,
+} from "./tools/types.js";
+export type {
+  Tool,
+  ToolAnnotations,
+  ToolContext,
+  ToolResult,
+  ToolAccessPolicy,
+} from "./tools/types.js";
 
 export { DiriCodeConfigSchema } from "./config/schema.js";
 export type { DiriCodeConfig } from "./config/schema.js";

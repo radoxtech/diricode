@@ -34,7 +34,12 @@ export {
   MAX_DELEGATION_DEPTH,
   INLINE_ARTIFACT_THRESHOLD_BYTES,
 } from "./protocol.js";
-export { AgentError, DEFAULT_SANDBOX_CONFIG, DEFAULT_MODEL_CONFIG_RESOLVER } from "@diricode/core";
+export {
+  AgentError,
+  DEFAULT_SANDBOX_CONFIG,
+  DEFAULT_MODEL_CONFIG_RESOLVER,
+  ToolAccessDeniedError,
+} from "@diricode/core";
 export type {
   Agent,
   AgentCategory,

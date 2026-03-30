@@ -10,7 +10,8 @@ import type {
   ModelHints,
   TemplateVars,
 } from "./types.js";
-import type { Tool } from "../tools/types.js";
+import type { Tool, ToolAccessPolicy } from "../tools/types.js";
+import { filterToolsByAllowlist } from "../tools/types.js";
 import type { PromptCache } from "./prompt-cache.js";
 
 export const DEFAULT_BUDGET: PromptBudget = {
@@ -28,6 +29,11 @@ export interface PromptBuilderConfig {
   budget?: PromptBudget;
   workspaceRoot?: string;
   systemTemplate?: string;
+  /**
+   * Optional explicit tool access policy for filtering.
+   * If not provided, uses metadata.toolPolicy.
+   */
+  toolPolicy?: ToolAccessPolicy;
 }
 
 export class PromptBuilder {
@@ -70,7 +76,8 @@ export class PromptBuilder {
 
   bindTools(tools: readonly Tool[], capabilities: readonly string[]): this {
     this.capabilities = capabilities;
-    this.tools = [...tools];
+    const policy = this.config.toolPolicy ?? this.config.metadata.toolPolicy;
+    this.tools = filterToolsByAllowlist(tools, policy ?? {});
     return this;
   }
 
