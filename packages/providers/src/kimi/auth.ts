@@ -3,7 +3,7 @@ import { Entry } from "@napi-rs/keyring";
 export const KIMI_KEYCHAIN_SERVICE = "diricode";
 export const KIMI_KEYCHAIN_ACCOUNT = "kimi-api-key";
 
-export const KIMI_API_KEY_ENV_VAR = "KIMI_API_KEY";
+export const KIMI_API_KEY_ENV_VAR = "DC_KIMI_API_KEY";
 
 export type KimiApiKeySource = "env" | "keychain" | "none";
 
