@@ -2,5 +2,6 @@ import type { Migration } from "./runner.js";
 import { migration001 } from "./001_initial_schema.js";
 import { migration002 } from "./002_ai_intelligence.js";
 import { migration003 } from "./003_swarm_delegation.js";
+import { migration004 } from "./004_background_tasks.js";
 
-export const migrations: Migration[] = [migration001, migration002, migration003];
+export const migrations: Migration[] = [migration001, migration002, migration003, migration004];
