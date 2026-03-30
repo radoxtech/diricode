@@ -101,7 +101,7 @@ describe("KimiProvider", () => {
     it.skip("requires live API for integration testing", () => {
       // Skipped: mocking @ai-sdk/openai-compatible is unreliable in CI environment
       // The implementation is tested manually and works correctly
-      // To test: set KIMI_API_KEY env var and run integration tests
+      // To test: set DC_KIMI_API_KEY env var and run integration tests
     });
 
     it("throws error when no API key is available", async () => {
@@ -119,7 +119,7 @@ describe("KimiProvider", () => {
     it.skip("requires live API for integration testing", () => {
       // Skipped: mocking @ai-sdk/openai-compatible is unreliable in CI environment
       // The implementation is tested manually and works correctly
-      // To test: set KIMI_API_KEY env var and run integration tests
+      // To test: set DC_KIMI_API_KEY env var and run integration tests
     });
 
     it("throws error when no API key is available", async () => {
@@ -152,7 +152,7 @@ describe("Kimi Auth Module", () => {
 
   describe("KIMI_API_KEY_ENV_VAR", () => {
     it("exports expected environment variable name", () => {
-      expect(auth.KIMI_API_KEY_ENV_VAR).toBe("KIMI_API_KEY");
+      expect(auth.KIMI_API_KEY_ENV_VAR).toBe("DC_KIMI_API_KEY");
     });
   });
 
