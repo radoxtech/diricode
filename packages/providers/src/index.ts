@@ -42,6 +42,23 @@ export type { GeminiProviderConfig } from "./providers/gemini.js";
 export { KimiProvider, createKimiProvider } from "./providers/kimi.js";
 export type { KimiProviderConfig } from "./providers/kimi.js";
 
+export {
+  deleteKimiApiKeyFromKeychain,
+  getKimiApiKey,
+  getKimiApiKeyFromEnv,
+  getKimiApiKeyFromKeychain,
+  getKimiApiKeySource,
+  hasKimiAuth,
+  KIMI_API_KEY_ENV_VARS,
+  KIMI_KEYCHAIN_ACCOUNT,
+  KIMI_KEYCHAIN_SERVICE,
+  KimiKeychainError,
+  setKimiApiKeyInKeychain,
+  validateKimiApiKey,
+} from "./kimi/index.js";
+
+export type { KimiApiKeySource, KimiAuthConfig } from "./kimi/index.js";
+
 export { ABExperimentManager } from "./ab/ABExperimentManager.js";
 
 export type {

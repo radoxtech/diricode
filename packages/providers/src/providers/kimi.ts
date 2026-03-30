@@ -1,137 +1,93 @@
-/**
- * Kimi (Moonshot AI) provider implementation for @diricode/providers.
- *
- * Implements the Provider interface using Moonshot AI's OpenAI-compatible API
- * via the @ai-sdk/openai-compatible SDK. Provides both streaming and
- * non-streaming generation.
- *
- * @example
- * ```typescript
- * const provider = new KimiProvider(process.env.DC_KIMI_API_KEY!);
- * const response = await provider.generate({ prompt: "Hello!" });
- * ```
- */
-
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
+import {
+  getKimiApiKey,
+  hasKimiAuth,
+  setKimiApiKeyInKeychain,
+  validateKimiApiKey,
+} from "../kimi/auth.js";
 
-/** Default base URL for Moonshot AI API */
 const DEFAULT_KIMI_BASE_URL = "https://api.moonshot.cn/v1";
 
-/**
- * Configuration options for the KimiProvider.
- */
 export interface KimiProviderConfig {
-  /** Moonshot AI API key (required) */
-  apiKey: string;
-  /** Override the default base URL. Defaults to "https://api.moonshot.cn/v1" */
+  apiKey?: string;
   baseURL?: string;
 }
 
-/**
- * Kimi provider adapter implementing the DiriCode Provider interface.
- *
- * Uses Moonshot AI's moonshot-v1-8k model by default. Supports both
- * streaming and non-streaming generation via the OpenAI-compatible API.
- *
- * @implements {Provider}
- */
 export class KimiProvider implements Provider {
-  /** Provider name used for registry identification */
   readonly name = "kimi";
 
-  /**
-   * Default model configuration.
-   * Uses moonshot-v1-8k for cost-effective, fast responses.
-   */
   readonly defaultModel: ModelConfig = {
     modelId: "moonshot-v1-8k",
     temperature: 0.3,
     maxTokens: 4096,
   };
 
-  /** OpenAI-compatible provider instance */
-  #provider: ReturnType<typeof createOpenAICompatible>;
+  #provider: ReturnType<typeof createOpenAICompatible> | null = null;
+  #apiKey: string | null = null;
+  #baseURL: string;
 
-  /** Moonshot AI API key */
-  #apiKey: string;
+  constructor(config?: KimiProviderConfig) {
+    this.#baseURL = config?.baseURL ?? DEFAULT_KIMI_BASE_URL;
+
+    const configKey = config?.apiKey?.trim();
+    if (configKey) {
+      this.#apiKey = configKey;
+    }
+  }
 
   /**
-   * Creates a new KimiProvider instance.
+   * Prompts for API key via interactive login and stores it in keychain.
    *
-   * Resolves the API key from the provided config/string, then falls back to
-   * the DC_KIMI_API_KEY and KIMI_API_KEY environment variables.
-   *
-   * @param config - Configuration object or API key string
-   * @throws {Error} If no API key can be resolved from config or environment
-   *
-   * @example
-   * ```typescript
-   * // With config object
-   * const provider = new KimiProvider({ apiKey: "your-api-key" });
-   *
-   * // With API key string
-   * const provider = new KimiProvider("your-api-key");
-   *
-   * // From environment variable
-   * process.env.DC_KIMI_API_KEY = "your-api-key";
-   * const provider = new KimiProvider({ apiKey: process.env.DC_KIMI_API_KEY! });
-   * ```
+   * @param apiKey - The API key to store
+   * @throws {KimiKeychainError} If the keychain is unavailable
    */
-  constructor(config: KimiProviderConfig | string) {
-    const rawApiKey = typeof config === "string" ? config : config.apiKey;
-    const baseURL =
-      typeof config === "string"
-        ? DEFAULT_KIMI_BASE_URL
-        : (config.baseURL ?? DEFAULT_KIMI_BASE_URL);
-
-    const envApiKey = process.env.DC_KIMI_API_KEY ?? process.env.KIMI_API_KEY ?? "";
-    const resolvedApiKey = rawApiKey.trim() || envApiKey;
-
-    if (!resolvedApiKey) {
-      throw new Error(
-        "KimiProvider requires an API key. " +
-          "Provide it via constructor or DC_KIMI_API_KEY environment variable.",
-      );
+  static login(apiKey: string): void {
+    if (!validateKimiApiKey(apiKey)) {
+      throw new Error("Invalid Kimi API key format");
     }
-
-    this.#apiKey = resolvedApiKey;
-
-    this.#provider = createOpenAICompatible({
-      name: "kimi",
-      baseURL,
-      headers: {
-        Authorization: `Bearer ${this.#apiKey}`,
-      },
-    });
+    setKimiApiKeyInKeychain(apiKey);
   }
 
   /**
    * Checks if the provider is available and properly configured.
    *
-   * @returns {boolean} True if API key is present and non-empty
+   * @returns True if API key is available from keychain or environment
    */
   isAvailable(): boolean {
-    return this.#apiKey.length > 0;
+    return hasKimiAuth() || this.#apiKey !== null;
   }
 
-  /**
-   * Generates a non-streaming completion and returns the full text.
-   *
-   * @param options - Generation parameters including prompt and optional model overrides
-   * @returns {Promise<string>} The generated text response
-   * @throws {Error} If the API call fails or returns an empty response
-   *
-   * @example
-   * ```typescript
-   * const response = await provider.generate({
-   *   prompt: "Explain TypeScript generics"
-   * });
-   * console.log(response); // "TypeScript generics are..."
-   * ```
-   */
+  #ensureInitialized(): void {
+    if (this.#provider !== null) return;
+
+    const apiKey = this.#apiKey ?? getKimiApiKey();
+
+    if (!apiKey) {
+      throw new Error(
+        "KimiProvider requires an API key. " +
+          "Login with KimiProvider.login(apiKey) or set DC_KIMI_API_KEY environment variable.",
+      );
+    }
+
+    this.#apiKey = apiKey;
+    this.#provider = createOpenAICompatible({
+      name: "kimi",
+      baseURL: this.#baseURL,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+  }
+
   async generate(options: GenerateOptions): Promise<string> {
+    this.#ensureInitialized();
+
     const modelId = options.model?.modelId ?? this.defaultModel.modelId;
+
+    if (this.#provider === null) {
+      throw new Error("KimiProvider not initialized");
+    }
 
     try {
       const { generateText } = await import("ai");
@@ -149,28 +105,18 @@ export class KimiProvider implements Provider {
 
       return text;
     } catch (error) {
-      throw this.handleError(error, "generate");
+      throw this.#handleError(error, "generate");
     }
   }
 
-  /**
-   * Generates a streaming completion that yields chunks incrementally.
-   *
-   * @param options - Generation parameters including prompt and optional model overrides
-   * @returns {AsyncIterable<StreamChunk>} Async iterator of text chunks
-   * @yields {StreamChunk} Text chunks with delta updates
-   * @throws {Error} If the streaming API call fails
-   *
-   * @example
-   * ```typescript
-   * for await (const chunk of provider.stream({ prompt: "Hello" })) {
-   *   process.stdout.write(chunk.delta);
-   *   if (chunk.done) break;
-   * }
-   * ```
-   */
   async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    this.#ensureInitialized();
+
     const modelId = options.model?.modelId ?? this.defaultModel.modelId;
+
+    if (this.#provider === null) {
+      throw new Error("KimiProvider not initialized");
+    }
 
     try {
       const { streamText } = await import("ai");
@@ -190,26 +136,21 @@ export class KimiProvider implements Provider {
 
       yield { delta: "", done: true };
     } catch (error) {
-      throw this.handleError(error, "stream");
+      throw this.#handleError(error, "stream");
     }
   }
 
-  /**
-   * Converts API errors to descriptive Error instances.
-   *
-   * @param error - The error from the Moonshot AI API or SDK
-   * @param context - The operation context ("generate" or "stream")
-   * @returns {Error} Standardized error with descriptive message
-   * @private
-   */
-  private handleError(error: unknown, context: string): Error {
+  #handleError(error: unknown, context: string): Error {
     if (error instanceof Error) {
       if (
         error.message.toLowerCase().includes("api key") ||
         error.message.toLowerCase().includes("unauthorized") ||
         error.message.toLowerCase().includes("401")
       ) {
-        return new Error("Invalid or missing API key. Check your DC_KIMI_API_KEY configuration.");
+        return new Error(
+          "Invalid or missing Kimi API key. " +
+            "Login with KimiProvider.login(apiKey) or check your DC_KIMI_API_KEY configuration.",
+        );
       }
 
       if (
@@ -226,17 +167,6 @@ export class KimiProvider implements Provider {
   }
 }
 
-/**
- * Factory function to create a KimiProvider instance.
- *
- * @param config - Configuration object or API key string
- * @returns {Provider} A new KimiProvider instance
- *
- * @example
- * ```typescript
- * const provider = createKimiProvider(process.env.DC_KIMI_API_KEY!);
- * ```
- */
-export function createKimiProvider(config: KimiProviderConfig | string): Provider {
+export function createKimiProvider(config?: KimiProviderConfig): Provider {
   return new KimiProvider(config);
 }
