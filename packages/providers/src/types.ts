@@ -19,6 +19,7 @@ export type ProviderPriority = number;
 export const ProviderPriorities = {
   GEMINI: 1,
   COPILOT: 1,
+  ZAI: 1,
   KIMI: 2,
 } as const satisfies Record<string, ProviderPriority>;
 
