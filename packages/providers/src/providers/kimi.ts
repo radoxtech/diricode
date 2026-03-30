@@ -66,7 +66,7 @@ export class KimiProvider implements Provider {
     if (!apiKey) {
       throw new Error(
         "KimiProvider requires an API key. " +
-          "Login with KimiProvider.login(apiKey) or set DC_KIMI_API_KEY environment variable.",
+          "Set KIMI_API_KEY environment variable or use KimiProvider.login(apiKey).",
       );
     }
 
@@ -149,7 +149,7 @@ export class KimiProvider implements Provider {
       ) {
         return new Error(
           "Invalid or missing Kimi API key. " +
-            "Login with KimiProvider.login(apiKey) or check your DC_KIMI_API_KEY configuration.",
+            "Check your KIMI_API_KEY environment variable or use KimiProvider.login(apiKey).",
         );
       }
 
