@@ -114,3 +114,38 @@ export type {
   GithubDeviceCodeResponse,
   GithubOAuthToken,
 } from "./copilot/index.js";
+
+export type {
+  ModelCapabilities,
+  ModelCard,
+  KnownFor,
+  BenchmarkBucket,
+  QualityBenchmark,
+  SpeedBenchmark,
+  Benchmarks,
+  PricingTier,
+  RateLimit,
+  PickerSubscription,
+} from "./picker/index.js";
+
+export {
+  ModelCapabilitiesSchema,
+  ModelCardSchema,
+  KnownForSchema,
+  BenchmarkBucketSchema,
+  QualityBenchmarkSchema,
+  SpeedBenchmarkSchema,
+  BenchmarksSchema,
+  PricingTierSchema,
+  RateLimitSchema,
+  PickerSubscriptionSchema,
+  ModelCardNotFoundError,
+  ModelCardAlreadyRegisteredError,
+  ModelCardRegistry,
+  SubscriptionNotFoundError,
+  SubscriptionAlreadyRegisteredError,
+  SubscriptionRegistry,
+  getSeedModelCards,
+  getSeedSubscriptions,
+  seedAllRegistries,
+} from "./picker/index.js";
