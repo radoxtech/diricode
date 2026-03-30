@@ -79,10 +79,10 @@ interface BackgroundTaskRow {
   created_at: string;
 }
 
-function safeParseJson<T>(raw: string | null): T | undefined {
+function safeParseJson(raw: string | null): unknown {
   if (!raw) return undefined;
   try {
-    return JSON.parse(raw) as T;
+    return JSON.parse(raw);
   } catch {
     return undefined;
   }
@@ -98,9 +98,9 @@ function rowToRecord(row: BackgroundTaskRow): BackgroundTaskRecord {
     status: row.status,
     taskPayload: JSON.parse(row.task_payload) as TaskPayload,
     contextSnapshot: JSON.parse(row.context_snapshot) as ContextSnapshot,
-    resultPayload: safeParseJson<ResultPayload>(row.result_payload),
-    errorDetails: safeParseJson<ErrorDetails>(row.error_details),
-    toolAllowlist: safeParseJson<string[]>(row.tool_allowlist) ?? [],
+    resultPayload: safeParseJson(row.result_payload) as ResultPayload | undefined,
+    errorDetails: safeParseJson(row.error_details) as ErrorDetails | undefined,
+    toolAllowlist: (safeParseJson(row.tool_allowlist) as string[] | undefined) ?? [],
     worktreePath: row.worktree_path ?? undefined,
     sessionId: row.session_id,
     workspaceRoot: row.workspace_root,
