@@ -3,9 +3,9 @@ import { Entry } from "@napi-rs/keyring";
 export const KIMI_KEYCHAIN_SERVICE = "diricode";
 export const KIMI_KEYCHAIN_ACCOUNT = "kimi-api-key";
 
-export const KIMI_API_KEY_ENV_VARS = ["DC_KIMI_API_KEY", "KIMI_API_KEY"] as const;
+export const KIMI_API_KEY_ENV_VAR = "KIMI_API_KEY";
 
-export type KimiApiKeySource = (typeof KIMI_API_KEY_ENV_VARS)[number] | "keychain" | "none";
+export type KimiApiKeySource = "env" | "keychain" | "none";
 
 export class KimiKeychainError extends Error {
   constructor(cause: unknown) {
@@ -58,35 +58,38 @@ export function deleteKimiApiKeyFromKeychain(): boolean {
 }
 
 /**
- * Gets the Kimi API key from environment variables (fallback).
+ * Gets the Kimi API key from environment variable.
  *
- * @returns The API key if found in env vars, undefined otherwise
+ * @returns The API key if found in env var, undefined otherwise
  */
 export function getKimiApiKeyFromEnv(): string | undefined {
-  for (const envVar of KIMI_API_KEY_ENV_VARS) {
-    const value = process.env[envVar];
-    if (value && value.trim().length > 0) {
-      return value.trim();
-    }
+  const value = process.env[KIMI_API_KEY_ENV_VAR];
+  if (value && value.trim().length > 0) {
+    return value.trim();
   }
   return undefined;
 }
 
 /**
  * Gets the Kimi API key from the best available source.
- * Priority: keychain > environment variables
+ * Two options: env var OR keychain (interactive login)
  *
  * @returns The API key if available, undefined otherwise
  */
 export function getKimiApiKey(): string | undefined {
-  // Primary: keychain (interactive login)
+  // Option 1: Environment variable
+  const envKey = getKimiApiKeyFromEnv();
+  if (envKey) {
+    return envKey;
+  }
+
+  // Option 2: Keychain (interactive login)
   const keychainKey = getKimiApiKeyFromKeychain();
   if (keychainKey) {
     return keychainKey;
   }
 
-  // Fallback: environment variables
-  return getKimiApiKeyFromEnv();
+  return undefined;
 }
 
 /**
@@ -95,15 +98,12 @@ export function getKimiApiKey(): string | undefined {
  * @returns The source of the API key
  */
 export function getKimiApiKeySource(): KimiApiKeySource {
-  if (getKimiApiKeyFromKeychain()) {
-    return "keychain";
+  if (getKimiApiKeyFromEnv()) {
+    return "env";
   }
 
-  for (const envVar of KIMI_API_KEY_ENV_VARS) {
-    const value = process.env[envVar];
-    if (value && value.trim().length > 0) {
-      return envVar;
-    }
+  if (getKimiApiKeyFromKeychain()) {
+    return "keychain";
   }
 
   return "none";

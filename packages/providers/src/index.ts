@@ -49,7 +49,7 @@ export {
   getKimiApiKeyFromKeychain,
   getKimiApiKeySource,
   hasKimiAuth,
-  KIMI_API_KEY_ENV_VARS,
+  KIMI_API_KEY_ENV_VAR,
   KIMI_KEYCHAIN_ACCOUNT,
   KIMI_KEYCHAIN_SERVICE,
   KimiKeychainError,
