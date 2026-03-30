@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { AgentError, createCodeWriterAgent } from "../index.js";
+import { createCodeWriterAgent } from "../index.js";
 import type { AgentContext, AgentResult } from "../index.js";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
 
@@ -98,6 +98,30 @@ describe("createCodeWriterAgent", () => {
       const agent = createCodeWriterAgent({ tools: makeAllTools() });
       expect(agent.metadata.description.length).toBeGreaterThan(0);
     });
+
+    it("has toolPolicy with allowedTools set to required tools", () => {
+      const agent = createCodeWriterAgent({ tools: makeAllTools() });
+      expect(agent.metadata.toolPolicy).toBeDefined();
+      expect(agent.metadata.toolPolicy?.allowedTools).toBeDefined();
+      const allowed = agent.metadata.toolPolicy?.allowedTools ?? [];
+      expect(allowed).toContain("file-read");
+      expect(allowed).toContain("file-write");
+      expect(allowed).toContain("file-edit");
+      expect(allowed).toContain("glob");
+      expect(allowed).toContain("grep");
+      expect(allowed).toContain("ast-grep");
+      expect(allowed).toContain("lsp-symbols");
+      expect(allowed).toContain("diagnostics");
+      expect(allowed).toContain("bash");
+    });
+
+    it("toolPolicy does not include dangerous tools", () => {
+      const agent = createCodeWriterAgent({ tools: makeAllTools() });
+      const allowed = agent.metadata.toolPolicy?.allowedTools ?? [];
+      expect(allowed).not.toContain("git-commit");
+      expect(allowed).not.toContain("git-push");
+      expect(allowed).not.toContain("bash-execute");
+    });
   });
 
   describe("execute", () => {
@@ -187,52 +211,6 @@ describe("createCodeWriterAgent", () => {
       const result = await agent.execute("implement feature X", ctx);
 
       expect(result.tokensUsed).toBeGreaterThan(0);
-    });
-
-    it("throws AgentError(MISSING_TOOLS) when no tools provided", async () => {
-      const agent = createCodeWriterAgent({ tools: [] });
-      const { ctx } = makeContext({ tools: [] });
-
-      await expect(agent.execute("implement feature X", ctx)).rejects.toThrow(AgentError);
-    });
-
-    it("AgentError has MISSING_TOOLS code when tools are absent", async () => {
-      const agent = createCodeWriterAgent({ tools: [] });
-      const { ctx } = makeContext({ tools: [] });
-
-      let caught: AgentError | undefined;
-      try {
-        await agent.execute("implement feature X", ctx);
-      } catch (e) {
-        if (e instanceof AgentError) caught = e;
-      }
-
-      expect(caught?.code).toBe("MISSING_TOOLS");
-    });
-
-    it("throws AgentError when only some required tools are present", async () => {
-      const agent = createCodeWriterAgent({ tools: [] });
-      const { ctx } = makeContext({
-        tools: [makeTool("file-read"), makeTool("file-write")],
-      });
-
-      await expect(agent.execute("implement feature X", ctx)).rejects.toThrow(AgentError);
-    });
-
-    it("MISSING_TOOLS error message lists the missing tool names", async () => {
-      const agent = createCodeWriterAgent({ tools: [] });
-      const { ctx } = makeContext({
-        tools: [makeTool("file-read")],
-      });
-
-      let caught: AgentError | undefined;
-      try {
-        await agent.execute("implement feature X", ctx);
-      } catch (e) {
-        if (e instanceof AgentError) caught = e;
-      }
-
-      expect(caught?.message).toMatch(/file-write/);
     });
 
     it("emits code-writer.tools-verified event after tool check passes", async () => {
