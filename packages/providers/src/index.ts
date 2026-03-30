@@ -59,6 +59,9 @@ export {
 
 export type { KimiApiKeySource, KimiAuthConfig } from "./kimi/index.js";
 
+export { ZaiProvider, createZaiProvider } from "./providers/zai.js";
+export type { ZaiProviderConfig } from "./providers/zai.js";
+
 export { ABExperimentManager } from "./ab/ABExperimentManager.js";
 
 export type {
