@@ -48,7 +48,10 @@ function makeSub(overrides: Partial<PickerSubscription> = {}): PickerSubscriptio
   };
 }
 
-function makeRegistries(models: string[] = ["test-model"]) {
+function makeRegistries(models: string[] = ["test-model"]): {
+  cardReg: ModelCardRegistry;
+  subReg: SubscriptionRegistry;
+} {
   const cardReg = new ModelCardRegistry();
   for (const m of models) {
     cardReg.register(makeCard(m));
@@ -275,8 +278,7 @@ describe("SubscriptionRegistry", () => {
       subReg.register(makeSub({ id: "public-api", model: "m2", trusted: false }));
       subReg.register(makeSub({ id: "internal", model: "m3", trusted: true }));
 
-      const confidentialCodeAccess = false;
-      const eligible = confidentialCodeAccess ? subReg.list() : subReg.findTrusted();
+      const eligible = subReg.findTrusted();
 
       expect(eligible).toHaveLength(2);
       expect(eligible.every((s) => s.trusted)).toBe(true);
@@ -288,8 +290,7 @@ describe("SubscriptionRegistry", () => {
       subReg.register(makeSub({ id: "ent", model: "m1", trusted: true }));
       subReg.register(makeSub({ id: "pub", model: "m2", trusted: false }));
 
-      const confidentialCodeAccess = true;
-      const eligible = confidentialCodeAccess ? subReg.list() : subReg.findTrusted();
+      const eligible = subReg.list();
 
       expect(eligible).toHaveLength(2);
     });

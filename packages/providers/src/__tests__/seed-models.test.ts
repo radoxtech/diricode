@@ -114,7 +114,9 @@ describe("Seed data", () => {
     it("populates both registries without error", () => {
       const cardReg = new ModelCardRegistry();
       const subReg = new SubscriptionRegistry(cardReg);
-      expect(() => seedAllRegistries(cardReg, subReg)).not.toThrow();
+      expect(() => {
+        seedAllRegistries(cardReg, subReg);
+      }).not.toThrow();
     });
 
     it("card registry has at least 10 cards after seeding", () => {
