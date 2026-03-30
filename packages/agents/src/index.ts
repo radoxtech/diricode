@@ -34,6 +34,15 @@ export {
   MAX_DELEGATION_DEPTH,
   INLINE_ARTIFACT_THRESHOLD_BYTES,
 } from "./protocol.js";
+export { BackgroundTaskManager } from "./background-task-manager.js";
+export type {
+  BackgroundTaskOptions,
+  StartBackgroundTaskRequest,
+  StartBackgroundTaskResponse,
+  CheckStatusResponse,
+  GetResultResponse,
+  BackgroundTaskManagerConfig,
+} from "./background-task-manager.js";
 export {
   AgentError,
   DEFAULT_SANDBOX_CONFIG,

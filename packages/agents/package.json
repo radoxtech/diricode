@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@diricode/core": "workspace:*",
+    "@diricode/memory": "workspace:*",
     "zod": "^3.24.0"
   },
   "devDependencies": {
