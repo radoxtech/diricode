@@ -148,6 +148,37 @@ Safety controls are default-on and fail-closed for high-risk actions. The system
 - ADR-015 tool annotations
 - ADR-031 EventStream for approval telemetry
 
+---
+
+### DC-SAFE-006 — Permission Context Engine (MVP-2, Phase 1)
+
+**Goal**: Multi-context permission handling with audit logging and granular permission levels.
+
+**Scope**
+- Four context-specific permission handlers (Coordinator, Interactive, SwarmWorker, Default)
+- Four granular permission levels: `always-allow`, `auto-allow`, `ask`, `never-allow`
+- SQLite-backed audit log of all permission decisions
+- Backwards compatible with DC-SAFE-005
+
+**Sub-issues**
+- DC-SAFE-006a: Multi-Context Permission Handlers
+- DC-SAFE-006b: Permission Audit Logging
+- DC-SAFE-006c: Granular Permission Levels
+
+**Acceptance criteria**
+- Four context handlers with distinct permission strategies
+- All permission decisions logged to SQLite with timestamp, context, tool, and outcome
+- Granular levels configurable per context and operation risk class
+- DefaultHandler preserves DC-SAFE-005 behavior (backwards compatible)
+
+**Phase 2** (v2): smart features — prefix blocking, `/permissions` command, cross-session learning, semantic risk analysis. See ADR-052.
+
+**ADR references**
+- ADR-051 Permission Context Engine Phase 1
+- ADR-052 Permission Context Engine Phase 2
+- ADR-014 Smart Hybrid Approval
+- ADR-015 Tool Annotations
+
 ## Must NOT
 
 - Must NOT allow bypass of hard safety rails in default modes.
@@ -186,3 +217,10 @@ Safety controls are default-on and fail-closed for high-risk actions. The system
 - Full secret-prevent-commit integration.
 - DC-SAFE-005 approval workflow with EventStream + timeout auto-deny.
 - End-to-end UX refinement honoring UX-002 human decision authority.
+
+---
+
+## Cross-References (Post-ADR Review)
+
+- **DC-ROUTER-021** (Cost Tracking Engine): DC-SAFE-004 token guardrails feed into router-centric cost tracking. The router aggregates all cost data; safety guardrails provide session budget enforcement as an upstream input.
+- **DC-TOOL-018** (Pattern Recorder): Permission sequences approved by DC-SAFE-005/006 can be recorded as reusable patterns via DC-TOOL-018, allowing users to replay pre-approved workflows without repeated approval overhead.

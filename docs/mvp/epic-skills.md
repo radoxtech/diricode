@@ -216,3 +216,13 @@ Integrate skills with 4-dimension work modes so behavior adapts per prompt/sessi
 ## Epic Dependencies
 - **Blocked by**: agent runtime/prompt builder and tool contracts.
 - **Blocks**: higher-fidelity specialist agent behavior and work-mode-consistent execution in MVP-3.
+
+---
+
+## Cross-References (Post-ADR Review)
+
+- **DC-TOOL-018** (Pattern Recorder): DC-SKILL-* and DC-TOOL-018 are deliberately separate systems:
+  - **DC-SKILL-*** = agent specialization definitions (who the agent is, what it knows, tool allowlists)
+  - **DC-TOOL-018** = operational workflow recorder (captures and replays sequences of tool calls as reusable patterns)
+  
+  These systems are complementary: a DC-SKILL definition provides agent identity, while DC-TOOL-018 patterns provide repeatable execution recipes. Future synergy: a skill can reference recommended patterns from DC-TOOL-018 as part of its guidance.
