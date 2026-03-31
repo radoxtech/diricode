@@ -413,10 +413,11 @@ export class CascadeModelResolver implements ModelResolver {
       .filter((candidate) => candidate.rejectionReason === undefined)
       .sort((left, right) => right.score - left.score);
 
+    const firstAllowedCandidate = allowedCandidates.at(0);
     const selectedKey =
-      allowedCandidates.length === 0
+      firstAllowedCandidate === undefined
         ? undefined
-        : `${allowedCandidates[0]!.descriptor.provider}:${allowedCandidates[0]!.descriptor.model}`;
+        : `${firstAllowedCandidate.descriptor.provider}:${firstAllowedCandidate.descriptor.model}`;
 
     return candidateStates
       .sort((left, right) => {
@@ -478,7 +479,7 @@ export class CascadeModelResolver implements ModelResolver {
       descriptor.estimatedCostUsd !== undefined &&
       descriptor.estimatedCostUsd > request.constraints.maxCostUsd
     ) {
-      return `excluded by constraints: estimated cost ${descriptor.estimatedCostUsd} exceeds maxCostUsd ${request.constraints.maxCostUsd}`;
+      return `excluded by constraints: estimated cost ${String(descriptor.estimatedCostUsd)} exceeds maxCostUsd ${String(request.constraints.maxCostUsd)}`;
     }
 
     if (
@@ -486,13 +487,12 @@ export class CascadeModelResolver implements ModelResolver {
       descriptor.contextWindow !== undefined &&
       descriptor.contextWindow < request.constraints.minContextWindow
     ) {
-      return `excluded by constraints: context window ${descriptor.contextWindow} is below minimum ${request.constraints.minContextWindow}`;
+      return `excluded by constraints: context window ${String(descriptor.contextWindow)} is below minimum ${String(request.constraints.minContextWindow)}`;
     }
 
     if (
       descriptor.capabilities !== undefined &&
-      request.constraints?.requiredCapabilities !== undefined &&
-      request.constraints.requiredCapabilities.some(
+      request.constraints?.requiredCapabilities?.some(
         (capability) => !this.hasRequiredCapability(descriptor, capability),
       )
     ) {

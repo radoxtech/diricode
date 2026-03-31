@@ -143,13 +143,16 @@ export function resolveHardRuleRange(
     maxPricingTier !== undefined &&
     comparePricingTiers(minPricingTier, maxPricingTier) > 0;
 
+  const rejectionReason =
+    conflict && minPricingTier !== undefined && maxPricingTier !== undefined
+      ? `pricing-tier hard-rule conflict: minimum ${minPricingTier} exceeds maximum ${maxPricingTier}`
+      : undefined;
+
   return {
     matchedRules,
     minPricingTier,
     maxPricingTier,
     conflict,
-    rejectionReason: conflict
-      ? `pricing-tier hard-rule conflict: minimum ${minPricingTier} exceeds maximum ${maxPricingTier}`
-      : undefined,
+    rejectionReason,
   };
 }
