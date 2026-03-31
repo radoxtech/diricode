@@ -86,3 +86,22 @@ This ADR is **not** being reversed. Instead, its delivery order is clarified:
 - **Do early:** preserve ReasoningBank in architecture, schema planning, and memory-roadmap decisions.
 - **Do after core runtime:** live retrieval/injection, confidence-driven reuse, and hook-powered learning loops.
 - **Do not let it delay:** the first believable prototype centered on controlled execution, streaming visibility, semantic navigation, and checkpoint/resume.
+
+### Addendum — MemoryDir Relationship (2026-03-31)
+
+ReasoningBank and MemoryDir are **two separate, complementary systems**.
+
+| Dimension | ReasoningBank | MemoryDir |
+|-----------|--------------|-----------|
+| **Purpose** | Problem-solving memory | General knowledge memory |
+| **Format** | Structured (problem → approach → outcome) | Flexible (facts, preferences, patterns, team knowledge) |
+| **Storage** | SQLite + sqlite-vec | File-based or SQLite (TBD via research) |
+| **Retrieval** | Semantic (embeddings) + keyword (FTS5) | Context-aware + keyword + recency |
+| **Integration** | Hook-based (pre-agent/post-agent) | Explicit API |
+
+**Synergy**: ReasoningBank records *how* agents solved problems. MemoryDir stores *what* they learned (facts, preferences, team conventions). Both systems will be integrated to provide full memory coverage, but are implemented independently.
+
+**Status**: Both systems require deep research and reference implementation analysis before implementation. See:
+- DC-MEM-001: ReasoningBank Deep Research & Design
+- DC-MEM-002: MemoryDir Deep Research & Design
+

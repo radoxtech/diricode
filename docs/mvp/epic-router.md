@@ -276,6 +276,74 @@ Implement Kimi adapter (priority 2) as fallback-capable Provider:
 
 ---
 
+---
+
+## MVP-2: Cost Tracking Extension
+
+> **Note**: These issues extend the router for cost tracking and provider type awareness. Not part of the initial MVP-1 router epic but planned for MVP-2.
+
+### Issue: DC-ROUTER-020 — Provider Type Registry
+
+#### Description
+Extend the existing Provider Registry (DC-PROV-001) to support typed providers:
+- `type: "api" | "subscription" | "hybrid"`
+- `ApiProvider`: per-token pricing configuration
+- `SubscriptionProvider`: monthly price + quota limits
+- `HybridProvider`: subscription base + overage pricing
+
+#### Acceptance Criteria
+- Provider registry supports all three types with type-safe interfaces
+- Existing provider adapters (Copilot, Kimi) are classified and migrated
+- Type information is available to routing decisions
+
+#### References
+- ADR-053 Router Cost Tracking
+- ADR-042 Multi-Subscription Management
+
+---
+
+### Issue: DC-ROUTER-021 — Cost Tracking Engine
+
+#### Description
+Centralized cost tracking module in the router:
+- `calculateCallCost(provider, usage)` — type-aware calculation per call
+- `getSessionCost(sessionId)` — session aggregation
+- `getProviderStats(providerId)` — per-provider efficiency statistics
+- Real-time cost for API providers; deferred/estimated for subscriptions
+
+#### Acceptance Criteria
+- Real-time cost calculation for API providers
+- Deferred/estimated cost for subscription providers with clear "estimated" flag
+- Hybrid calculation for Azure-style providers
+- Statistics queryable per-provider, per-model, per-session
+
+#### References
+- ADR-053 Router Cost Tracking
+- DC-SAFE-004 (Token Guardrails)
+
+---
+
+### Issue: DC-ROUTER-022 — Cost Optimization Routing Strategy
+
+#### Description
+Router strategy that prefers subscription providers (within quota) over pay-per-token:
+- "Cheapest first" strategy: exhaust subscription quota before using API providers
+- Automatic fallback when subscription quota exhausted
+- Track cost savings from optimization
+- User preference setting: `speed` vs `cost`
+
+#### Acceptance Criteria
+- `cost-optimized` strategy implemented in router
+- Automatic subscription → API fallback when quota reached
+- Savings tracked and surfaced via stats
+- User preference configurable
+
+#### References
+- ADR-053 Router Cost Tracking
+- DC-PROV-005 Provider Fallback Chain
+
+---
+
 ## Must NOT (Epic-specific)
 
 - Must NOT introduce LiteLLM (or any Python sidecar/proxy) in MVP
@@ -319,3 +387,10 @@ MVP-1 exit requires full retry/fallback/error/stream behavior with Copilot→Kim
 ### DC-ROUT-001 — Load-aware model routing and cooldown policy
 
 After the baseline router is stable, add health-aware routing inputs such as recent failures, cooldown windows, and basic load-aware selection without jumping straight to full adaptive orchestration.
+
+---
+
+## Cross-References (Post-ADR Review)
+
+- **DC-SAFE-004** (Token/Cost Guardrails): Session budget enforcement lives in safety layer; DC-ROUTER-021 extends this with type-aware cost calculation. Safety guardrails remain upstream gatekeepers; router provides detailed tracking.
+- **DC-SAFE-006** (Permission Context Engine): Outbound provider calls from the router are subject to permission context rules (e.g., coordinator vs. interactive contexts may have different provider usage policies). DC-ROUTER-020 provider type metadata informs permission-level decisions.

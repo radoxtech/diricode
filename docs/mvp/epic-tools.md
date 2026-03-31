@@ -274,3 +274,132 @@ Implement URL fetch with timeout and markdown conversion for external context in
 - [ ] Implement ToolRetry middleware: exponential backoff + jitter, configurable retry_on filter, max_retries=3 (ADR-036)
 - [ ] Implement LLMToolEmulator wrapper: replaces tool execution with LLM-simulated responses for dev/test/CI mode (ADR-037, v2 scope)
 - [ ] Implement LLMToolSelector wrapper: cheap model pre-filters tool list before main model call to reduce token usage (ADR-038, v2 scope)
+
+---
+
+## MVP-2: New Tool Issues (Claude Code Pattern Survey)
+
+> These issues were identified during a Claude Code pattern analysis (2026-03-31). They represent patterns observed in advanced agentic systems, adapted for DiriCode's tool-first architecture.
+
+### DC-TOOL-013: Bulk Operation Runner
+**Iteration**: MVP-2
+**Priority**: P1
+
+**Description**:
+Execute the same operation across multiple files/targets as a single atomic operation. Optimizes token usage through context batching. Supports sequential and parallel execution modes with per-target status reporting.
+
+**Acceptance Criteria**:
+- [ ] Accepts list of targets (files/paths/globs)
+- [ ] Accepts operation definition (tool name + params template)
+- [ ] Configurable sequential or parallel execution
+- [ ] Respects maxConcurrency limit
+- [ ] Aggregated result with per-target status
+- [ ] Rollback on failure (atomic mode)
+- [ ] Progress events emitted
+
+**Dependencies**: DC-TOOL-001..012
+
+---
+
+### DC-TOOL-014: Iterative Refinement Engine
+**Iteration**: MVP-1 (PRIORITY)
+**Priority**: P0
+
+**Description**:
+Automatic "execute → verify → correct" loop with configurable success condition and stuck detection. Manages iteration cycle, monitors progress, and stops when goal achieved or stuck/limit reached. Addresses the common agent pattern of running tests until they pass.
+
+**Acceptance Criteria**:
+- [ ] Definable goal (success condition)
+- [ ] Configurable operation in loop (tool + command)
+- [ ] Max iterations limit (default: 10)
+- [ ] Stuck detection: no progress in N iterations
+- [ ] Cost tracking per iteration
+- [ ] Auto-stop when goal achieved
+- [ ] Failure escalation after max iterations
+
+**Dependencies**: DC-TOOL-015
+
+---
+
+### DC-TOOL-015: Change Verification Agent
+**Iteration**: MVP-2
+**Priority**: P1
+
+**Description**:
+Isolated verification tool that checks changes without polluting the main agent's context. Runs as an independent context with dedicated verification prompt. Returns structured verdict (PASS/FAIL/WARN) with reasoning and suggestions.
+
+**Acceptance Criteria**:
+- [ ] Isolated execution context
+- [ ] Input: diff/changed files/original request
+- [ ] Output: verdict (PASS/FAIL/WARN) + confidence + reasoning + suggestions
+- [ ] Integration with LSP diagnostics
+- [ ] Configurable check types: syntax, types, tests, lsp
+- [ ] Optional separate model for verification
+
+**Dependencies**: DC-TOOL-001..007, DC-TOOL-008
+
+---
+
+### DC-TOOL-016: Diagnostic Analyzer
+**Iteration**: MVP-1 (PRIORITY)
+**Priority**: P0
+
+**Description**:
+Structured error analysis tool — analyzes root cause without attempting to fix. Aggregates context from multiple sources (stack traces, logs, LSP diagnostics, git diff) and produces a diagnosis report with hypotheses and evidence.
+
+**Acceptance Criteria**:
+- [ ] Aggregates: stack traces, logs, LSP diagnostics, git diff
+- [ ] Root cause analysis with confidence score
+- [ ] Timeline reconstruction
+- [ ] Hypothesis generation with supporting evidence
+- [ ] Output: diagnosis report with recommendations
+
+**Dependencies**: DC-TOOL-004, DC-TOOL-007, DC-TOOL-008
+
+---
+
+### DC-TOOL-017: Context Compactor
+**Iteration**: MVP-2
+**Priority**: P1
+
+**Description**:
+Reduces context size by compressing, summarizing, or extracting key information. Used when context window fills up. Supports extractive and abstractive strategies with configurable preservation criteria and lossless archiving mode.
+
+**Acceptance Criteria**:
+- [ ] Input: text/context to compress with target compression ratio
+- [ ] Preservation criteria (what MUST stay)
+- [ ] Content type-aware compression (conversation/code/logs)
+- [ ] Lossless mode: archive original before compression
+- [ ] Output: compressed text + compression stats
+
+**Dependencies**: ADR-016 (Context Management), ADR-017 (Condenser Pipeline)
+
+---
+
+### DC-TOOL-018: Pattern Recorder
+**Iteration**: MVP-2
+**Priority**: P1
+
+**Description**:
+Records sequences of tool calls as reusable workflows ("patterns"). Users can record a successful solution sequence and replay it later on similar problems. Supports auto-recording and manual definition, with full parameterization and versioning.
+
+**Acceptance Criteria**:
+- [ ] Recording mode: capture tool calls + context
+- [ ] Pattern storage: JSON/YAML definition in SQLite
+- [ ] Pattern execution: replay with variable substitution
+- [ ] Pattern library: browse and search saved patterns
+- [ ] Pattern sharing: export/import
+- [ ] Versioning support
+- [ ] Validation: check if pattern still applies
+- [ ] Synergy with ReasoningBank: patterns can reference reasoning records
+
+**Dependencies**: DC-TOOL-001..012, SQLite storage (ADR-018)
+
+**References**: `.sisyphus/drafts/pattern-recorder-spec.md`
+
+---
+
+## Cross-References (Post-ADR Review)
+
+- **DC-SAFE-006** (Permission Context Engine): All mutating tools (file-write, file-edit, bash, git) are gated by the permission context engine. Context type (Coordinator/Interactive/SwarmWorker) determines whether auto-allow, ask, or always-allow applies per operation.
+- **DC-MEM-R001** (ReasoningBank v2) + **DC-MEM-R002** (MemoryDir): DC-TOOL-018 (Pattern Recorder) has planned synergy with the memory systems — recorded tool patterns can reference ReasoningBank entries, creating a "how to think + what to do" pairing. Both memory systems are v2 and research-required before implementation.

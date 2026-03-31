@@ -85,6 +85,9 @@ After the first runtime path works:
 - stronger intent gate evolution
 - richer router/cost intelligence
 - LLM Picker decision engine (ADR-049)
+- Permission Context Engine (multi-context handlers, audit logging, granular levels — MVP-2; smart features in v2)
+- router-centric cost tracking (API vs subscription provider types — MVP-2)
+- Memory Systems research (ReasoningBank v2 + MemoryDir — v2, research required)
 
 ### Later priorities
 
@@ -214,6 +217,9 @@ Expand safely:
 - smarter context management
 - ReasoningBank live integration
 - richer observability UI
+- Permission Context Engine (2-phase)
+- Router Cost Tracking (API + Subscription)
+- Memory Systems (ReasoningBank + MemoryDir)
 
 ## Current Package Layout
 
@@ -238,19 +244,22 @@ docs/
 
 ## Current Status
 
-| Area                                | Status          | Notes                                                |
-| ----------------------------------- | --------------- | ---------------------------------------------------- |
-| Dispatcher / delegation             | ✅ Partial-real | Strong runtime foundation exists                     |
-| Tool layer                          | ✅ Partial-real | File/search/bash/LSP/AST foundations exist           |
-| SQLite memory backbone              | ✅ Partial-real | Repositories and local-first direction are real      |
-| SSE / transport                     | ✅ Partial-real | Transport exists; full event model still in progress |
-| Provider layer                      | ✅ Partial-real | Registry exists; richer routing still evolving       |
-| LLM Picker                          | 📐 Designed     | ADR-049 accepted; implementation in MVP-2            |
-| End-to-end pipeline                 | 🏗️ In progress  | Core integration still being wired                   |
-| Checkpoint / resume                 | 🏗️ In progress  | Explicit MVP-1 requirement                           |
-| Semantic navigation / refactoring   | 🏗️ In progress  | High-priority prototype multiplier                   |
-| Full context budgeting / compaction | 📋 Later        | Deliberately not first-wave                          |
-| Full swarm / broad autonomy         | 📋 Later        | Architectural direction kept, delivery delayed       |
+| Area                                          | Status          | Notes                                                             |
+| --------------------------------------------- | --------------- | ----------------------------------------------------------------- |
+| Dispatcher / delegation                       | ✅ Partial-real | Strong runtime foundation exists                                  |
+| Tool layer                                    | ✅ Partial-real | File/search/bash/LSP/AST foundations exist                        |
+| SQLite memory backbone                        | ✅ Partial-real | Repositories and local-first direction are real                   |
+| SSE / transport                               | ✅ Partial-real | Transport exists; full event model still in progress              |
+| Provider layer                                | ✅ Partial-real | Registry exists; richer routing still evolving                    |
+| LLM Picker                                    | 📐 Designed     | ADR-049 accepted; implementation in MVP-2                         |
+| End-to-end pipeline                           | 🏗️ In progress  | Core integration still being wired                                |
+| Checkpoint / resume                           | 🏗️ In progress  | Explicit MVP-1 requirement                                        |
+| Semantic navigation / refactoring             | 🏗️ In progress  | High-priority prototype multiplier                                |
+| Full context budgeting / compaction           | 📋 Later        | Deliberately not first-wave                                       |
+| Full swarm / broad autonomy                   | 📋 Later        | Architectural direction kept, delivery delayed                    |
+| Permission Context Engine                     | 📐 Designed     | ADR-051/052 accepted; Faza 1 in MVP-2, smart features in v2       |
+| Router Cost Tracking                          | 📐 Designed     | ADR-053 accepted; router-centric, API + subscription types; MVP-2 |
+| Memory Systems (ReasoningBank v2 + MemoryDir) | 🔬 Research     | Two systems; deep research required before implementation; v2     |
 
 ## Getting Started
 
