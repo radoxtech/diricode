@@ -44,6 +44,8 @@
       "@diricode/memory/*": ["./packages/memory/src/*"],
       "@diricode/providers": ["./packages/providers/src/index.ts"],
       "@diricode/providers/*": ["./packages/providers/src/*"],
+      "@diricode/picker-contracts": ["./packages/picker-contracts/src/index.ts"],
+      "@diricode/picker-contracts/*": ["./packages/picker-contracts/src/*"],
       "@diricode/github-mcp": ["./packages/github-mcp/src/index.ts"],
       "@diricode/github-mcp/*": ["./packages/github-mcp/src/*"],
       "@diricode/tools": ["./packages/tools/src/index.ts"],

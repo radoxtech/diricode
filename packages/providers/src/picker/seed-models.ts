@@ -1,5 +1,4 @@
-import type { ModelCard } from "./model-card.js";
-import type { PickerSubscription } from "./subscription.js";
+import type { ModelCard, PickerSubscription } from "@diricode/picker-contracts";
 import type { ModelCardRegistry } from "./model-card-registry.js";
 import type { SubscriptionRegistry } from "./subscription-registry.js";
 
