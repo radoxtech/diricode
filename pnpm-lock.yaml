@@ -91,6 +91,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@diricode/picker-contracts':
+        specifier: workspace:*
+        version: link:../picker-contracts
       c12:
         specifier: ^2.0.0
         version: 2.0.4
@@ -142,11 +145,30 @@ importers:
         specifier: ^4.1.0
         version: 4.1.1(@opentelemetry/api@1.9.0)(@types/node@20.19.37)(jsdom@29.0.1)(vite@6.4.1(@types/node@20.19.37)(jiti@2.6.1))
 
+  packages/picker-contracts:
+    dependencies:
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.37
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.0
+        version: 3.2.4(@types/node@20.19.37)(jiti@2.6.1)(jsdom@29.0.1)
+
   packages/providers:
     dependencies:
       '@ai-sdk/openai-compatible':
         specifier: ^2.0.0
         version: 2.0.37(zod@3.25.76)
+      '@diricode/picker-contracts':
+        specifier: workspace:*
+        version: link:../picker-contracts
       '@github/models':
         specifier: 0.0.1-beta.2
         version: 0.0.1-beta.2(zod@3.25.76)

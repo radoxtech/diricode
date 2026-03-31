@@ -47,4 +47,27 @@ export {
   CascadeModelResolver,
 } from "./model-resolver.js";
 
-export type { CascadeModelResolverOptions } from "./model-resolver.js";
+export { resolverCandidateFromContracts } from "./model-resolver.js";
+
+export type { CascadeModelResolverOptions, ResolverCandidate } from "./model-resolver.js";
+
+export {
+  PricingTierSchema,
+  TaskComplexitySchema,
+  HardRuleSchema,
+  HardRulesConfigSchema,
+  DEFAULT_HARD_RULES_CONFIG,
+  comparePricingTiers,
+  isPricingTierAllowed,
+  getPricingTierRejectionReason,
+  resolveHardRuleRange,
+} from "./hard-rules.js";
+
+export type {
+  PricingTier,
+  TaskComplexity,
+  HardRule,
+  HardRulesConfig,
+  HardRuleEvaluationContext,
+  HardRuleEvaluationResult,
+} from "./hard-rules.js";
