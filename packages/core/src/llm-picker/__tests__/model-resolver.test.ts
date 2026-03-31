@@ -19,10 +19,16 @@ import {
 } from "../types.js";
 import {
   CascadeModelResolver,
+  type ResolverCandidate,
   Tier1HeuristicRouter,
   Tier2BertRouter,
   Tier3TinyLLMRouter,
 } from "../model-resolver.js";
+import {
+  DEFAULT_HARD_RULES_CONFIG,
+  comparePricingTiers,
+  resolveHardRuleRange,
+} from "../hard-rules.js";
 import type {
   CascadeTier,
   DecisionRequest,
@@ -31,7 +37,6 @@ import type {
   ModelTag,
   ModelTier,
 } from "../types.js";
-
 const validRequest = (): DecisionRequest => ({
   requestId: "550e8400-e29b-41d4-a716-446655440000",
   agent: { id: "coder-agent", role: "coding" },
@@ -43,6 +48,42 @@ const validRequest = (): DecisionRequest => ({
     fallbackType: null,
   },
 });
+
+const hardRuleCandidates: ResolverCandidate[] = [
+  {
+    provider: "test-provider",
+    model: "budget-model",
+    pricingTier: "budget",
+    contextWindow: 32000,
+    trusted: true,
+    estimatedCostUsd: 0.03,
+    capabilities: ["tool-calling", "streaming", "json-mode"],
+    knownForRoles: ["coder", "researcher"],
+    knownForComplexities: ["simple", "moderate"],
+  },
+  {
+    provider: "test-provider",
+    model: "standard-model",
+    pricingTier: "standard",
+    contextWindow: 128000,
+    trusted: true,
+    estimatedCostUsd: 0.3,
+    capabilities: ["tool-calling", "streaming", "json-mode"],
+    knownForRoles: ["architect", "reviewer"],
+    knownForComplexities: ["complex", "moderate"],
+  },
+  {
+    provider: "test-provider",
+    model: "premium-model",
+    pricingTier: "premium",
+    contextWindow: 256000,
+    trusted: true,
+    estimatedCostUsd: 3,
+    capabilities: ["tool-calling", "streaming", "json-mode", "vision"],
+    knownForRoles: ["architect", "reviewer"],
+    knownForComplexities: ["expert", "complex"],
+  },
+];
 
 describe("ModelTierSchema", () => {
   it("accepts all valid tiers", () => {
@@ -365,7 +406,9 @@ describe("ModelCandidateSchema", () => {
 
   it("accepts all valid status values", () => {
     for (const status of ["selected", "runner_up", "excluded"] as const) {
-      expect(ModelCandidateSchema.parse({ provider: "p", model: "m", score: 50, status })).toBeTruthy();
+      expect(
+        ModelCandidateSchema.parse({ provider: "p", model: "m", score: 50, status }),
+      ).toBeTruthy();
     }
   });
 });
@@ -535,6 +578,41 @@ describe("Tier3TinyLLMRouter", () => {
 });
 
 describe("CascadeModelResolver", () => {
+  describe("hard-rule helpers", () => {
+    it("orders pricing tiers from budget to premium", () => {
+      expect(comparePricingTiers("budget", "standard")).toBeLessThan(0);
+      expect(comparePricingTiers("premium", "standard")).toBeGreaterThan(0);
+      expect(comparePricingTiers("standard", "standard")).toBe(0);
+    });
+
+    it("merges matching rules to the most restrictive range", () => {
+      const result = resolveHardRuleRange({
+        agentRole: "architect",
+        taskComplexity: "complex",
+      });
+
+      expect(result.matchedRules).toHaveLength(2);
+      expect(result.minPricingTier).toBe("standard");
+      expect(result.maxPricingTier).toBeUndefined();
+      expect(result.conflict).toBe(false);
+    });
+
+    it("detects conflicts when merged min exceeds merged max", () => {
+      const result = resolveHardRuleRange(
+        {
+          agentRole: "architect",
+          taskComplexity: "simple",
+        },
+        DEFAULT_HARD_RULES_CONFIG,
+      );
+
+      expect(result.conflict).toBe(true);
+      expect(result.minPricingTier).toBe("standard");
+      expect(result.maxPricingTier).toBe("budget");
+      expect(result.rejectionReason).toContain("conflict");
+    });
+  });
+
   describe("resolve() — response shape", () => {
     it("returns a valid DecisionResponse for a standard request", async () => {
       const resolver = new CascadeModelResolver();
@@ -640,6 +718,67 @@ describe("CascadeModelResolver", () => {
       const response = await resolver.resolve(validRequest());
       expect(response.selected?.provider).toBe("openai");
       expect(response.selected?.model).toBe("gpt-4o");
+    });
+
+    it("returns no_match when hard rules conflict", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        hardRulesConfig: DEFAULT_HARD_RULES_CONFIG,
+        candidatePool: hardRuleCandidates,
+      });
+
+      const response = await resolver.resolve({
+        ...validRequest(),
+        agent: { id: "architect-agent", role: "architect" },
+        task: { type: "simple" },
+      });
+
+      expect(response.status).toBe("no_match");
+      expect(response.selected).toBeUndefined();
+      expect(response.candidates?.every((candidate) => candidate.status === "excluded")).toBe(true);
+      expect(response.decisionMeta?.fallbackReason).toContain("conflict");
+    });
+
+    it("filters out premium candidates for simple tasks before selection", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        hardRulesConfig: DEFAULT_HARD_RULES_CONFIG,
+        candidatePool: hardRuleCandidates,
+      });
+
+      const response = await resolver.resolve({
+        ...validRequest(),
+        agent: { id: "coder-agent", role: "coder" },
+        task: { type: "simple" },
+      });
+
+      expect(response.status).toBe("resolved");
+      expect(response.selected?.model).toBe("budget-model");
+      expect(
+        response.candidates?.find((candidate) => candidate.model === "standard-model")?.status,
+      ).toBe("excluded");
+      expect(
+        response.candidates?.find((candidate) => candidate.model === "premium-model")
+          ?.rejectionReason,
+      ).toContain("maximum budget");
+    });
+
+    it("requires at least standard tier for complex architect tasks", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        hardRulesConfig: DEFAULT_HARD_RULES_CONFIG,
+        candidatePool: hardRuleCandidates,
+      });
+
+      const response = await resolver.resolve({
+        ...validRequest(),
+        agent: { id: "architect-agent", role: "architect" },
+        task: { type: "complex-architecture" },
+      });
+
+      expect(response.status).toBe("resolved");
+      expect(response.selected?.model).not.toBe("budget-model");
+      expect(
+        response.candidates?.find((candidate) => candidate.model === "budget-model")
+          ?.rejectionReason,
+      ).toContain("below minimum standard");
     });
   });
 });
