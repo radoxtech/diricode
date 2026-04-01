@@ -154,3 +154,7 @@ export type {
   CascadeModelResolverOptions,
   ResolverCandidate,
 } from "./llm-picker/index.js";
+
+export * from "./agents/dispatcher-contract.js";
+export * from "./agents/boundary-violation.js";
+export { enforceDispatcherBoundary } from "./agents/boundary-violation.js";
