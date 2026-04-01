@@ -1,4 +1,278 @@
-import type { ModelDescriptor, ModelQuota, ProviderAdapter } from "../types.js";
+/**
+ * MiniMax AI provider implementation for @diricode/providers.
+ *
+ * Implements the Provider interface using MiniMax's OpenAI-compatible API
+ * via @ai-sdk/openai-compatible. Provides both streaming and non-streaming
+ * generation.
+ *
+ * Also exports the MinimaxProviderAdapter for LLM Picker integration
+ * (static model metadata).
+ *
+ * @example
+ * ```typescript
+ * const provider = new MinimaxProvider(process.env.DC_MINIMAX_API_KEY!);
+ * const response = await provider.generate({ prompt: "Hello!" });
+ * ```
+ */
+
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import type {
+  GenerateOptions,
+  ModelConfig,
+  ModelDescriptor,
+  ModelQuota,
+  Provider,
+  ProviderAdapter,
+  StreamChunk,
+} from "../types.js";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Default base URL for MiniMax OpenAI-compatible API (global endpoint) */
+const DEFAULT_MINIMAX_BASE_URL = "https://api.minimax.io/v1";
+
+// ---------------------------------------------------------------------------
+// Provider — runtime generation interface
+// ---------------------------------------------------------------------------
+
+/**
+ * Configuration options for MinimaxProvider.
+ */
+export interface MinimaxProviderConfig {
+  /** MiniMax API key (required) */
+  apiKey: string;
+  /** Override default base URL. Defaults to MiniMax global endpoint */
+  baseURL?: string;
+}
+
+/**
+ * MiniMax provider adapter implementing the DiriCode Provider interface.
+ *
+ * Uses MiniMax-M2.7 model by default — the latest model with reasoning
+ * capabilities, 204K context window. Supports both streaming and
+ * non-streaming generation via OpenAI-compatible API.
+ *
+ * @implements {Provider}
+ */
+export class MinimaxProvider implements Provider {
+  /** Provider name used for registry identification */
+  readonly name = "minimax";
+
+  /**
+   * Default model configuration.
+   * Uses MiniMax-M2.7 for best balance of quality and capability.
+   */
+  readonly defaultModel: ModelConfig = {
+    modelId: "MiniMax-M2.7",
+    temperature: 0.2,
+    maxTokens: 4096,
+  };
+
+  /** OpenAI-compatible provider instance */
+  #provider: ReturnType<typeof createOpenAICompatible>;
+
+  /** MiniMax API key */
+  #apiKey: string;
+
+  /**
+   * Creates a new MinimaxProvider instance.
+   *
+   * Resolves API key from provided config/string, then falls back to
+   * DC_MINIMAX_API_KEY environment variable.
+   *
+   * @param config - Configuration object or API key string
+   * @throws {Error} If no API key can be resolved from config or environment
+   *
+   * @example
+   * ```typescript
+   * // With config object
+   * const provider = new MinimaxProvider({ apiKey: "your-api-key" });
+   *
+   * // With API key string
+   * const provider = new MinimaxProvider("your-api-key");
+   *
+   * // From environment variable
+   * process.env.DC_MINIMAX_API_KEY = "your-api-key";
+   * const provider = new MinimaxProvider({ apiKey: process.env.DC_MINIMAX_API_KEY! });
+   * ```
+   */
+  constructor(config: MinimaxProviderConfig | string) {
+    const rawApiKey = typeof config === "string" ? config : config.apiKey;
+    const baseURL =
+      typeof config === "string"
+        ? DEFAULT_MINIMAX_BASE_URL
+        : (config.baseURL ?? DEFAULT_MINIMAX_BASE_URL);
+
+    const envApiKey = process.env.DC_MINIMAX_API_KEY ?? "";
+    const resolvedApiKey = rawApiKey.trim() || envApiKey;
+
+    if (!resolvedApiKey) {
+      throw new Error(
+        "MinimaxProvider requires an API key. " +
+          "Provide it via constructor or DC_MINIMAX_API_KEY environment variable.",
+      );
+    }
+
+    this.#apiKey = resolvedApiKey;
+
+    this.#provider = createOpenAICompatible({
+      name: "minimax",
+      baseURL,
+      headers: {
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+    });
+  }
+
+  /**
+   * Checks if provider is available and properly configured.
+   *
+   * @returns {boolean} True if API key is present and non-empty
+   */
+  isAvailable(): boolean {
+    return this.#apiKey.length > 0;
+  }
+
+  /**
+   * Generates a non-streaming completion and returns full text.
+   *
+   * @param options - Generation parameters including prompt and optional model overrides
+   * @returns {Promise<string>} The generated text response
+   * @throws {Error} If API call fails or returns an empty response
+   *
+   * @example
+   * ```typescript
+   * const response = await provider.generate({
+   *   prompt: "Explain TypeScript generics"
+   * });
+   * console.log(response); // "TypeScript generics are..."
+   * ```
+   */
+  async generate(options: GenerateOptions): Promise<string> {
+    const modelId = options.model?.modelId ?? this.defaultModel.modelId;
+
+    try {
+      const { generateText } = await import("ai");
+      const { text } = await generateText({
+        model: this.#provider.chatModel(modelId),
+        prompt: options.prompt,
+        maxOutputTokens: options.model?.maxTokens ?? this.defaultModel.maxTokens,
+        temperature: options.model?.temperature ?? this.defaultModel.temperature,
+        abortSignal: options.signal,
+      });
+
+      if (!text) {
+        throw new Error("MiniMax API returned empty response");
+      }
+
+      return text;
+    } catch (error) {
+      throw this.handleError(error, "generate");
+    }
+  }
+
+  /**
+   * Generates a streaming completion that yields chunks incrementally.
+   *
+   * @param options - Generation parameters including prompt and optional model overrides
+   * @returns {AsyncIterable<StreamChunk>} Async iterator of text chunks
+   * @yields {StreamChunk} Text chunks with delta updates
+   * @throws {Error} If streaming API call fails
+   *
+   * @example
+   * ```typescript
+   * for await (const chunk of provider.stream({ prompt: "Hello" })) {
+   *   process.stdout.write(chunk.delta);
+   *   if (chunk.done) break;
+   * }
+   * ```
+   */
+  async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    const modelId = options.model?.modelId ?? this.defaultModel.modelId;
+
+    try {
+      const { streamText } = await import("ai");
+      const result = streamText({
+        model: this.#provider.chatModel(modelId),
+        prompt: options.prompt,
+        maxOutputTokens: options.model?.maxTokens ?? this.defaultModel.maxTokens,
+        temperature: options.model?.temperature ?? this.defaultModel.temperature,
+        abortSignal: options.signal,
+      });
+
+      for await (const delta of result.fullStream) {
+        if (delta.type === "text-delta") {
+          yield { delta: delta.text, done: false };
+        }
+      }
+
+      yield { delta: "", done: true };
+    } catch (error) {
+      throw this.handleError(error, "stream");
+    }
+  }
+
+  /**
+   * Converts API errors to descriptive Error instances.
+   *
+   * @param error - The error from MiniMax API or SDK
+   * @param context - The operation context ("generate" or "stream")
+   * @returns {Error} Standardized error with descriptive message
+   * @private
+   */
+  private handleError(error: unknown, context: string): Error {
+    if (error instanceof Error) {
+      if (
+        error.message.toLowerCase().includes("api key") ||
+        error.message.toLowerCase().includes("unauthorized") ||
+        error.message.toLowerCase().includes("401")
+      ) {
+        return new Error(
+          "Invalid or missing API key. Check your DC_MINIMAX_API_KEY configuration.",
+        );
+      }
+
+      if (
+        error.message.toLowerCase().includes("rate limit") ||
+        error.message.toLowerCase().includes("429")
+      ) {
+        return new Error("Rate limit exceeded. Please wait before retrying.");
+      }
+
+      if (
+        error.message.toLowerCase().includes("model") ||
+        error.message.toLowerCase().includes("invalid")
+      ) {
+        return new Error("Invalid model ID. Check that the model name is correct and available.");
+      }
+
+      return new Error(`MinimaxProvider ${context} failed: ${error.message}`);
+    }
+
+    return new Error(`MinimaxProvider ${context} failed: Unknown error occurred`);
+  }
+}
+
+/**
+ * Factory function to create a MinimaxProvider instance.
+ *
+ * @param config - Configuration object or API key string
+ * @returns {Provider} A new MinimaxProvider instance
+ *
+ * @example
+ * ```typescript
+ * const provider = createMinimaxProvider(process.env.DC_MINIMAX_API_KEY!);
+ * ```
+ */
+export function createMinimaxProvider(config: MinimaxProviderConfig | string): Provider {
+  return new MinimaxProvider(config);
+}
+
+// ---------------------------------------------------------------------------
+// ProviderAdapter — LLM Picker static metadata
+// ---------------------------------------------------------------------------
 
 const MINIMAX_MODELS: ModelDescriptor[] = [
   {
