@@ -13,7 +13,7 @@ const DEFAULT_TIMEOUT_SECONDS = 30;
 const DEFAULT_MAX_LENGTH = 50000;
 
 const fetchParametersSchema = z.object({
-  url: z.string().url("Invalid URL format"),
+  url: z.string().url(),
   maxLength: z
     .number()
     .int()
@@ -37,20 +37,30 @@ export interface FetchResponse {
 
 type FetchResultData = FetchResponse;
 
-function extractTextContent(element: ReturnType<typeof parse>): string {
-  const text = (element.text || "").replace(/\s+/g, " ").trim();
+interface ParseElement {
+  text: string;
+  querySelector: (
+    sel: string,
+  ) => { text?: string; getAttribute: (attr: string) => string | null } | null;
+  querySelectorAll: (sel: string) => { getAttribute: (attr: string) => string | null }[];
+}
+
+function extractTextContent(
+  element: ParseElement | { text?: string; getAttribute: (attr: string) => string | null },
+): string {
+  const text = (element.text ?? "").replace(/\s+/g, " ").trim();
   return text;
 }
 
-function extractTitle(element: ReturnType<typeof parse>): string {
+function extractTitle(element: ParseElement): string {
   const titleTag = element.querySelector("title");
-  if (titleTag) {
-    return (titleTag.text || "").trim();
+  if (titleTag?.text) {
+    return titleTag.text.trim();
   }
 
   const h1 = element.querySelector("h1");
-  if (h1) {
-    return (h1.text || "").trim();
+  if (h1?.text) {
+    return h1.text.trim();
   }
 
   const ogTitle = element.querySelector('meta[property="og:title"]');
@@ -61,15 +71,15 @@ function extractTitle(element: ReturnType<typeof parse>): string {
   return "";
 }
 
-function extractLinks(element: ReturnType<typeof parse>): string[] {
+function extractLinks(element: ParseElement): string[] {
   const links = new Set<string>();
 
   element.querySelectorAll("a[href]").forEach((anchor) => {
     const href = anchor.getAttribute("href");
     if (href && !href.startsWith("#") && !href.startsWith("javascript:")) {
       try {
-        new URL(href);
-        links.add(href);
+        const parsedUrl = new URL(href);
+        links.add(parsedUrl.toString());
       } catch {
         // Relative URL - skip
       }
@@ -93,7 +103,9 @@ async function runWebFetch(params: {
   const timeoutMs = (params.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => { controller.abort(); }, timeoutMs);
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
 
   try {
     const response = await fetch(params.url, {
@@ -114,7 +126,7 @@ async function runWebFetch(params: {
       );
     }
 
-      const contentType = response.headers.get("content-type") ?? "";
+    const contentType = response.headers.get("content-type") ?? "";
 
     if (!contentType.includes("text/html")) {
       throw new ToolError(
@@ -133,7 +145,8 @@ async function runWebFetch(params: {
     }
 
     const startedAt = Date.now();
-    const root = parse(html);
+     
+    const root = parse(html) as ParseElement;
 
     const title = extractTitle(root);
 
@@ -165,10 +178,8 @@ async function runWebFetch(params: {
       throw new ToolError("TIMEOUT", `Fetch timed out after ${String(timeoutMs)}ms`);
     }
 
-    throw new ToolError(
-      "FETCH_ERROR",
-      `Failed to fetch ${params.url}: ${(error as Error).message}`,
-    );
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new ToolError("FETCH_ERROR", `Failed to fetch ${params.url}: ${errorMessage}`);
   }
 }
 
@@ -191,8 +202,8 @@ export const webFetchTool: Tool<FetchParams, FetchResultData> = {
     try {
       const result = await runWebFetch({
         url: params.url,
-        maxLength: params.maxLength,
-        extractLinks: params.extractLinks,
+        maxLength: params.maxLength as number | undefined,
+        extractLinks: params.extractLinks as boolean | undefined,
       });
 
       context.emit("tool.end", { tool: "web_fetch", tookMs: result.tookMs });
@@ -200,9 +211,10 @@ export const webFetchTool: Tool<FetchParams, FetchResultData> = {
       return { success: true, data: result };
     } catch (error) {
       context.emit("tool.error", { tool: "web_fetch", error: "FETCH_FAILED" });
+      const errorMessage = error instanceof Error ? error.message : String(error);
       throw error instanceof ToolError
         ? error
-        : new ToolError("FETCH_ERROR", `Web fetch failed: ${(error as Error).message}`);
+        : new ToolError("FETCH_ERROR", `Web fetch failed: ${errorMessage}`);
     }
   },
 };
