@@ -15,7 +15,7 @@ describe("runGitSafetyCheckAsync — secret scanning", () => {
   beforeEach(async () => {
     workspace = await mkdtemp(join(tmpdir(), "diricode-secret-test-"));
 
-    execSync("git init", { cwd: workspace });
+    execSync("git init -b main", { cwd: workspace });
     execSync("git config user.email 'test@test.com'", { cwd: workspace });
     execSync("git config user.name 'Test User'", { cwd: workspace });
 
