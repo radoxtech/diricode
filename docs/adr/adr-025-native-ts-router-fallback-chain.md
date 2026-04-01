@@ -5,7 +5,7 @@
 | Status      | Accepted                                      |
 | Date        | 2026-03-09                                    |
 | Scope       | MVP                                           |
-| References  | analiza-router.md                             |
+| References  | analiza-router.md, ADR-054                   |
 
 ### Context
 

@@ -3,50 +3,50 @@
 ## Summary
 
 Provider Router is the highest-priority implementation epic in MVP bootstrap ("router first").
-It delivers a native TypeScript routing layer over Vercel AI SDK for provider selection, structured error classification, retry/backoff, provider-level fallback, and resilient streaming.
+It delivers a native TypeScript routing layer using **Vercel AI SDK** (`@ai-sdk/*`) as the transport layer for LLM communication, with structured error classification, retry/backoff, provider-level fallback, and resilient streaming on top.
+
+**Architecture (ADR-054):** AI SDK handles all LLM transport (`generateText`, `streamText`, `createProviderRegistry`). DiriCode adds error classification, retry engine, fallback chain, stream lifecycle management, and static **Model Cards** (`ModelDescriptor`) for metadata that AI SDK does not expose (context window, capabilities, pricing tier).
 
 Scope spans **POC → MVP-1**:
-- **POC**: provider abstraction, registry, Copilot adapter, baseline routing path
-- **MVP-1**: full error classifier, retry engine, fallback chain, stream manager, Kimi adapter
+- **POC**: AI SDK provider registry, Copilot adapter via `@ai-sdk/github`, baseline routing path
+- **MVP-1**: full error classifier, retry engine, fallback chain, stream manager, Kimi adapter via `@ai-sdk/moonshotai`
 
 MVP provider priority order:
-1. **Copilot** (priority 1, default)
-2. **Kimi** (priority 2, fallback)
+1. **Copilot** (priority 1, default) — via `@ai-sdk/github`
+2. **Kimi** (priority 2, fallback) — via `@ai-sdk/moonshotai`
 
 Primary reference: `analiza-router.md` (architecture, constants, retry/fallback/stream patterns).
-Architecture target: **Provider Registry + Error Classifier + Retry Engine + Stream Manager**, wrapping `@ai-sdk/*`.
+Architecture target: **AI SDK Provider Registry + Error Classifier + Retry Engine + Stream Manager**, using `@ai-sdk/*` provider packages.
+Transport decision: `docs/adr/adr-054-ai-sdk-transport-layer.md`
 
 ---
 
-## Issue: DC-PROV-001 — Provider interface and registry
+## Issue: DC-PROV-001 — Provider registry (AI SDK)
 
 ### Description
-Define core provider abstraction and registry in `@diricode/providers`:
-- Abstract Provider interface wrapping Vercel AI SDK model access + streaming entrypoint
-- Provider metadata model: `name`, `models`, `capabilities`, `priority`, `rateLimits`
-- Registry API:
-  - `register(provider)`
-  - `get(name)`
-  - `list()`
+Configure the AI SDK provider registry using `createProviderRegistry()` from the `ai` package:
+- Register all MVP providers via their official `@ai-sdk/*` packages
+- Provider metadata model for DiriCode-specific concerns: `name`, `priority`, `rateLimits`
+- Registry API wrapping AI SDK:
+  - `registry.languageModel("provider:model")` for model lookup
+  - `list()` for enumerating available providers
   - `getDefault()` (priority-based or explicit default)
-- Registry validation:
-  - no duplicate provider names
-  - no invalid priority values
-  - deterministic ordering by priority asc
+- Static **Model Cards** (`ModelDescriptor[]`) bundled per provider for metadata AI SDK doesn't expose (context window, max output, capabilities, pricing tier)
 - Initial support for exactly two MVP providers: Copilot (1), Kimi (2)
 
 ### Acceptance Criteria
-- Provider interface is package-public and used by adapters
-- Registry supports register/get/list/getDefault with typed errors
+- AI SDK `createProviderRegistry()` configured with `@ai-sdk/github` and `@ai-sdk/moonshotai`
+- Static `ModelDescriptor[]` bundled for each provider's models (JSON or TypeScript constants)
 - Default provider resolution returns Copilot when both configured
-- Metadata includes capabilities needed by router decisions (streaming, tool-use support, max context hints if available)
+- Model Cards include capabilities needed by router decisions (context window, tool-use support, vision, reasoning)
 - Unit tests cover:
-  - successful registration
-  - duplicate provider registration failure
-  - missing provider fetch failure
+  - successful model lookup via `registry.languageModel()`
+  - missing provider/model fetch failure
   - default resolution behavior
+  - Model Card data validation
 
 ### References
+- `docs/adr/adr-054-ai-sdk-transport-layer.md` (AI SDK adoption, two-registry architecture)
 - `analiza-router.md` (section 4.2/4.3 architecture and public interface)
 - `spec-mvp-diricode.md` (router first, Copilot/Kimi MVP priority)
 - `docs/adr/adr-025-native-ts-router-fallback-chain.md`
@@ -59,28 +59,30 @@ Define core provider abstraction and registry in `@diricode/providers`:
 
 ---
 
-## Issue: DC-PROV-002 — Copilot provider adapter
+## Issue: DC-PROV-002 — Copilot provider adapter (via `@ai-sdk/github`)
 
 ### Description
-Implement GitHub Models/Copilot adapter (priority 1) as Provider interface implementation:
-- Integrate via `@ai-sdk/github` when viable; fallback to custom adapter if required by API shape
+Configure the GitHub Models/Copilot adapter (priority 1) using the official `@ai-sdk/github` package:
 - Auth via GitHub token (`DC_*` env convention per config standards)
 - Model mapping table for MVP-required models (e.g. `gpt-5.4`, `claude-sonnet` variants exposed through GitHub Models)
-- Streaming support normalized to router stream contract
-- Adapter-level error payload preservation for classifier (`raw` error propagation)
+- Streaming via AI SDK's `streamText()` — normalized to router stream contract
+- Error payload preservation for classifier (`raw` error propagation)
+- Static `ModelDescriptor[]` for all Copilot-accessible models (bundled, not fetched at runtime)
 
 ### Acceptance Criteria
-- Copilot adapter registers successfully in Provider Registry with priority 1
+- Copilot adapter configured in AI SDK provider registry with priority 1 via `@ai-sdk/github`
 - Missing/invalid auth is surfaced as structured provider error input (not swallowed)
 - Model mapping is deterministic and test-covered
-- Streaming emits chunks compatible with Stream Manager expectations
+- Streaming via `streamText()` emits chunks compatible with Stream Manager expectations
+- Static `ModelDescriptor[]` bundled for Copilot models (context window, capabilities)
 - Integration tests with mocked AI SDK confirm:
-  - successful non-stream request
-  - successful stream request
+  - successful non-stream request via `generateText()`
+  - successful stream request via `streamText()`
   - auth failure path
   - unmapped model failure path
 
 ### References
+- `docs/adr/adr-054-ai-sdk-transport-layer.md` (AI SDK adoption)
 - `analiza-router.md` (OpenCode + Vercel AI SDK patterns; Copilot priority)
 - `spec-mvp-diricode.md` (MVP providers)
 - `docs/adr/adr-025-native-ts-router-fallback-chain.md`
@@ -243,21 +245,23 @@ Implement stream lifecycle manager for resilient streaming behavior:
 
 ---
 
-## Issue: DC-PROV-007 — Kimi provider adapter
+## Issue: DC-PROV-007 — Kimi provider adapter (via `@ai-sdk/moonshotai`)
 
 ### Description
-Implement Kimi adapter (priority 2) as fallback-capable Provider:
-- Kimi API integration (likely OpenAI-compatible path, per analysis recommendation)
+Configure the Kimi adapter (priority 2) as fallback-capable provider using the official `@ai-sdk/moonshotai` package:
+- `@ai-sdk/moonshotai` is a thin wrapper over OpenAI-compatible API — minimal configuration needed
 - Auth wiring via `DC_*` env/config conventions
 - Model mapping for MVP family assignments
-- Streaming support compatible with Stream Manager
+- Streaming via AI SDK's `streamText()` — compatible with Stream Manager
 - Error payload compatibility for classifier
+- Static `ModelDescriptor[]` for Kimi models (bundled)
 
 ### Acceptance Criteria
-- Kimi adapter registers with priority 2 in Provider Registry
+- Kimi adapter configured in AI SDK provider registry with priority 2 via `@ai-sdk/moonshotai`
 - Authentication and model mapping are test-covered
-- Streaming works through common router stream pipeline
+- Streaming works through common AI SDK `streamText()` pipeline
 - Error responses from Kimi are classifiable into 7 error kinds
+- Static `ModelDescriptor[]` bundled for Kimi models
 - Integration tests with mocked API/SDK cover:
   - success path
   - auth failure
@@ -265,6 +269,7 @@ Implement Kimi adapter (priority 2) as fallback-capable Provider:
   - context-overflow failure
 
 ### References
+- `docs/adr/adr-054-ai-sdk-transport-layer.md` (AI SDK adoption)
 - `analiza-router.md` (sections 3.1, 3.6, 6)
 - `spec-mvp-diricode.md` (MVP providers and order)
 - `docs/adr/adr-025-native-ts-router-fallback-chain.md`
