@@ -1,4 +1,4 @@
-import { PricingTierSchema, type PricingTier } from "@diricode/picker-contracts";
+import type { PricingTier } from "@diricode/picker-contracts";
 import { z } from "zod";
 
 export { PricingTierSchema } from "@diricode/picker-contracts";
@@ -11,8 +11,8 @@ export const HardRuleSchema = z
   .object({
     "agent.role": z.string().min(1).optional(),
     "task.complexity": TaskComplexitySchema.optional(),
-    min_pricing_tier: PricingTierSchema.optional(),
-    max_pricing_tier: PricingTierSchema.optional(),
+    min_pricing_tier: z.enum(["budget", "standard", "premium"]).optional(),
+    max_pricing_tier: z.enum(["budget", "standard", "premium"]).optional(),
   })
   .refine((rule) => rule["agent.role"] !== undefined || rule["task.complexity"] !== undefined, {
     message: "Hard rule must declare at least one matcher",

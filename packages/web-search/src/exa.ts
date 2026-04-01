@@ -20,7 +20,7 @@ const codeContextParametersSchema = z.object({
 });
 
 const crawlParametersSchema = z.object({
-  url: z.string().url("Must be a valid URL").min(1),
+  url: z.string().url(),
   prompt: z.string().optional(),
 });
 
@@ -135,7 +135,9 @@ async function callMcpTool(
   timeoutMs: number,
 ): Promise<unknown> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => { controller.abort(); }, timeoutMs);
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
 
   const request: McpRequest = {
     jsonrpc: "2.0",

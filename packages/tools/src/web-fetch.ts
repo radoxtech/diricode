@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
 import { ToolError } from "@diricode/core";
@@ -5,8 +6,17 @@ import TurndownService from "turndown";
 
 const parametersSchema = z.object({
   url: z.string().url().describe("The URL to fetch content from"),
-  format: z.enum(["markdown", "text", "html"]).default("markdown").describe("The format to return the content in"),
-  timeout: z.number().int().min(1000).max(60000).default(30000).describe("Timeout in milliseconds (max 60000)"),
+  format: z
+    .enum(["markdown", "text", "html"])
+    .default("markdown")
+    .describe("The format to return the content in"),
+  timeout: z
+    .number()
+    .int()
+    .min(1000)
+    .max(60000)
+    .default(30000)
+    .describe("Timeout in milliseconds (max 60000)"),
 });
 
 export type WebFetchParams = z.infer<typeof parametersSchema>;
@@ -50,14 +60,15 @@ export const webFetchTool: Tool<WebFetchParams, WebFetchResult> = {
         signal: controller.signal,
         headers: {
           "User-Agent": "DiriCode/0.0.0 (https://github.com/radoxtech/diricode)",
-          "Accept": params.format === "html" ? "text/html" : "text/html,text/plain,application/xhtml+xml",
+          Accept:
+            params.format === "html" ? "text/html" : "text/html,text/plain,application/xhtml+xml",
         },
       });
 
       if (!response.ok) {
         throw new ToolError(
           "HTTP_ERROR",
-          `Failed to fetch ${url}: ${String(response.status)} ${response.statusText}`
+          `Failed to fetch ${url}: ${String(response.status)} ${response.statusText}`,
         );
       }
 
@@ -90,7 +101,6 @@ export const webFetchTool: Tool<WebFetchParams, WebFetchResult> = {
 
       context.emit("tool.end", { tool: "web-fetch", url, truncated });
       return { success: true, data: result };
-
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") {
         throw new ToolError("TIMEOUT", `Fetch timeout after ${String(timeout)}ms`);
