@@ -1,9 +1,13 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { z } from "zod";
 import { createDispatcher } from "../dispatcher.js";
 import { AgentRegistry } from "../registry.js";
 import type { AgentContext, Tool, ToolContext, Agent } from "@diricode/core";
-import { BoundaryViolationError, DISPATCHER_CONTRACT, enforceDispatcherBoundary } from "@diricode/core";
-
+import {
+  BoundaryViolationError,
+  DISPATCHER_CONTRACT,
+  enforceDispatcherBoundary,
+} from "@diricode/core";
 
 vi.mock("../sandbox.js", () => ({
   executeInSandbox: vi.fn().mockResolvedValue({
@@ -24,31 +28,36 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
   const mockWriteTool: Tool = {
     name: "file_write",
     description: "Mutates files",
-    parameters: {} as any,
+    parameters: z.object({}),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    execute: async () => ({ success: true, data: {} }),
+    execute: async (_params: unknown): Promise<{ success: true; data: unknown }> => {
+      return { success: true, data: {} };
+    },
   };
 
   const mockBashTool: Tool = {
     name: "bash",
     description: "Executes commands",
-    parameters: {} as any,
+    parameters: z.object({}),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    execute: async () => ({ success: true, data: {} }),
+    execute: async (_params: unknown): Promise<{ success: true; data: unknown }> => {
+      return { success: true, data: {} };
+    },
   };
 
   const mockClassifyTool: Tool = {
     name: "classify_intent",
     description: "Classifies intent",
-    parameters: {} as any,
+    parameters: z.object({}),
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    execute: async () => ({ success: true, data: {} }),
+    execute: async (_params: unknown): Promise<{ success: true; data: unknown }> => {
+      return { success: true, data: {} };
+    },
   };
 
   beforeEach(() => {
     registry = new AgentRegistry();
 
-    
     const dummyAgent: Agent = {
       metadata: {
         name: "code_agent",
@@ -58,7 +67,14 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
         capabilities: [],
         tags: [],
       },
-      execute: async () => ({ success: true, output: "done", toolCalls: 0, tokensUsed: 0 }),
+      execute: async (): Promise<{
+        success: true;
+        output: string;
+        toolCalls: number;
+        tokensUsed: number;
+      }> => {
+        return { success: true, output: "done", toolCalls: 0, tokensUsed: 0 };
+      },
     };
     registry.register(dummyAgent);
 
@@ -75,13 +91,10 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
 
   describe("Permitted Behaviors", () => {
     test("Dispatcher can classify intent and discover agents", async () => {
-      
       await dispatcher.execute("Please write a new function", context);
 
-      
       expect(emitFn).toHaveBeenCalledWith("dispatcher.intent.classified", expect.any(Object));
 
-      
       expect(emitFn).toHaveBeenCalledWith(
         "dispatcher.agent.selected",
         expect.objectContaining({
@@ -93,7 +106,6 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
     test("Dispatcher can delegate to specialists and emit observability events", async () => {
       await dispatcher.execute("Please implement code feature X", context);
 
-      
       expect(emitFn).toHaveBeenCalledWith(
         "dispatcher.boundary.checked",
         expect.objectContaining({
@@ -112,34 +124,18 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
 
   describe("Prohibited Behaviors", () => {
     test("Dispatcher attempting to use file_write throws BoundaryViolationError", async () => {
-      
-      
-      
-
-      
-      
-      
-      
-
-      
-      
-      
-
       const safeTools = enforceDispatcherBoundary(context.tools, emitFn);
 
       const writeTool = safeTools.find((t) => t.name === "file_write")!;
       const classifyTool = safeTools.find((t) => t.name === "classify_intent")!;
 
-      
       const result = await classifyTool.execute({}, {} as ToolContext);
       expect(result.success).toBe(true);
 
-      
       await expect(writeTool.execute({}, {} as ToolContext)).rejects.toThrow(
         BoundaryViolationError,
       );
 
-      
       expect(emitFn).toHaveBeenCalledWith(
         "dispatcher.boundary.violation.tool_attempt",
         expect.objectContaining({
@@ -151,7 +147,6 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
     });
 
     test("Dispatcher attempting to use bash throws BoundaryViolationError", async () => {
-      
       const safeTools = enforceDispatcherBoundary(context.tools, emitFn);
       const bashTool = safeTools.find((t) => t.name === "bash")!;
 
@@ -159,7 +154,6 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
     });
 
     test("Error messages are clear and actionable", async () => {
-      
       const safeTools = enforceDispatcherBoundary(context.tools, emitFn);
       const bashTool = safeTools.find((t) => t.name === "bash")!;
 
