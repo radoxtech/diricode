@@ -17,10 +17,13 @@ import {
   DEFAULT_SANDBOX_CONFIG,
   generateExecutionId,
   createPolicyEnforcingToolRegistry,
+  filterContextForHandoff,
+  createFilterPolicyForCategory,
 } from "@diricode/core";
 
 import type { AgentRegistry } from "./registry.js";
 import { DelegationGraph, createHandoffEnvelope, createDelegationResult } from "./protocol.js";
+import { DISPATCHER_CONTRACT, enforceDispatcherBoundary } from "@diricode/core";
 import { executeInSandbox } from "./sandbox.js";
 import type { SandboxContext } from "./sandbox.js";
 
@@ -167,7 +170,13 @@ async function executeSwarm(
             agent.metadata.toolPolicy ?? {},
             agent.metadata.name,
             context.emit,
-          ),
+          ).map((t) => ({
+            ...t,
+            execute: async (p, ctx) => {
+              graph.recordToolCall(envelope.childExecutionId, t.name);
+              return t.execute(p, ctx);
+            },
+          })),
         };
 
         const result = await agent.execute(task.description, childContext);
@@ -234,6 +243,7 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
       "sandbox-execution",
     ],
     tags: ["orchestration"],
+    toolPolicy: { allowedTools: DISPATCHER_CONTRACT.allowedTools, silentFilter: false },
   };
 
   const graph = new DelegationGraph();
@@ -280,7 +290,18 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         input: input.substring(0, 200),
       });
 
+      // Enforce boundary by wrapping tools - dispatcher itself doesn't execute tools
+      // but the enforcement ensures violations are logged and tracked
+      enforceDispatcherBoundary(context.tools, context.emit);
+
+      context.emit("dispatcher.boundary.checked", {
+        executionId,
+        allowedTools: metadata.toolPolicy?.allowedTools,
+        enforced: true,
+      });
+
       const intent = classifyIntent(input);
+      context.emit("dispatcher.intent.classified", { intent, executionId });
       context.emit("dispatcher.intent-classified", { intent, executionId });
 
       const candidates = config.registry.search(intent.query);
@@ -301,6 +322,11 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         throw new AgentError("NO_AGENT_FOUND", "No candidates available");
       }
 
+      context.emit("dispatcher.agent.selected", {
+        agent: selected.agent.name,
+        score: selected.score,
+        executionId,
+      });
       context.emit("dispatcher.agent-selected", {
         agent: selected.agent.name,
         score: selected.score,
@@ -318,6 +344,25 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         executionId,
       });
 
+      // Apply handoff filtering based on child agent category
+      const filterPolicy = createFilterPolicyForCategory(agent.metadata.category);
+      const { filteredContext, metadata: filterMetadata } = filterContextForHandoff(
+        context,
+        DEFAULT_INHERITANCE_RULES,
+        filterPolicy,
+        agent.metadata.category,
+      );
+
+      context.emit("handoff.filtered", {
+        handoffId: undefined, // Will be set after envelope creation
+        childAgent: selected.agent.name,
+        category: agent.metadata.category,
+        filteredCategories: filterMetadata.filteredCategories,
+        filteredCount: filterMetadata.filteredCount,
+        estimatedTokensSaved: filterMetadata.estimatedTokensSaved,
+        executionId,
+      });
+
       const envelope = createHandoffEnvelope({
         parentExecutionId: executionId,
         parentAgentName: metadata.name,
@@ -326,8 +371,15 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         taskInput: input,
         inheritanceRules: DEFAULT_INHERITANCE_RULES,
         parentContext: context,
+        filteredContext,
       });
 
+      context.emit("dispatcher.delegation.created", {
+        handoffId: envelope.handoffId,
+        childExecutionId: envelope.childExecutionId,
+        agent: selected.agent.name,
+        executionId,
+      });
       context.emit("delegation.handoff-created", {
         handoffId: envelope.handoffId,
         childExecutionId: envelope.childExecutionId,
@@ -352,7 +404,13 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
           agent.metadata.toolPolicy ?? {},
           agent.metadata.name,
           context.emit,
-        ),
+        ).map((t) => ({
+          ...t,
+          execute: async (p, ctx) => {
+            graph.recordToolCall(envelope.childExecutionId, t.name);
+            return t.execute(p, ctx);
+          },
+        })),
       };
 
       context.emit("delegation.child.started", {

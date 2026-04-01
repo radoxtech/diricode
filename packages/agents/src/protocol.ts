@@ -24,7 +24,44 @@ import {
 /**
  * Tracks the parent-child relationship graph for all agent executions.
  */
+export interface ToolExecutionRecord {
+  toolName: string;
+  executionAgent: string;
+  delegatedFrom: string | null;
+  timestamp: Date;
+}
+
 export class DelegationGraph {
+  readonly #toolCalls = new Map<string, ToolExecutionRecord[]>();
+
+  recordToolCall(executionId: string, toolName: string): void {
+    const node = this.#nodes.get(executionId);
+    if (!node) return;
+    const parentNode = node.parentExecutionId ? this.#nodes.get(node.parentExecutionId) : null;
+    const record: ToolExecutionRecord = {
+      toolName,
+      executionAgent: node.agentName,
+      delegatedFrom: parentNode ? parentNode.agentName : null,
+      timestamp: new Date(),
+    };
+    const calls = this.#toolCalls.get(executionId) ?? [];
+    calls.push(record);
+    this.#toolCalls.set(executionId, calls);
+  }
+
+  getAttributionTrace(executionId: string): ToolExecutionRecord[] {
+    const trace: ToolExecutionRecord[] = [];
+    const calls = this.#toolCalls.get(executionId);
+    if (calls) trace.push(...calls);
+    const node = this.#nodes.get(executionId);
+    if (node) {
+      for (const childId of node.childExecutionIds) {
+        trace.push(...this.getAttributionTrace(childId));
+      }
+    }
+    return trace.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
   readonly #nodes = new Map<string, ParentChildGraphNode>();
 
   /**
@@ -292,6 +329,7 @@ export function createHandoffEnvelope(params: {
   inheritanceRules?: ContextInheritanceRules;
   parentContext: AgentContext;
   parentConversation?: unknown[];
+  filteredContext?: DelegationContext;
 }): ContextHandoffEnvelope {
   const rules = params.inheritanceRules ?? DEFAULT_INHERITANCE_RULES;
   const handoffId = generateHandoffId();
@@ -303,11 +341,10 @@ export function createHandoffEnvelope(params: {
     constraints: params.constraints,
   };
 
-  const delegationContext = serializeContext(
-    params.parentContext,
-    rules,
-    params.parentConversation,
-  );
+  // Use pre-filtered context if provided, otherwise serialize from parent context
+  const delegationContext =
+    params.filteredContext ??
+    serializeContext(params.parentContext, rules, params.parentConversation);
 
   return {
     handoffId,

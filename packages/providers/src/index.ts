@@ -62,7 +62,12 @@ export type { KimiApiKeySource, KimiAuthConfig } from "./kimi/index.js";
 export { ZaiProvider, createZaiProvider } from "./providers/zai.js";
 export type { ZaiProviderConfig } from "./providers/zai.js";
 
-export { MinimaxProviderAdapter } from "./providers/minimax.js";
+export {
+  MinimaxProvider,
+  createMinimaxProvider,
+  MinimaxProviderAdapter,
+} from "./providers/minimax.js";
+export type { MinimaxProviderConfig } from "./providers/minimax.js";
 
 export { ABExperimentManager } from "./ab/ABExperimentManager.js";
 

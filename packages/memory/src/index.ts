@@ -18,3 +18,23 @@ export type {
   ErrorDetails,
   TaskPriority,
 } from "./db/repositories/BackgroundTaskRepository.js";
+export { SessionRepository } from "./db/repositories/SessionRepository.js";
+export type { ListSessionsFilter } from "./db/repositories/SessionRepository.js";
+export { MessageRepository } from "./db/repositories/MessageRepository.js";
+export type { PaginatedMessages } from "./db/repositories/MessageRepository.js";
+export {
+  type Session,
+  type SessionStatus,
+  type CreateSessionInput,
+  type Message,
+  type MessageRole,
+  type AppendMessageInput,
+  SessionSchema,
+  SessionStatusSchema,
+  CreateSessionInputSchema,
+  MessageSchema,
+  MessageRoleSchema,
+  AppendMessageInputSchema,
+  isValidTransition,
+  InvalidSessionTransition,
+} from "./db/schemas/session.js";

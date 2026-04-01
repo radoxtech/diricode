@@ -134,6 +134,9 @@ importers:
       better-sqlite3:
         specifier: ^12.8.0
         version: 12.8.0
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -148,7 +151,7 @@ importers:
   packages/picker-contracts:
     dependencies:
       zod:
-        specifier: ^3.24.0
+        specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       '@types/node':
