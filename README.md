@@ -249,7 +249,7 @@ docs/
 
 | Area                                          | Status          | Notes                                                                   |
 | --------------------------------------------- | --------------- | ----------------------------------------------------------------------- |
-| Dispatcher / delegation                       | ✅ Partial-real | Strong runtime foundation exists                                        |
+| Dispatcher / delegation                       | ✅ Partial-real | **Runtime boundary enforcement implemented (DC-CORE-015)**              |
 | Tool layer                                    | ✅ Partial-real | File/search/bash/LSP/AST foundations exist                              |
 | SQLite memory backbone                        | ✅ Partial-real | Repositories and local-first direction are real                         |
 | SSE / transport                               | ✅ Partial-real | Transport exists; full event model still in progress                    |
