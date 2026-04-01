@@ -148,7 +148,7 @@ importers:
   packages/picker-contracts:
     dependencies:
       zod:
-        specifier: ^3.24.0
+        specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       '@types/node':
