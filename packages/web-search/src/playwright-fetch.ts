@@ -11,7 +11,7 @@ const DEFAULT_MAX_LENGTH = 50000;
 const require = createRequire(import.meta.url);
 
 const playwrightFetchParametersSchema = z.object({
-  url: z.string().url("Invalid URL format"),
+  url: z.string().url(),
   maxLength: z
     .number()
     .int()
@@ -63,19 +63,29 @@ interface PlaywrightModule {
   };
 }
 
-function extractTextContent(element: ReturnType<typeof parse>): string {
-  return (element.text || "").replace(/\s+/g, " ").trim();
+interface ParseElement {
+  text: string;
+  querySelector: (
+    sel: string,
+  ) => { text?: string; getAttribute: (attr: string) => string | null } | null;
+  querySelectorAll: (sel: string) => { getAttribute: (attr: string) => string | null }[];
 }
 
-function extractTitle(element: ReturnType<typeof parse>): string {
+function extractTextContent(
+  element: ParseElement | { text?: string; getAttribute: (attr: string) => string | null },
+): string {
+  return (element.text ?? "").replace(/\s+/g, " ").trim();
+}
+
+function extractTitle(element: ParseElement): string {
   const titleTag = element.querySelector("title");
-  if (titleTag) {
-    return (titleTag.text || "").trim();
+  if (titleTag?.text) {
+    return titleTag.text.trim();
   }
 
   const h1 = element.querySelector("h1");
-  if (h1) {
-    return (h1.text || "").trim();
+  if (h1?.text) {
+    return h1.text.trim();
   }
 
   const ogTitle = element.querySelector('meta[property="og:title"]');
@@ -86,14 +96,15 @@ function extractTitle(element: ReturnType<typeof parse>): string {
   return "";
 }
 
-function extractLinks(element: ReturnType<typeof parse>): string[] {
+function extractLinks(element: ParseElement): string[] {
   const links = new Set<string>();
 
   element.querySelectorAll("a[href]").forEach((anchor) => {
     const href = anchor.getAttribute("href");
     if (href && !href.startsWith("#") && !href.startsWith("javascript:")) {
       try {
-        links.add(new URL(href).toString());
+        const parsedUrl = new URL(href);
+        links.add(parsedUrl.toString());
       } catch {
         return;
       }
@@ -121,7 +132,9 @@ async function resolvePlaywrightModule(): Promise<PlaywrightModule | null> {
       }
     })(),
     process.env.PLAYWRIGHT_PACKAGE_PATH ?? null,
-    process.env.npm_config_prefix ? `${process.env.npm_config_prefix}/lib/node_modules/playwright/index.mjs` : null,
+    process.env.npm_config_prefix
+      ? `${process.env.npm_config_prefix}/lib/node_modules/playwright/index.mjs`
+      : null,
     "/opt/homebrew/lib/node_modules/playwright/index.mjs",
     "/usr/local/lib/node_modules/playwright/index.mjs",
     "/usr/lib/node_modules/playwright/index.mjs",
@@ -184,8 +197,8 @@ async function runPlaywrightFetch(params: {
         "Page returned a bot-detection challenge after browser rendering.",
       );
     }
-
-    const root = parse(html);
+     
+    const root = parse(html) as ParseElement;
     const title = extractTitle(root);
     const body = root.querySelector("body") ?? root;
     let content = extractTextContent(body);
@@ -205,9 +218,10 @@ async function runPlaywrightFetch(params: {
     if (error instanceof ToolError) {
       throw error;
     }
+    const errorMessage = error instanceof Error ? error.message : String(error);
     throw new ToolError(
       "FETCH_ERROR",
-      `Playwright fetch failed for ${params.url}: ${(error as Error).message}`,
+      `Playwright fetch failed for ${params.url}: ${errorMessage}`,
     );
   } finally {
     if (page) {
@@ -243,18 +257,19 @@ export const playwrightFetchTool: Tool<PlaywrightFetchParams, PlaywrightFetchRes
     try {
       const result = await runPlaywrightFetch({
         url: params.url,
-        maxLength: params.maxLength,
-        extractLinks: params.extractLinks,
-        waitMs: params.waitMs,
+        maxLength: params.maxLength as number | undefined,
+        extractLinks: params.extractLinks as boolean | undefined,
+        waitMs: params.waitMs as number | undefined,
       });
 
       context.emit("tool.end", { tool: "playwright_fetch", tookMs: result.tookMs });
       return { success: true, data: result };
     } catch (error) {
       context.emit("tool.error", { tool: "playwright_fetch", error: "FETCH_FAILED" });
+      const errorMessage = error instanceof Error ? error.message : String(error);
       throw error instanceof ToolError
         ? error
-        : new ToolError("FETCH_ERROR", `Playwright fetch failed: ${(error as Error).message}`);
+        : new ToolError("FETCH_ERROR", `Playwright fetch failed: ${errorMessage}`);
     }
   },
 };

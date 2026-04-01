@@ -26,8 +26,8 @@ export const BenchmarkBucketSchema = z.object({
 export type BenchmarkBucket = z.infer<typeof BenchmarkBucketSchema>;
 
 export const QualityBenchmarkSchema = z.object({
-  by_complexity_role: z.record(BenchmarkBucketSchema),
-  by_specialization: z.record(BenchmarkBucketSchema),
+  by_complexity_role: z.record(z.string(), BenchmarkBucketSchema),
+  by_specialization: z.record(z.string(), BenchmarkBucketSchema),
 });
 export type QualityBenchmark = z.infer<typeof QualityBenchmarkSchema>;
 
