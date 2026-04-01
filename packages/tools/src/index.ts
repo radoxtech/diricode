@@ -75,6 +75,8 @@ export type {
 } from "./lsp-navigation.js";
 export { planParserTool } from "./plan-parser.js";
 export type { ParsedTask, PlanParserResult } from "./plan-parser.js";
+export { diagnosticAnalyzerTool } from "./diagnostic-analyzer.js";
+export type { DiagnosticAnalyzerParams, DiagnosticAnalyzerResult } from "./diagnostic-analyzer.js";
 export { treeSitterParseTool } from "./tree-sitter-parse.js";
 export type { TreeSitterSymbolInfo, TreeSitterParseResult } from "./tree-sitter-parse.js";
 export { webFetchTool } from "./web-fetch.js";
