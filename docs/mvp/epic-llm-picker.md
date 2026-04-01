@@ -186,17 +186,23 @@ The scorer calculates a final score based on:
 
 ## Phase 2 — Providers (Sub-epic #391)
 
+> **AI SDK Integration (ADR-054):** Phase 2 adapters are thin wrappers around Vercel AI SDK's `@ai-sdk/*` provider packages for transport. Each adapter's primary job is to supply **static Model Cards** (`ModelDescriptor[]`) — metadata AI SDK doesn't expose (context window, capabilities, pricing tier, tool-call support) — and wire health/rate-limit reporting into the Picker's scoring engine. The actual LLM transport (`generateText`, `streamText`) is handled by AI SDK.
+
 ### Issue: DC-LLP-008 — ProviderAdapter interface + GitHub adapter
 
 **GitHub**: #403 | **Sub-epic**: #391
 
 #### Description
-Define the `ProviderAdapter` interface for external model providers and implement the GitHub Models adapter.
+Define the `ProviderAdapter` interface for external model providers and implement the GitHub Models adapter. Transport uses `@ai-sdk/github` (ADR-054); the adapter focuses on metadata and health reporting that AI SDK does not provide.
 
 #### Acceptance Criteria
-- [ ] Unified interface for model discovery and capability reporting.
-- [ ] GitHub adapter supports token-based authentication and model listing.
+- [ ] Unified `ProviderAdapter` interface for model discovery and capability reporting.
+- [ ] GitHub adapter uses `@ai-sdk/github` for transport; supplies static `ModelDescriptor[]` for Copilot-accessible models.
+- [ ] Health/rate-limit state extracted from AI SDK response headers (`usage`, `response.headers`).
 - [ ] Error handling for provider-specific rate limits.
+
+#### References
+- `docs/adr/adr-054-ai-sdk-transport-layer.md` (AI SDK adoption, two-registry architecture)
 
 #### Dependencies
 - Depends on: DC-LLP-001
@@ -208,11 +214,15 @@ Define the `ProviderAdapter` interface for external model providers and implemen
 **GitHub**: #404 | **Sub-epic**: #391
 
 #### Description
-Implement the adapter for the z.ai model provider.
+Implement the adapter for the z.ai model provider. Transport via community AI SDK provider package; adapter supplies static `ModelDescriptor[]` and maps z.ai capabilities to DiriCode tags.
 
 #### Acceptance Criteria
-- [ ] Integration with z.ai API for model metadata.
+- [ ] Integration with z.ai via AI SDK-compatible provider package for transport.
+- [ ] Static `ModelDescriptor[]` bundled for z.ai models (context window, capabilities, pricing).
 - [ ] Correct mapping of z.ai capabilities to internal DiriCode tags.
+
+#### References
+- `docs/adr/adr-054-ai-sdk-transport-layer.md`
 
 ---
 
@@ -221,11 +231,15 @@ Implement the adapter for the z.ai model provider.
 **GitHub**: #405 | **Sub-epic**: #391
 
 #### Description
-Implement the adapter for the MiniMax AI provider.
+Implement the adapter for the MiniMax AI provider. Transport via `vercel-minimax-ai-provider` (community, MiniMax-maintained); adapter supplies static `ModelDescriptor[]`.
 
 #### Acceptance Criteria
-- [ ] Full support for MiniMax model registry.
-- [ ] Latency tracking for MiniMax endpoints.
+- [ ] Transport via `vercel-minimax-ai-provider` AI SDK package.
+- [ ] Static `ModelDescriptor[]` bundled for MiniMax models.
+- [ ] Latency tracking for MiniMax endpoints via AI SDK response metadata.
+
+#### References
+- `docs/adr/adr-054-ai-sdk-transport-layer.md`
 
 ---
 
@@ -234,11 +248,16 @@ Implement the adapter for the MiniMax AI provider.
 **GitHub**: #406 | **Sub-epic**: #391
 
 #### Description
-Enhance the existing Kimi provider adapter to support the new `ProviderAdapter` interface and reporting requirements.
+Enhance the existing Kimi provider adapter to support the new `ProviderAdapter` interface and reporting requirements. Transport via `@ai-sdk/moonshotai` (official AI SDK package); adapter supplies static `ModelDescriptor[]`.
 
 #### Acceptance Criteria
+- [ ] Kimi transport via `@ai-sdk/moonshotai` (thin OpenAI-compatible wrapper).
+- [ ] Static `ModelDescriptor[]` bundled for Kimi models with capabilities and pricing.
 - [ ] Kimi models correctly reported to the Picker registry.
 - [ ] Support for Kimi-specific tool-calling flags.
+
+#### References
+- `docs/adr/adr-054-ai-sdk-transport-layer.md`
 
 ---
 
@@ -597,7 +616,7 @@ Add time-series visualizations for long-term trends in model efficiency, cost, a
 - Must NOT skip ONNX/ML tiers — they are non-negotiable for the cascade.
 - Must NOT separate dashboard into multiple panels — must be one panel with tabs.
 - Must NOT make LLM API calls from the Picker — it is a decision engine only.
-- Must NOT handle streaming, retries, or provider failures — those remain with ADR-025/ADR-042.
+- Must NOT handle streaming, retries, or provider failures — those remain with the AI SDK transport layer (ADR-025/ADR-054) and SubscriptionRouter (ADR-042).
 - Must NOT store conversation content or agent outputs — only decision metadata and metrics.
 
 ---
@@ -605,6 +624,8 @@ Add time-series visualizations for long-term trends in model efficiency, cost, a
 ## Dependencies
 
 ### Upstream / External
+- Vercel AI SDK provider packages (`@ai-sdk/*`) for LLM transport (ADR-054); Phase 2 adapters wrap these.
+- Static Model Cards (`ModelDescriptor[]`) bundled per provider for metadata AI SDK doesn't expose.
 - Existing model registry data (provider capabilities, pricing) for seed data.
 - WebSocket infrastructure coexisting with SSE (ADR-001).
 - React Flow library for LineageGraph visualization.
@@ -612,7 +633,7 @@ Add time-series visualizations for long-term trends in model efficiency, cost, a
 - ONNX Runtime for Tier 2/3 classification.
 
 ### Cross-epic
-- **epic-router**: Picker feeds recommendations into the retry/fallback pipeline.
+- **epic-router**: Picker feeds recommendations into the AI SDK transport + retry/fallback pipeline (ADR-054, ADR-025).
 - **epic-memory**: Picker uses SQLite repositories for persistence.
 - **epic-observability**: Picker emits events through the EventStream.
 - **epic-agents-core**: Agent requests flow through the Picker resolver.

@@ -245,3 +245,26 @@ Persistent storage uses 6 tables: `models`, `policies`, `decisions`, `execution_
 | Phase 4 | ML Cascade | ONNX setup, Tier 2 (BERT), Tier 3 (TinyLLM), Orchestrator |
 | Phase 5 | Dashboard | All UI tabs (Map, Logs, Rules, Analytics) |
 | Phase 6 | Optimization | Auto-training pipeline, historical analytics |
+
+### Addendum — Vercel AI SDK as Transport Layer (2026-04-01)
+
+ADR-054 establishes Vercel AI SDK (`@ai-sdk/*`) as the LLM transport layer for DiriCode. This has specific implications for the Picker's provider interface:
+
+**What changes:**
+- The `ProviderAdapter` interface (Section 7) no longer needs to handle raw HTTP transport to LLM APIs. All `generateText()` / `streamText()` calls go through AI SDK provider packages (`@ai-sdk/github`, `@ai-sdk/moonshotai`, `@ai-sdk/google`, etc.).
+- Provider adapters become **metadata + health reporters** rather than transport wrappers. Their primary job is to supply static **Model Cards** (`ModelDescriptor[]`) — metadata AI SDK does not expose (context window, max output, capabilities, pricing tier, tool-call support).
+- Post-call data from AI SDK (`usage.inputTokens`, `usage.outputTokens.reasoning`, `response.headers` for rate-limit extraction) feeds into the Picker's feedback loop and subscription health tracking.
+
+**What does NOT change:**
+- The Picker remains a pure **decision engine** — it never makes LLM API calls.
+- The 3-tier ML cascade, policy scoring, candidate ranking, and explainability trace are unaffected.
+- The `ModelResolver` interface, `DecisionRequest`/`DecisionResponse` contracts, and SQLite persistence are unaffected.
+- All 6 delivery phases remain valid.
+
+**Two-registry architecture:**
+```
+Model Card Registry (ours)     →  "should I pick this model?" (Picker decision)
+AI SDK Provider Registry       →  "can I call this model?" (transport execution)
+```
+
+See `docs/adr/adr-054-ai-sdk-transport-layer.md` for the full AI SDK adoption decision.

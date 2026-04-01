@@ -1,5 +1,7 @@
 # Swarm Model Picker - UI Implementation Plan
 
+> **Transport Layer:** LLM transport uses Vercel AI SDK (`@ai-sdk/*` provider packages) per ADR-054. The Picker dashboard visualizes decisions made by the LLM Picker (ADR-049), which selects models from static Model Cards (`ModelDescriptor[]`) and delegates actual LLM calls to the AI SDK transport layer. See `docs/adr/adr-054-ai-sdk-transport-layer.md`.
+
 ## Epic 1: Core Layout & Global State
 
 **Cel:** Zbudowanie szkieletu aplikacji, nawigacji oraz globalnego zarządzania stanem pod dane realtime.

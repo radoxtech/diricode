@@ -59,6 +59,7 @@
 | [051](adr-051-permission-context-engine-phase1.md) | Permission Context Engine: Phase 1 (Core) | MVP-2 | Safety |
 | [052](adr-052-permission-context-engine-phase2.md) | Permission Context Engine: Phase 2 (Smart) | v2 | Safety |
 | [053](adr-053-router-cost-tracking.md) | Router-Centric Cost Tracking | MVP-2+v2 | Router |
+| [054](adr-054-ai-sdk-transport-layer.md) | Vercel AI SDK as Transport Layer | MVP-1 | Router |
 
 ## Template
 
