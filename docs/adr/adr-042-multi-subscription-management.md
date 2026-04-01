@@ -5,7 +5,7 @@
 | Status      | Accepted                                                      |
 | Date        | 2026-03-21                                                    |
 | Scope       | MVP-2 (subscription rotation), v2 (quality scoring), v3 (A/B testing) |
-| References  | ADR-004 (agent roster 3 tiers), ADR-005 (families), ADR-006 (4 fallback types), ADR-025 (native TS router + fallback chain), Survey Decision E1 |
+| References  | ADR-004 (agent roster 3 tiers), ADR-005 (families), ADR-006 (4 fallback types), ADR-025 (native TS router + fallback chain), ADR-054 (Vercel AI SDK transport layer), Survey Decision E1 |
 
 ### Context
 
@@ -408,4 +408,20 @@ Dispatcher/Agent ──► Picker (ADR-049) ──► SubscriptionRouter (this A
 The Picker consumes subscription health data from this ADR to inform cost and latency estimates in its scoring algorithm, but it does not manage subscription state itself. The SubscriptionRouter's auto-recovery, cooldown, and rotation logic remain unchanged.
 
 When the Picker is unavailable (e.g., during bootstrap or failure), the existing `ModelTierResolver` + SubscriptionRouter path serves as a degraded fallback — static tier mapping without policy scoring.
+
+### Addendum — Vercel AI SDK Provider Registry (2026-04-01)
+
+ADR-054 establishes Vercel AI SDK (`@ai-sdk/*`) as the LLM transport layer. This affects how the SubscriptionRouter interacts with provider APIs:
+
+**What changes:**
+- The SubscriptionRouter no longer calls provider APIs directly. Instead, it resolves the target subscription's credentials and passes them to the AI SDK provider registry (`createProviderRegistry()` from the `ai` package).
+- AI SDK handles all HTTP transport (`generateText()`, `streamText()`), protocol normalization, and streaming primitives.
+- Post-call health data extraction (`response.headers` for rate-limit headers, `usage` for token counts) comes from AI SDK response objects rather than raw HTTP responses.
+
+**What does NOT change:**
+- The `Subscription` entity, `SubscriptionHealth` tracking, routing strategy (filter → exclude → rank → select), cooldown logic, and auto-recovery all remain unchanged.
+- The 3D model classification (Tier × Family × ContextGroup) remains unchanged.
+- Static **Model Cards** (`ModelDescriptor[]`) are bundled per provider for metadata AI SDK doesn't expose (context window, capabilities, pricing tier). These cards feed into the routing strategy's cost and capability scoring.
+
+See `docs/adr/adr-054-ai-sdk-transport-layer.md` for the full AI SDK adoption decision.
 
