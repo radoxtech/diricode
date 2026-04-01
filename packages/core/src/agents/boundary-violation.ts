@@ -38,14 +38,13 @@ export class BoundaryViolationError extends AgentError {
   }
 }
 
-
 import type { Tool, ToolContext } from "../tools/types.js";
 import { isToolAllowed } from "../tools/types.js";
 import { DISPATCHER_CONTRACT } from "./dispatcher-contract.js";
 
 export function enforceDispatcherBoundary(
   tools: readonly Tool[],
-  emit: (event: string, payload: unknown) => void
+  emit: (event: string, payload: unknown) => void,
 ): Tool[] {
   return tools.map((tool) => {
     if (isToolAllowed(tool.name, { allowedTools: DISPATCHER_CONTRACT.allowedTools })) {
@@ -53,14 +52,14 @@ export function enforceDispatcherBoundary(
     }
     return {
       ...tool,
-      execute: async (_params: unknown, _context: ToolContext) => {
+      execute: (_params: unknown, _context: ToolContext): Promise<never> => {
         const error = new BoundaryViolationError(
           "dispatcher.boundary.violation.tool_attempt",
           tool.name,
-          `Dispatcher is prohibited from using mutating or unauthorized tool: ${tool.name}`
+          `Dispatcher is prohibited from using mutating or unauthorized tool: ${tool.name}`,
         );
         emit("dispatcher.boundary.violation.tool_attempt", error.toEvent("dispatcher"));
-        throw error;
+        return Promise.reject(error);
       },
     };
   });

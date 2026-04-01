@@ -30,8 +30,8 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
     description: "Mutates files",
     parameters: z.object({}),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    execute: async (_params: unknown): Promise<{ success: true; data: unknown }> => {
-      return { success: true, data: {} };
+    execute: (_params: unknown) => {
+      return Promise.resolve({ success: true, data: {} as unknown });
     },
   };
 
@@ -40,8 +40,8 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
     description: "Executes commands",
     parameters: z.object({}),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    execute: async (_params: unknown): Promise<{ success: true; data: unknown }> => {
-      return { success: true, data: {} };
+    execute: (_params: unknown) => {
+      return Promise.resolve({ success: true, data: {} as unknown });
     },
   };
 
@@ -50,8 +50,8 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
     description: "Classifies intent",
     parameters: z.object({}),
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    execute: async (_params: unknown): Promise<{ success: true; data: unknown }> => {
-      return { success: true, data: {} };
+    execute: (_params: unknown) => {
+      return Promise.resolve({ success: true, data: {} as unknown });
     },
   };
 
@@ -67,13 +67,8 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
         capabilities: [],
         tags: [],
       },
-      execute: async (): Promise<{
-        success: true;
-        output: string;
-        toolCalls: number;
-        tokensUsed: number;
-      }> => {
-        return { success: true, output: "done", toolCalls: 0, tokensUsed: 0 };
+      execute: () => {
+        return Promise.resolve({ success: true, output: "done", toolCalls: 0, tokensUsed: 0 });
       },
     };
     registry.register(dummyAgent);
@@ -126,8 +121,13 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
     test("Dispatcher attempting to use file_write throws BoundaryViolationError", async () => {
       const safeTools = enforceDispatcherBoundary(context.tools, emitFn);
 
-      const writeTool = safeTools.find((t) => t.name === "file_write")!;
-      const classifyTool = safeTools.find((t) => t.name === "classify_intent")!;
+      const writeTool = safeTools.find((t) => t.name === "file_write");
+      const classifyTool = safeTools.find((t) => t.name === "classify_intent");
+
+      expect(writeTool).toBeDefined();
+      expect(classifyTool).toBeDefined();
+
+      if (!classifyTool || !writeTool) return;
 
       const result = await classifyTool.execute({}, {} as ToolContext);
       expect(result.success).toBe(true);
@@ -148,14 +148,22 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
 
     test("Dispatcher attempting to use bash throws BoundaryViolationError", async () => {
       const safeTools = enforceDispatcherBoundary(context.tools, emitFn);
-      const bashTool = safeTools.find((t) => t.name === "bash")!;
+      const bashTool = safeTools.find((t) => t.name === "bash");
+
+      expect(bashTool).toBeDefined();
+
+      if (!bashTool) return;
 
       await expect(bashTool.execute({}, {} as ToolContext)).rejects.toThrow(BoundaryViolationError);
     });
 
     test("Error messages are clear and actionable", async () => {
       const safeTools = enforceDispatcherBoundary(context.tools, emitFn);
-      const bashTool = safeTools.find((t) => t.name === "bash")!;
+      const bashTool = safeTools.find((t) => t.name === "bash");
+
+      expect(bashTool).toBeDefined();
+
+      if (!bashTool) return;
 
       let error: Error | null = null;
       try {
@@ -165,7 +173,7 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
       }
 
       expect(error).toBeInstanceOf(BoundaryViolationError);
-      expect(error!.message).toMatch(
+      expect(error?.message).toMatch(
         /Dispatcher is prohibited from using mutating or unauthorized tool: bash/,
       );
     });

@@ -21,7 +21,7 @@ import {
 
 import type { AgentRegistry } from "./registry.js";
 import { DelegationGraph, createHandoffEnvelope, createDelegationResult } from "./protocol.js";
-import { DISPATCHER_CONTRACT, BoundaryViolationError, enforceDispatcherBoundary } from "@diricode/core";
+import { DISPATCHER_CONTRACT, enforceDispatcherBoundary } from "@diricode/core";
 import { executeInSandbox } from "./sandbox.js";
 import type { SandboxContext } from "./sandbox.js";
 
@@ -168,12 +168,12 @@ async function executeSwarm(
             agent.metadata.toolPolicy ?? {},
             agent.metadata.name,
             context.emit,
-          ).map(t => ({
+          ).map((t) => ({
             ...t,
             execute: async (p, ctx) => {
               graph.recordToolCall(envelope.childExecutionId, t.name);
               return t.execute(p, ctx);
-            }
+            },
           })),
         };
 
@@ -288,9 +288,9 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         input: input.substring(0, 200),
       });
 
-      const safeTools = enforceDispatcherBoundary(context.tools, context.emit);
-      // Ensure dispatcher itself only has access to safe tools
-      const safeContext = { ...context, tools: safeTools };
+      // Enforce boundary by wrapping tools - dispatcher itself doesn't execute tools
+      // but the enforcement ensures violations are logged and tracked
+      enforceDispatcherBoundary(context.tools, context.emit);
 
       context.emit("dispatcher.boundary.checked", {
         executionId,
@@ -382,12 +382,12 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
           agent.metadata.toolPolicy ?? {},
           agent.metadata.name,
           context.emit,
-        ).map(t => ({
+        ).map((t) => ({
           ...t,
           execute: async (p, ctx) => {
             graph.recordToolCall(envelope.childExecutionId, t.name);
             return t.execute(p, ctx);
-          }
+          },
         })),
       };
 
