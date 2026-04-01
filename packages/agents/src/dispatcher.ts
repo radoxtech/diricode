@@ -17,6 +17,8 @@ import {
   DEFAULT_SANDBOX_CONFIG,
   generateExecutionId,
   createPolicyEnforcingToolRegistry,
+  filterContextForHandoff,
+  createFilterPolicyForCategory,
 } from "@diricode/core";
 
 import type { AgentRegistry } from "./registry.js";
@@ -342,6 +344,25 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         executionId,
       });
 
+      // Apply handoff filtering based on child agent category
+      const filterPolicy = createFilterPolicyForCategory(agent.metadata.category);
+      const { filteredContext, metadata: filterMetadata } = filterContextForHandoff(
+        context,
+        DEFAULT_INHERITANCE_RULES,
+        filterPolicy,
+        agent.metadata.category,
+      );
+
+      context.emit("handoff.filtered", {
+        handoffId: undefined, // Will be set after envelope creation
+        childAgent: selected.agent.name,
+        category: agent.metadata.category,
+        filteredCategories: filterMetadata.filteredCategories,
+        filteredCount: filterMetadata.filteredCount,
+        estimatedTokensSaved: filterMetadata.estimatedTokensSaved,
+        executionId,
+      });
+
       const envelope = createHandoffEnvelope({
         parentExecutionId: executionId,
         parentAgentName: metadata.name,
@@ -350,6 +371,7 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         taskInput: input,
         inheritanceRules: DEFAULT_INHERITANCE_RULES,
         parentContext: context,
+        filteredContext,
       });
 
       context.emit("dispatcher.delegation.created", {

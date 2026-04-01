@@ -157,4 +157,5 @@ export type {
 
 export * from "./agents/dispatcher-contract.js";
 export * from "./agents/boundary-violation.js";
+export * from "./agents/handoff-filter.js";
 export { enforceDispatcherBoundary } from "./agents/boundary-violation.js";
