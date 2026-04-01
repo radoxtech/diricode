@@ -42,7 +42,7 @@ export class DelegationGraph {
       toolName,
       executionAgent: node.agentName,
       delegatedFrom: parentNode ? parentNode.agentName : null,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
     const calls = this.#toolCalls.get(executionId) ?? [];
     calls.push(record);
@@ -329,6 +329,7 @@ export function createHandoffEnvelope(params: {
   inheritanceRules?: ContextInheritanceRules;
   parentContext: AgentContext;
   parentConversation?: unknown[];
+  filteredContext?: DelegationContext;
 }): ContextHandoffEnvelope {
   const rules = params.inheritanceRules ?? DEFAULT_INHERITANCE_RULES;
   const handoffId = generateHandoffId();
@@ -340,11 +341,10 @@ export function createHandoffEnvelope(params: {
     constraints: params.constraints,
   };
 
-  const delegationContext = serializeContext(
-    params.parentContext,
-    rules,
-    params.parentConversation,
-  );
+  // Use pre-filtered context if provided, otherwise serialize from parent context
+  const delegationContext =
+    params.filteredContext ??
+    serializeContext(params.parentContext, rules, params.parentConversation);
 
   return {
     handoffId,
