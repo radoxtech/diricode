@@ -38,3 +38,10 @@ export {
   isValidTransition,
   InvalidSessionTransition,
 } from "./db/schemas/session.js";
+export { SearchRepository } from "./db/repositories/SearchRepository.js";
+export type {
+  SearchResult,
+  SearchFilter,
+  Observation,
+  ObservationType,
+} from "./db/schemas/search.js";
