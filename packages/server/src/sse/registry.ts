@@ -1,4 +1,4 @@
-import type { SseConnection } from "./types.js";
+import type { SseConnection, SseEventType } from "./types.js";
 
 export class SseRegistry {
   private readonly connections = new Map<string, SseConnection>();
@@ -17,6 +17,14 @@ export class SseRegistry {
 
   size(): number {
     return this.connections.size;
+  }
+
+  async broadcast(event: SseEventType, data: unknown): Promise<void> {
+    const writes: Promise<void>[] = [];
+    for (const connection of this.connections.values()) {
+      writes.push(connection.write(event, data));
+    }
+    await Promise.allSettled(writes);
   }
 }
 

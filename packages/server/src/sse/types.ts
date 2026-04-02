@@ -5,6 +5,7 @@ export type SseEventType =
   | "error"
   | "tool_start"
   | "tool_end"
+  | "tool_progress"
   | "message";
 
 /** Base structure for every SSE event's data payload. */
@@ -48,4 +49,5 @@ export interface SseConnection {
   connectedAt: number;
   lastEventId: string | null;
   abort: AbortController;
+  write: (event: SseEventType, data: unknown) => Promise<void>;
 }

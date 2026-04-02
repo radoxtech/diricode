@@ -1,9 +1,21 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { sseRegistry } from "../../sse/registry.js";
-import type { SseConnectedData, SseHeartbeatData, SseMessage } from "../../sse/types.js";
+import { eventBus } from "../../sse/event-bus.js";
+import type {
+  SseConnectedData,
+  SseHeartbeatData,
+  SseMessage,
+  SseEventType,
+} from "../../sse/types.js";
 
 const HEARTBEAT_INTERVAL_MS = 20_000;
+
+const TOOL_EVENT_MAP: Record<string, SseEventType> = {
+  "tool.start": "tool_start",
+  "tool.end": "tool_end",
+  "tool.progress": "tool_progress",
+};
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -20,19 +32,29 @@ eventsRouter.get("/", (c) => {
   const connectionId = generateId();
   const abort = new AbortController();
 
-  sseRegistry.add({
-    id: connectionId,
-    connectedAt: Date.now(),
-    lastEventId,
-    abort,
-  });
-
   return streamSSE(
     c,
     async (stream) => {
       c.req.raw.signal.addEventListener("abort", () => {
         abort.abort();
         sseRegistry.remove(connectionId);
+      });
+
+      const write = async (event: SseEventType, data: unknown): Promise<void> => {
+        if (abort.signal.aborted) return;
+        await stream.writeSSE({
+          id: generateId(),
+          event,
+          data: JSON.stringify(data),
+        });
+      };
+
+      sseRegistry.add({
+        id: connectionId,
+        connectedAt: Date.now(),
+        lastEventId,
+        abort,
+        write,
       });
 
       const connectedData: SseConnectedData = {
@@ -46,6 +68,13 @@ eventsRouter.get("/", (c) => {
         id: connectedMsg.id,
         event: connectedMsg.event,
         data: JSON.stringify(connectedMsg.data),
+      });
+
+      const unsubscribe = eventBus.subscribe((event, payload) => {
+        const sseEvent = TOOL_EVENT_MAP[event];
+        if (sseEvent) {
+          void write(sseEvent, payload);
+        }
       });
 
       while (!abort.signal.aborted) {
@@ -63,6 +92,7 @@ eventsRouter.get("/", (c) => {
         });
       }
 
+      unsubscribe();
       sseRegistry.remove(connectionId);
     },
     async (err, stream) => {

@@ -4,7 +4,12 @@ import { existsSync } from "node:fs";
 import { normalize, resolve } from "node:path";
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@diricode/core";
-import { ToolError } from "@diricode/core";
+import {
+  ToolError,
+  buildToolStartEvent,
+  buildToolEndEvent,
+  buildToolProgressEvent,
+} from "@diricode/core";
 
 const parametersSchema = z.object({
   command: z.string().min(1),
@@ -299,7 +304,14 @@ export const bashTool: Tool<BashParams, BashResult> = {
     idempotentHint: false,
   },
   async execute(params: BashParams, context: ToolContext): Promise<ToolResult<BashResult>> {
-    context.emit("tool.start", { tool: "bash", params });
+    const correlation = {
+      turnId: context.turnId,
+      sessionId: context.sessionId,
+      executionId: context.executionId,
+      agentName: context.agentName,
+    };
+
+    context.emit("tool.start", buildToolStartEvent("bash", correlation, params));
 
     let workdir: string;
     if (params.workdir) {
@@ -346,8 +358,20 @@ export const bashTool: Tool<BashParams, BashResult> = {
         }, 5000);
       }, params.timeout);
 
-      child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
-      child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
+      child.stdout.on("data", (chunk: Buffer) => {
+        stdoutChunks.push(chunk);
+        context.emit(
+          "tool.progress",
+          buildToolProgressEvent("bash", correlation, chunk.toString("utf-8"), "stdout"),
+        );
+      });
+      child.stderr.on("data", (chunk: Buffer) => {
+        stderrChunks.push(chunk);
+        context.emit(
+          "tool.progress",
+          buildToolProgressEvent("bash", correlation, chunk.toString("utf-8"), "stderr"),
+        );
+      });
 
       child.on("close", (exitCode, signal) => {
         clearTimeout(timeoutId);
@@ -378,11 +402,7 @@ export const bashTool: Tool<BashParams, BashResult> = {
       });
     });
 
-    context.emit("tool.end", {
-      tool: "bash",
-      exitCode: result.exitCode,
-      duration: result.duration,
-    });
+    context.emit("tool.end", buildToolEndEvent("bash", correlation, result.duration));
 
     return { success: true, data: result };
   },
