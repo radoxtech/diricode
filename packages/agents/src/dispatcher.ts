@@ -351,15 +351,18 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         DEFAULT_INHERITANCE_RULES,
         filterPolicy,
         agent.metadata.category,
+        agent.metadata.toolPolicy,
       );
 
       context.emit("handoff.filtered", {
-        handoffId: undefined, // Will be set after envelope creation
+        handoffId: undefined,
         childAgent: selected.agent.name,
         category: agent.metadata.category,
         filteredCategories: filterMetadata.filteredCategories,
         filteredCount: filterMetadata.filteredCount,
         estimatedTokensSaved: filterMetadata.estimatedTokensSaved,
+        toolScopeBoundaries: filterMetadata.toolScopeBoundaries,
+        inheritanceMode: filterMetadata.inheritanceMode,
         executionId,
       });
 
