@@ -344,3 +344,5 @@ export function generateExecutionId(): string {
 export function generateHandoffId(): string {
   return `handoff_${String(Date.now())}_${Math.random().toString(36).substring(2, 11)}`;
 }
+
+export { generateTurnId } from "./turn-id.js";
