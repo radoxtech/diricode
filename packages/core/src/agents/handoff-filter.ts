@@ -1,8 +1,10 @@
 import type { AgentCategory, AgentContext } from "./types.js";
+import type { ToolAccessPolicy } from "../tools/types.js";
 import type { ContextInheritanceRules, DelegationContext, ArtifactReference } from "./protocol.js";
 
 /**
  * Policy for what context to include or exclude during handoff.
+ * Enforces per-agent context boundaries per Pattern 09 — Handoff Input Filtering.
  */
 export interface ContextFilterPolicy {
   /** Categories of context to include */
@@ -15,6 +17,8 @@ export interface ContextFilterPolicy {
   readonly includeWorkspaceState: boolean;
   /** Whether to include parent tool usage history */
   readonly includeToolHistory: boolean;
+  /** Maximum token budget for handoff context */
+  readonly maxTokenBudget?: number;
 }
 
 /**
@@ -31,12 +35,20 @@ export type ContextCategory =
 
 /**
  * Metadata about what was filtered during handoff creation.
+ * Includes observability data for debugging and audit per Pattern 09.
  */
 export interface HandoffFilterMetadata {
   readonly filteredCategories: readonly ContextCategory[];
   readonly filteredCount: number;
   readonly estimatedTokensSaved: number;
   readonly timestamp: string;
+  /** Tool scope boundaries enforced for this handoff */
+  readonly toolScopeBoundaries: {
+    readonly allowedTools: readonly string[];
+    readonly deniedTools: readonly string[];
+  };
+  /** Inheritance mode used for this handoff */
+  readonly inheritanceMode: string;
 }
 
 /**
@@ -49,7 +61,8 @@ export interface FilteredHandoffContext {
 
 /**
  * Default filter policies per agent category.
- * Research agents get more context, utility agents get less.
+ * Enforces bounded context inheritance per ADR-020.
+ * Research agents get more context, utility agents get minimal context.
  */
 export const DEFAULT_FILTER_POLICIES: Record<AgentCategory, ContextFilterPolicy> = {
   command: {
@@ -57,30 +70,35 @@ export const DEFAULT_FILTER_POLICIES: Record<AgentCategory, ContextFilterPolicy>
     excludeCategories: ["tool-results", "memory-state", "conversation-history"],
     includeWorkspaceState: true,
     includeToolHistory: false,
+    maxTokenBudget: 4000,
   },
   strategy: {
     includeCategories: ["decisions", "constraints", "conversation-history"],
     excludeCategories: ["tool-results", "file-state"],
     includeWorkspaceState: false,
     includeToolHistory: true,
+    maxTokenBudget: 6000,
   },
   code: {
     includeCategories: ["file-state", "artifacts", "constraints"],
     excludeCategories: ["memory-state", "conversation-history"],
     includeWorkspaceState: true,
     includeToolHistory: false,
+    maxTokenBudget: 8000,
   },
   quality: {
     includeCategories: ["tool-results", "file-state", "decisions"],
     excludeCategories: ["memory-state"],
     includeWorkspaceState: true,
     includeToolHistory: true,
+    maxTokenBudget: 6000,
   },
   research: {
     includeCategories: ["tool-results", "conversation-history", "decisions", "artifacts"],
     excludeCategories: [],
     includeWorkspaceState: false,
     includeToolHistory: true,
+    maxTokenBudget: 10000,
   },
   utility: {
     includeCategories: ["constraints"],
@@ -94,6 +112,7 @@ export const DEFAULT_FILTER_POLICIES: Record<AgentCategory, ContextFilterPolicy>
     ],
     includeWorkspaceState: false,
     includeToolHistory: false,
+    maxTokenBudget: 2000,
   },
 };
 
@@ -105,6 +124,7 @@ export const DEFAULT_FILTER_POLICY: ContextFilterPolicy = {
   excludeCategories: ["tool-results", "memory-state", "conversation-history"],
   includeWorkspaceState: true,
   includeToolHistory: false,
+  maxTokenBudget: 4000,
 };
 
 /**
@@ -124,12 +144,14 @@ export function createFilterPolicyForCategory(
 /**
  * Filter context based on inheritance rules and filter policy.
  * Returns filtered context along with metadata about what was filtered.
+ * Implements deterministic context shaping per Pattern 09.
  */
 export function filterContextForHandoff(
   parentContext: AgentContext,
   rules: ContextInheritanceRules,
   policy: ContextFilterPolicy,
   _agentCategory: AgentCategory,
+  toolPolicy?: ToolAccessPolicy,
 ): FilteredHandoffContext {
   const filteredCategories: ContextCategory[] = [];
   let filteredCount = 0;
@@ -186,11 +208,26 @@ export function filterContextForHandoff(
     // filteredCategories.push("constraints");
   }
 
+  // Enforce token budget if specified
+  if (policy.maxTokenBudget && context.tokenCount > policy.maxTokenBudget) {
+    context = enforceTokenBudget(context, policy.maxTokenBudget);
+    filteredCount++;
+  }
+
+  const allTools = parentContext.tools.map((t) => t.name);
+  const allowedTools = toolPolicy?.allowedTools ?? allTools;
+  const deniedTools = allTools.filter((t) => !allowedTools.includes(t));
+
   const metadata: HandoffFilterMetadata = {
     filteredCategories,
     filteredCount,
     estimatedTokensSaved: Math.round(estimatedTokensSaved),
     timestamp: new Date().toISOString(),
+    toolScopeBoundaries: {
+      allowedTools,
+      deniedTools,
+    },
+    inheritanceMode: rules.mode,
   };
 
   return {
@@ -294,6 +331,37 @@ function removeArtifacts(context: DelegationContext): DelegationContext {
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
+}
+
+function enforceTokenBudget(context: DelegationContext, maxBudget: number): DelegationContext {
+  let adjusted = { ...context };
+
+  if (adjusted.messages && adjusted.tokenCount > maxBudget) {
+    const keptMessages = adjusted.messages.slice(-5);
+    adjusted = {
+      ...adjusted,
+      messages: keptMessages,
+      tokenCount: estimateTokens(JSON.stringify(keptMessages)),
+    };
+  }
+
+  if (adjusted.inlineArtifacts && adjusted.tokenCount > maxBudget) {
+    adjusted = {
+      ...adjusted,
+      inlineArtifacts: [],
+      tokenCount: adjusted.tokenCount - 500,
+    };
+  }
+
+  if (adjusted.artifactReferences && adjusted.tokenCount > maxBudget) {
+    adjusted = {
+      ...adjusted,
+      artifactReferences: adjusted.artifactReferences.slice(0, 10),
+      tokenCount: Math.min(adjusted.tokenCount, maxBudget),
+    };
+  }
+
+  return adjusted;
 }
 
 export function mergeFilterPolicies(
