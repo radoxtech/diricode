@@ -8,6 +8,7 @@ export interface ToolAnnotations {
 
 export interface ToolContext {
   workspaceRoot: string;
+  turnId?: string;
   emit: (event: string, payload: unknown) => void;
 }
 

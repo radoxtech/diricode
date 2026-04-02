@@ -344,6 +344,11 @@ export const DiriCodeConfigSchema = z
      * access patterns.
      */
     project: ProjectConfigSchema.default({}),
+    /**
+     * Maximum duration in milliseconds for a single turn (one user input → result cycle).
+     * Defaults to 300000 (5 minutes). Used by the turn lifecycle to enforce timeout boundaries.
+     */
+    turnTimeoutMs: z.number().int().positive().optional().default(300_000),
   })
   .strict();
 

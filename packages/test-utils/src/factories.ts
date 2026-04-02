@@ -76,6 +76,7 @@ export function createMockConfig(options: MockConfigOptions = {}): DiriCodeConfi
       include: [],
       exclude: [],
     },
+    turnTimeoutMs: 300_000,
   };
 }
 

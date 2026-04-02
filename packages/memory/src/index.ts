@@ -45,3 +45,11 @@ export type {
   Observation,
   ObservationType,
 } from "./db/schemas/search.js";
+export { TurnRepository } from "./db/repositories/TurnRepository.js";
+export type {
+  TurnEnvelopeData,
+  TurnEvent,
+  TurnStatus,
+  TurnTelemetry,
+  TurnPartialResult,
+} from "./db/schemas/turn.js";

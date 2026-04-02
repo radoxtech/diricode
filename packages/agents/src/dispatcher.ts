@@ -8,6 +8,9 @@ import type {
   ModelConfigResolver,
   ResultPropagationContract,
   SandboxConfig,
+  SandboxExecutionResult,
+  TurnStatus,
+  TurnTelemetry,
 } from "@diricode/core";
 import {
   AgentError,
@@ -16,9 +19,11 @@ import {
   DEFAULT_RESULT_CONTRACT,
   DEFAULT_SANDBOX_CONFIG,
   generateExecutionId,
+  generateTurnId,
   createPolicyEnforcingToolRegistry,
   filterContextForHandoff,
   createFilterPolicyForCategory,
+  TurnEnvelope,
 } from "@diricode/core";
 
 import type { AgentRegistry } from "./registry.js";
@@ -250,6 +255,221 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
   const sandboxConfig = config.sandboxConfig ?? DEFAULT_SANDBOX_CONFIG;
   const modelTierResolver = config.modelTierResolver ?? DEFAULT_MODEL_CONFIG_RESOLVER;
 
+  async function executeDispatch(
+    input: string,
+    context: AgentContext,
+    turnEnvelope: TurnEnvelope,
+    turnId: string,
+  ): Promise<AgentResult> {
+    const executionId = generateExecutionId();
+
+    context.emit("agent.started", {
+      agentId: metadata.name,
+      executionId,
+      parentAgentId: context.parentAgentId,
+      input: input.substring(0, 200),
+    });
+
+    enforceDispatcherBoundary(context.tools, context.emit);
+
+    context.emit("dispatcher.boundary.checked", {
+      executionId,
+      allowedTools: metadata.toolPolicy?.allowedTools,
+      enforced: true,
+    });
+
+    const intent = classifyIntent(input);
+    context.emit("dispatcher.intent.classified", { intent, executionId });
+    context.emit("dispatcher.intent-classified", { intent, executionId });
+
+    const candidates = config.registry.search(intent.query);
+    if (candidates.length === 0) {
+      throw new AgentError(
+        "NO_AGENT_FOUND",
+        `No suitable agent found for intent: ${intent.category}`,
+      );
+    }
+
+    context.emit("dispatcher.candidates-found", {
+      candidates: candidates.map((c) => ({ name: c.agent.name, score: c.score })),
+      executionId,
+    });
+
+    const selected = candidates[0];
+    if (!selected) {
+      throw new AgentError("NO_AGENT_FOUND", "No candidates available");
+    }
+
+    context.emit("dispatcher.agent.selected", {
+      agent: selected.agent.name,
+      score: selected.score,
+      executionId,
+    });
+    context.emit("dispatcher.agent-selected", {
+      agent: selected.agent.name,
+      score: selected.score,
+      executionId,
+    });
+
+    const agent = config.registry.get(selected.agent.name);
+    const modelConfig = modelTierResolver.resolve(agent.metadata);
+
+    context.emit("dispatcher.model-resolved", {
+      agent: selected.agent.name,
+      model: modelConfig.model,
+      maxTokens: modelConfig.maxTokens,
+      temperature: modelConfig.temperature,
+      executionId,
+    });
+
+    const filterPolicy = createFilterPolicyForCategory(agent.metadata.category);
+    const { filteredContext, metadata: filterMetadata } = filterContextForHandoff(
+      context,
+      DEFAULT_INHERITANCE_RULES,
+      filterPolicy,
+      agent.metadata.category,
+      agent.metadata.toolPolicy,
+    );
+
+    context.emit("handoff.filtered", {
+      handoffId: undefined,
+      childAgent: selected.agent.name,
+      category: agent.metadata.category,
+      filteredCategories: filterMetadata.filteredCategories,
+      filteredCount: filterMetadata.filteredCount,
+      estimatedTokensSaved: filterMetadata.estimatedTokensSaved,
+      toolScopeBoundaries: filterMetadata.toolScopeBoundaries,
+      inheritanceMode: filterMetadata.inheritanceMode,
+      executionId,
+    });
+
+    const envelope = createHandoffEnvelope({
+      parentExecutionId: executionId,
+      parentAgentName: metadata.name,
+      sessionId: context.sessionId,
+      workspaceRoot: context.workspaceRoot,
+      taskInput: input,
+      inheritanceRules: DEFAULT_INHERITANCE_RULES,
+      parentContext: context,
+      filteredContext,
+    });
+
+    context.emit("dispatcher.delegation.created", {
+      handoffId: envelope.handoffId,
+      childExecutionId: envelope.childExecutionId,
+      agent: selected.agent.name,
+      executionId,
+    });
+    context.emit("delegation.handoff-created", {
+      handoffId: envelope.handoffId,
+      childExecutionId: envelope.childExecutionId,
+      agent: selected.agent.name,
+      executionId,
+    });
+
+    graph.registerNode({
+      executionId: envelope.childExecutionId,
+      agentName: selected.agent.name,
+      parentExecutionId: executionId,
+      tier: agent.metadata.tier,
+      category: agent.metadata.category,
+    });
+
+    const childContext: AgentContext = {
+      ...context,
+      parentAgentId: metadata.name,
+      sessionId: envelope.parent.sessionId,
+      turnId,
+      tools: createPolicyEnforcingToolRegistry(
+        context.tools,
+        agent.metadata.toolPolicy ?? {},
+        agent.metadata.name,
+        context.emit,
+      ).map((t) => ({
+        ...t,
+        execute: async (p, ctx) => {
+          graph.recordToolCall(envelope.childExecutionId, t.name);
+          return t.execute(p, ctx);
+        },
+      })),
+    };
+
+    context.emit("delegation.child.started", {
+      handoffId: envelope.handoffId,
+      childExecutionId: envelope.childExecutionId,
+      childAgent: selected.agent.name,
+      executionId,
+    });
+
+    const sandboxContext: SandboxContext = {
+      ...childContext,
+      sandboxConfig: sandboxConfig,
+    };
+
+    let sandboxResult: SandboxExecutionResult | undefined;
+    const timeoutHandle = setTimeout(() => {
+      const timeoutEvent = turnEnvelope.timeout();
+      context.emit(timeoutEvent.type, timeoutEvent);
+      turnEnvelope.capturePartial(
+        selected.agent.name,
+        sandboxResult?.totalToolCalls ?? 0,
+        sandboxResult?.totalTokens ?? 0,
+        sandboxResult?.output ?? "",
+      );
+    }, 300000);
+
+    try {
+      sandboxResult = await executeInSandbox(agent, input, sandboxContext, sandboxConfig);
+    } catch (error) {
+      clearTimeout(timeoutHandle);
+      graph.completeNode(envelope.childExecutionId, false);
+      context.emit("delegation.child.failed", {
+        handoffId: envelope.handoffId,
+        childExecutionId: envelope.childExecutionId,
+        error: error instanceof Error ? error.message : String(error),
+        stopReason: sandboxResult?.stopReason ?? "error",
+        retries: sandboxResult?.retries ?? 0,
+        executionId,
+      });
+      throw error;
+    }
+    clearTimeout(timeoutHandle);
+
+    const result: AgentResult = {
+      success: sandboxResult.success,
+      output: sandboxResult.output,
+      toolCalls: sandboxResult.totalToolCalls,
+      tokensUsed: sandboxResult.totalTokens,
+    };
+    graph.completeNode(envelope.childExecutionId, result.success);
+
+    const delegationResult = createDelegationResult(result, envelope, DEFAULT_RESULT_CONTRACT);
+
+    context.emit("delegation.child.completed", {
+      handoffId: envelope.handoffId,
+      childExecutionId: envelope.childExecutionId,
+      success: result.success,
+      toolCalls: result.toolCalls,
+      tokensUsed: result.tokensUsed,
+      tokenCount: delegationResult.tokenCount,
+      stopReason: sandboxResult.stopReason,
+      retries: sandboxResult.retries,
+      executionId,
+    });
+
+    context.emit("agent.completed", {
+      agentId: metadata.name,
+      executionId,
+      delegatedTo: selected.agent.name,
+      childExecutionId: envelope.childExecutionId,
+      success: result.success,
+      toolCalls: result.toolCalls,
+      tokensUsed: result.tokensUsed,
+    });
+
+    return result;
+  }
+
   return {
     metadata,
 
@@ -281,202 +501,49 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
     },
 
     async execute(input: string, context: AgentContext): Promise<AgentResult> {
-      const executionId = generateExecutionId();
+      const turnId = generateTurnId();
+      const turnEnvelope = new TurnEnvelope(turnId, context.sessionId, input, 300000);
+      const startEvent = turnEnvelope.start();
+      context.emit(startEvent.type, startEvent);
 
-      context.emit("agent.started", {
-        agentId: metadata.name,
-        executionId,
-        parentAgentId: context.parentAgentId,
-        input: input.substring(0, 200),
-      });
-
-      // Enforce boundary by wrapping tools - dispatcher itself doesn't execute tools
-      // but the enforcement ensures violations are logged and tracked
-      enforceDispatcherBoundary(context.tools, context.emit);
-
-      context.emit("dispatcher.boundary.checked", {
-        executionId,
-        allowedTools: metadata.toolPolicy?.allowedTools,
-        enforced: true,
-      });
-
-      const intent = classifyIntent(input);
-      context.emit("dispatcher.intent.classified", { intent, executionId });
-      context.emit("dispatcher.intent-classified", { intent, executionId });
-
-      const candidates = config.registry.search(intent.query);
-      if (candidates.length === 0) {
-        throw new AgentError(
-          "NO_AGENT_FOUND",
-          `No suitable agent found for intent: ${intent.category}`,
-        );
-      }
-
-      context.emit("dispatcher.candidates-found", {
-        candidates: candidates.map((c) => ({ name: c.agent.name, score: c.score })),
-        executionId,
-      });
-
-      const selected = candidates[0];
-      if (!selected) {
-        throw new AgentError("NO_AGENT_FOUND", "No candidates available");
-      }
-
-      context.emit("dispatcher.agent.selected", {
-        agent: selected.agent.name,
-        score: selected.score,
-        executionId,
-      });
-      context.emit("dispatcher.agent-selected", {
-        agent: selected.agent.name,
-        score: selected.score,
-        executionId,
-      });
-
-      const agent = config.registry.get(selected.agent.name);
-      const modelConfig = modelTierResolver.resolve(agent.metadata);
-
-      context.emit("dispatcher.model-resolved", {
-        agent: selected.agent.name,
-        model: modelConfig.model,
-        maxTokens: modelConfig.maxTokens,
-        temperature: modelConfig.temperature,
-        executionId,
-      });
-
-      // Apply handoff filtering based on child agent category
-      const filterPolicy = createFilterPolicyForCategory(agent.metadata.category);
-      const { filteredContext, metadata: filterMetadata } = filterContextForHandoff(
-        context,
-        DEFAULT_INHERITANCE_RULES,
-        filterPolicy,
-        agent.metadata.category,
-        agent.metadata.toolPolicy,
-      );
-
-      context.emit("handoff.filtered", {
-        handoffId: undefined,
-        childAgent: selected.agent.name,
-        category: agent.metadata.category,
-        filteredCategories: filterMetadata.filteredCategories,
-        filteredCount: filterMetadata.filteredCount,
-        estimatedTokensSaved: filterMetadata.estimatedTokensSaved,
-        toolScopeBoundaries: filterMetadata.toolScopeBoundaries,
-        inheritanceMode: filterMetadata.inheritanceMode,
-        executionId,
-      });
-
-      const envelope = createHandoffEnvelope({
-        parentExecutionId: executionId,
-        parentAgentName: metadata.name,
-        sessionId: context.sessionId,
-        workspaceRoot: context.workspaceRoot,
-        taskInput: input,
-        inheritanceRules: DEFAULT_INHERITANCE_RULES,
-        parentContext: context,
-        filteredContext,
-      });
-
-      context.emit("dispatcher.delegation.created", {
-        handoffId: envelope.handoffId,
-        childExecutionId: envelope.childExecutionId,
-        agent: selected.agent.name,
-        executionId,
-      });
-      context.emit("delegation.handoff-created", {
-        handoffId: envelope.handoffId,
-        childExecutionId: envelope.childExecutionId,
-        agent: selected.agent.name,
-        executionId,
-      });
-
-      graph.registerNode({
-        executionId: envelope.childExecutionId,
-        agentName: selected.agent.name,
-        parentExecutionId: executionId,
-        tier: agent.metadata.tier,
-        category: agent.metadata.category,
-      });
-
-      const childContext: AgentContext = {
+      const turnContext: AgentContext = {
         ...context,
-        parentAgentId: metadata.name,
-        sessionId: envelope.parent.sessionId,
-        tools: createPolicyEnforcingToolRegistry(
-          context.tools,
-          agent.metadata.toolPolicy ?? {},
-          agent.metadata.name,
-          context.emit,
-        ).map((t) => ({
-          ...t,
-          execute: async (p, ctx) => {
-            graph.recordToolCall(envelope.childExecutionId, t.name);
-            return t.execute(p, ctx);
-          },
-        })),
+        turnId,
       };
 
-      context.emit("delegation.child.started", {
-        handoffId: envelope.handoffId,
-        childExecutionId: envelope.childExecutionId,
-        childAgent: selected.agent.name,
-        executionId,
-      });
+      let result: AgentResult | undefined;
+      let telemetry: TurnTelemetry = { totalTokens: 0, totalToolCalls: 0, totalCost: 0 };
+      let turnEndEmitted = false;
 
-      const sandboxContext: SandboxContext = {
-        ...childContext,
-        sandboxConfig: sandboxConfig,
-      };
-
-      let result: AgentResult;
-      let sandboxResult;
       try {
-        sandboxResult = await executeInSandbox(agent, input, sandboxContext, sandboxConfig);
-        result = {
-          success: sandboxResult.success,
-          output: sandboxResult.output,
-          toolCalls: sandboxResult.totalToolCalls,
-          tokensUsed: sandboxResult.totalTokens,
+        result = await executeDispatch(input, turnContext, turnEnvelope, turnId);
+
+        telemetry = {
+          totalTokens: result.tokensUsed,
+          totalToolCalls: result.toolCalls,
+          totalCost: 0,
         };
-        graph.completeNode(envelope.childExecutionId, result.success);
 
-        const delegationResult = createDelegationResult(result, envelope, DEFAULT_RESULT_CONTRACT);
+        const endEvent = turnEnvelope.end(
+          "completed" satisfies TurnStatus,
+          result.output.substring(0, 500),
+          telemetry,
+        );
+        context.emit(endEvent.type, endEvent);
+        turnEndEmitted = true;
 
-        context.emit("delegation.child.completed", {
-          handoffId: envelope.handoffId,
-          childExecutionId: envelope.childExecutionId,
-          success: result.success,
-          toolCalls: result.toolCalls,
-          tokensUsed: result.tokensUsed,
-          tokenCount: delegationResult.tokenCount,
-          stopReason: sandboxResult.stopReason,
-          retries: sandboxResult.retries,
-          executionId,
-        });
+        return result;
       } catch (error) {
-        graph.completeNode(envelope.childExecutionId, false);
-        context.emit("delegation.child.failed", {
-          handoffId: envelope.handoffId,
-          childExecutionId: envelope.childExecutionId,
-          error: error instanceof Error ? error.message : String(error),
-          stopReason: sandboxResult?.stopReason ?? "error",
-          retries: sandboxResult?.retries ?? 0,
-          executionId,
-        });
+        if (!turnEndEmitted) {
+          const endEvent = turnEnvelope.end(
+            "failed" satisfies TurnStatus,
+            error instanceof Error ? error.message : String(error),
+            telemetry,
+          );
+          context.emit(endEvent.type, endEvent);
+        }
         throw error;
       }
-
-      context.emit("agent.completed", {
-        agentId: metadata.name,
-        executionId,
-        delegatedTo: selected.agent.name,
-        childExecutionId: envelope.childExecutionId,
-        success: result.success,
-        toolCalls: result.toolCalls,
-        tokensUsed: result.tokensUsed,
-      });
-
-      return result;
     },
   };
 }
