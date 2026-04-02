@@ -3,7 +3,6 @@ import type {
   Checkpoint,
   CheckpointStatus,
   CheckpointSummary,
-  SerializedCheckpoint,
   TaskExecutionResult,
 } from "@diricode/core";
 
@@ -40,7 +39,7 @@ function rowToRecord(row: CheckpointRow): CheckpointRecord {
     sessionId: row.session_id,
     planId: row.plan_id,
     taskIndex: row.task_index,
-    completedTasks: safeParseJson(row.completed_tasks) as readonly TaskExecutionResult[],
+    completedTasks: safeParseJson(row.completed_tasks),
     lastValidCheckpointIndex: row.last_valid_checkpoint_index,
     status: row.status,
     createdAt: row.created_at,
@@ -48,11 +47,11 @@ function rowToRecord(row: CheckpointRow): CheckpointRecord {
   };
 }
 
-function safeParseJson<T>(raw: string): T {
+function safeParseJson(raw: string): readonly TaskExecutionResult[] {
   try {
-    return JSON.parse(raw) as T;
+    return JSON.parse(raw) as readonly TaskExecutionResult[];
   } catch {
-    return [] as unknown as T;
+    return [] as const;
   }
 }
 

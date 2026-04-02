@@ -6,12 +6,11 @@ import type {
   AgentResult,
   CheckpointPersistence,
   PlannedTask,
-  TaskExecutionResult,
 } from "../index.js";
 
 type MockFn = ReturnType<typeof vi.fn>;
 
-function makeAgent(name: string, success: boolean = true): Agent {
+function makeAgent(name: string, success = true): Agent {
   return {
     metadata: {
       name,
@@ -47,28 +46,32 @@ function findEmitCall(emit: MockFn, eventName: string): [string, unknown] | unde
   return (emit.mock.calls as [string, unknown][]).find(([event]) => event === eventName);
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 function createMockCheckpointRepository(): CheckpointPersistence {
+  const mockUpsert = vi.fn((checkpoint: any) => ({
+    ...checkpoint,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  }));
+  const mockToSummary = vi.fn((checkpoint: any, totalTasks: any) => ({
+    executionId: checkpoint.executionId,
+    turnId: checkpoint.turnId,
+    sessionId: checkpoint.sessionId,
+    planId: checkpoint.planId,
+    lastValidTaskIndex: checkpoint.lastValidCheckpointIndex,
+    totalTasks,
+    completedCount: checkpoint.completedTasks.filter((t: any) => t.success).length,
+    failedCount: checkpoint.completedTasks.filter((t: any) => !t.success).length,
+    status: checkpoint.status,
+    createdAt: checkpoint.createdAt,
+  }));
   return {
-    upsert: vi.fn((checkpoint) => ({
-      ...checkpoint,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    })) as CheckpointPersistence["upsert"],
-    toCheckpointSummaryFromCheckpoint: vi.fn((checkpoint, totalTasks) => ({
-      executionId: checkpoint.executionId,
-      turnId: checkpoint.turnId,
-      sessionId: checkpoint.sessionId,
-      planId: checkpoint.planId,
-      lastValidTaskIndex: checkpoint.lastValidCheckpointIndex,
-      totalTasks,
-      completedCount: checkpoint.completedTasks.filter((t: TaskExecutionResult) => t.success)
-        .length,
-      failedCount: checkpoint.completedTasks.filter((t: TaskExecutionResult) => !t.success).length,
-      status: checkpoint.status,
-      createdAt: checkpoint.createdAt,
-    })) as CheckpointPersistence["toCheckpointSummaryFromCheckpoint"],
+    upsert: mockUpsert as CheckpointPersistence["upsert"],
+    toCheckpointSummaryFromCheckpoint:
+      mockToSummary as CheckpointPersistence["toCheckpointSummaryFromCheckpoint"],
   };
 }
+/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 
 describe("createSequentialTaskExecutor", () => {
   describe("executePlan", () => {
@@ -91,7 +94,7 @@ describe("createSequentialTaskExecutor", () => {
       expect(emit).toHaveBeenCalledWith(
         "sequential.execution.started",
         expect.objectContaining({
-          executionId: expect.any(String),
+          executionId: expect.any(String) as unknown as string,
           turnId: "turn-1",
           planId: "plan-1",
           totalTasks: 1,

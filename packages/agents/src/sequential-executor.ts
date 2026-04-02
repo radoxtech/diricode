@@ -1,6 +1,5 @@
 import type {
   AgentContext,
-  AgentResult,
   Checkpoint,
   CheckpointPersistence,
   CheckpointStatus,
@@ -101,13 +100,14 @@ export function createSequentialTaskExecutor(options: SequentialExecutorOptions)
       ),
     );
 
-    const intent = classifyIntent(task.description);
+    const _intent = classifyIntent(task.description);
     const candidates = options.registry.search(task.description);
 
     if (candidates.length === 0) {
       throw new AgentError("NO_AGENT_FOUND", `No suitable agent found for task: ${task.id}`);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- noUncheckedIndexedAccess requires this
     const selected = candidates[0]!;
     const agent = options.registry.get(selected.agent.name);
 
@@ -251,7 +251,6 @@ export function createSequentialTaskExecutor(options: SequentialExecutorOptions)
       );
 
       if (!depsSatisfied) {
-        const lastValid = completedTasks.length > 0 ? completedTasks.length - 1 : -1;
         const checkpointSummary = saveCheckpoint(
           context,
           executionId,

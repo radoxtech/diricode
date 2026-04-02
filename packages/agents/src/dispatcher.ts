@@ -99,7 +99,7 @@ async function executeSwarm(
   context: AgentContext,
   graph: DelegationGraph,
   executionId: string,
-  sequential: boolean = false,
+  sequential = false,
 ): Promise<SwarmResult> {
   const pending = new Map<string, SwarmTask>(tasks.map((t) => [t.id, t]));
   const completed = new Set<string>();
@@ -140,6 +140,7 @@ async function executeSwarm(
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- in sequential mode ready has exactly 1 task
     const taskBatch = sequential ? [ready[0]!] : ready;
 
     const waveResults = await Promise.allSettled(
