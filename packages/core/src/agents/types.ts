@@ -281,7 +281,8 @@ export type SandboxStopReason =
   | "retry_exhausted"
   | "upstream_error"
   | "success"
-  | "error";
+  | "error"
+  | "tool_loop_error";
 
 /**
  * Tier-aware token budget configuration.
@@ -318,11 +319,28 @@ export interface SandboxConfig {
   readonly tokenBudget: SandboxTokenBudget;
   readonly timeout: SandboxTimeout;
   readonly retryPolicy: SandboxRetryPolicy;
+  readonly toolLoopPolicy?: ToolLoopPolicy;
 }
 
 /**
- * Result of a sandboxed execution attempt.
+ * Tool loop policy configuration for per-tool-call retry behavior (DC-PIPE-009).
  */
+export interface ToolLoopPolicy {
+  readonly maxToolRetries: number;
+  readonly baseDelayMs: number;
+  readonly maxDelayMs: number;
+  readonly emitEvents: boolean;
+}
+
+/**
+ * Default tool loop policy per ADR-036 defaults.
+ */
+export const DEFAULT_TOOL_LOOP_POLICY: ToolLoopPolicy = {
+  maxToolRetries: 3,
+  baseDelayMs: 1_000,
+  maxDelayMs: 30_000,
+  emitEvents: true,
+};
 export interface SandboxAttemptResult {
   readonly success: boolean;
   readonly output: string;
@@ -356,13 +374,14 @@ export const DEFAULT_SANDBOX_CONFIG: SandboxConfig = {
     light: 10000,
   },
   timeout: {
-    heavy: 300000, // 5 minutes
-    medium: 120000, // 2 minutes
-    light: 30000, // 30 seconds
+    heavy: 300000,
+    medium: 120000,
+    light: 30000,
   },
   retryPolicy: {
     heavy: 3,
     medium: 2,
     light: 1,
   },
+  toolLoopPolicy: DEFAULT_TOOL_LOOP_POLICY,
 };
