@@ -62,7 +62,7 @@ export class SearchRepository {
 
   search(query: string, filter?: SearchFilter): SearchResult[] {
     const f = SearchFilterSchema.parse(filter ?? {});
-    const limit = f.limit ?? 20;
+    const limit = f.limit;
 
     const sanitizedQuery = sanitizeFtsQuery(query);
     if (!sanitizedQuery) return [];

@@ -25,17 +25,22 @@ describe("SearchRepository", () => {
     repo = new SearchRepository(db);
   });
 
-  function insertSession(id: string) {
+  function insertSession(id: string): void {
     db.prepare("INSERT INTO sessions (id, status, metadata) VALUES (?, 'active', '{}')").run(id);
   }
 
-  function insertMessage(id: string, sessionId: string, content: string, agentId?: string) {
+  function insertMessage(id: string, sessionId: string, content: string, agentId?: string): void {
     db.prepare(
       "INSERT INTO messages (id, session_id, role, content, tokens, cost, agent_id, timestamp) VALUES (?, ?, 'user', ?, 0, 0, ?, datetime('now'))",
     ).run(id, sessionId, content, agentId ?? null);
   }
 
-  function insertObservation(content: string, sessionId?: string, agentId?: string, type?: string) {
+  function insertObservation(
+    content: string,
+    sessionId?: string,
+    agentId?: string,
+    type?: string,
+  ): void {
     db.prepare(
       "INSERT INTO observations (type, content, session_id, agent_id, timestamp) VALUES (?, ?, ?, ?, datetime('now'))",
     ).run(type ?? "discovery", content, sessionId ?? null, agentId ?? null);
@@ -97,7 +102,7 @@ describe("SearchRepository", () => {
 
       const scores = results.map((r) => r.score);
       for (let i = 1; i < scores.length; i++) {
-        expect(scores[i]!).toBeGreaterThanOrEqual(scores[i - 1]!);
+        expect(scores[i] ?? -Infinity).toBeGreaterThanOrEqual(scores[i - 1] ?? -Infinity);
       }
     });
 

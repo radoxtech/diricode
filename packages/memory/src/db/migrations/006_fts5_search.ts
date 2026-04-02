@@ -10,7 +10,7 @@ export const migration006: Migration = {
     // ALTER TABLE ADD COLUMN is idempotent-safe when wrapped carefully,
     // but SQLite will throw if the column already exists — we use a
     // pragma check approach to be safe.
-    const obsCols = (db.pragma("table_info(observations)") as Array<{ name: string }>).map(
+    const obsCols = (db.pragma("table_info(observations)") as { name: string }[]).map(
       (c) => c.name,
     );
     if (!obsCols.includes("session_id")) {
