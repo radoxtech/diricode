@@ -169,9 +169,8 @@ export async function executeInSandbox(
       break;
     } catch (error) {
       const toolPolicy: ToolLoopPolicy = config.toolLoopPolicy ?? DEFAULT_TOOL_LOOP_POLICY;
-      const toolLoopError = Boolean(
-        error instanceof Error && (error.name === "ToolLoopError" || error.name === "ToolError"),
-      );
+      const toolLoopError =
+        error instanceof Error && (error.name === "ToolLoopError" || error.name === "ToolError");
 
       if (toolLoopError && toolPolicy.emitEvents) {
         const err = error as Error & {
@@ -179,8 +178,7 @@ export async function executeInSandbox(
           toolName?: string;
         };
         const tName: string = err.toolName ?? "unknown";
-        const classification =
-          err.classification ?? classifyToolError(error as Error, tName, retries > 0);
+        const classification = err.classification ?? classifyToolError(error, tName, retries > 0);
 
         context.emit("tool.error", buildToolErrorEvent(tName, context.turnId, classification));
 
@@ -243,14 +241,12 @@ export async function executeInSandbox(
           break;
         }
 
-        if (classification.action === "continue") {
-          context.emit("tool.error.recovered", {
-            toolName: tName,
-            turnId: context.turnId,
-            timestamp: Date.now(),
-            reason: classification.reason,
-          });
-        }
+        context.emit("tool.error.recovered", {
+          toolName: tName,
+          turnId: context.turnId,
+          timestamp: Date.now(),
+          reason: classification.reason,
+        });
       }
 
       if (error instanceof AgentError && error.code === "TIMEOUT") {
