@@ -9,6 +9,7 @@ import { migration007 } from "./007_turns.js";
 import { migration008 } from "./008_token_usage.js";
 import { migration009 } from "./009_checkpoints.js";
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- cascading type resolution limit with 9+ migrations
 export const migrations: Migration[] = [
   migration001,
   migration002,
