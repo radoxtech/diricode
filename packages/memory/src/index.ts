@@ -66,3 +66,13 @@ export type {
   ModelUsageBreakdown,
   AgentUsageSummary,
 } from "./db/schemas/token-usage.js";
+export { IssueRepository } from "./db/repositories/IssueRepository.js";
+export type { IIssueClient } from "./db/schemas/issue.js";
+export type {
+  Issue,
+  IssueStatus,
+  IssuePriority,
+  CreateIssueInput,
+  UpdateIssueInput,
+  ListIssuesFilter,
+} from "./db/schemas/issue.js";
