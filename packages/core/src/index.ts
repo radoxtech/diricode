@@ -51,6 +51,7 @@ export {
   deserializeTask,
   DEFAULT_SANDBOX_CONFIG,
   DEFAULT_TOOL_LOOP_POLICY,
+  DEFAULT_SEQUENTIAL_EXECUTOR_CONFIG,
 } from "./agents/types.js";
 export type {
   Agent,
@@ -83,6 +84,16 @@ export type {
   SandboxAttemptResult,
   SandboxExecutionResult,
   ToolLoopPolicy,
+  Checkpoint,
+  CheckpointStatus,
+  CheckpointSummary,
+  SerializedCheckpoint,
+  TaskExecutionResult,
+  PlannedTask,
+  SequentialExecutorConfig,
+  ResumeOptions,
+  SequentialExecutionResult,
+  CheckpointPersistence,
 } from "./agents/types.js";
 export { PromptBuilder, DEFAULT_BUDGET } from "./agents/prompt-builder.js";
 export type { PromptBuilderConfig } from "./agents/prompt-builder.js";
@@ -204,3 +215,23 @@ export {
   createTurnEndEvent,
   createTurnTimeoutEvent,
 } from "./agents/turn-events.js";
+export {
+  createTaskCheckpointEvent,
+  createTaskStartedEvent,
+  createTaskCompletedEvent,
+  createTaskFailedEvent,
+  createSequentialExecutionStartedEvent,
+  createSequentialExecutionCompletedEvent,
+  createSequentialExecutionAbortedEvent,
+  createCheckpointSavedEvent,
+} from "./agents/checkpoint-events.js";
+export type {
+  TaskCheckpointEvent,
+  TaskStartedEvent,
+  TaskCompletedEvent,
+  TaskFailedEvent,
+  SequentialExecutionStartedEvent,
+  SequentialExecutionCompletedEvent,
+  SequentialExecutionAbortedEvent,
+  CheckpointSavedEvent,
+} from "./agents/checkpoint-events.js";

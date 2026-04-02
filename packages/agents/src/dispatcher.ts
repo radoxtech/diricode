@@ -99,6 +99,7 @@ async function executeSwarm(
   context: AgentContext,
   graph: DelegationGraph,
   executionId: string,
+  sequential = false,
 ): Promise<SwarmResult> {
   const pending = new Map<string, SwarmTask>(tasks.map((t) => [t.id, t]));
   const completed = new Set<string>();
@@ -123,14 +124,27 @@ async function executeSwarm(
       break;
     }
 
-    context.emit("swarm.wave.start", {
-      executionId,
-      wave: ready.map((t) => t.id),
-      remaining: pending.size - ready.length,
-    });
+    if (sequential) {
+      const firstTask = ready[0];
+      if (!firstTask) break;
+      context.emit("swarm.wave.start", {
+        executionId,
+        wave: [firstTask.id],
+        remaining: pending.size - 1,
+      });
+    } else {
+      context.emit("swarm.wave.start", {
+        executionId,
+        wave: ready.map((t) => t.id),
+        remaining: pending.size - ready.length,
+      });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- in sequential mode ready has exactly 1 task
+    const taskBatch = sequential ? [ready[0]!] : ready;
 
     const waveResults = await Promise.allSettled(
-      ready.map(async (task) => {
+      taskBatch.map(async (task) => {
         pending.delete(task.id);
 
         context.emit("swarm.task.start", { executionId, taskId: task.id });
@@ -193,6 +207,15 @@ async function executeSwarm(
           success: result.success,
         });
 
+        context.emit("task.checkpoint", {
+          executionId,
+          taskId: task.id,
+          success: result.success,
+          checkpointIndex: completed.size,
+          completedTasks: Array.from(completed),
+          failedTasks: Array.from(failed),
+        });
+
         return { taskId: task.id, result };
       }),
     );
@@ -202,7 +225,7 @@ async function executeSwarm(
         completed.add(outcome.value.taskId);
         results.set(outcome.value.taskId, outcome.value.result);
       } else {
-        const taskId = ready[waveResults.indexOf(outcome)]?.id ?? "unknown";
+        const taskId = taskBatch[waveResults.indexOf(outcome)]?.id ?? "unknown";
         failed.add(taskId);
         context.emit("swarm.task.failed", {
           executionId,
@@ -217,6 +240,10 @@ async function executeSwarm(
       completed: Array.from(completed),
       failed: Array.from(failed),
     });
+
+    if (sequential && failed.size > 0) {
+      break;
+    }
   }
 
   return {
@@ -228,6 +255,7 @@ async function executeSwarm(
 
 export interface SwarmConfig {
   readonly tasks: readonly SwarmTask[];
+  readonly sequential?: boolean;
 }
 
 export function createDispatcher(config: DispatcherConfig): Agent & {
@@ -475,11 +503,13 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
 
     async executeSwarm(swarmConfig: SwarmConfig, context: AgentContext): Promise<SwarmResult> {
       const executionId = generateExecutionId();
+      const sequential = swarmConfig.sequential ?? false;
 
       context.emit("swarm.started", {
         agentId: metadata.name,
         executionId,
         taskCount: swarmConfig.tasks.length,
+        sequential,
       });
 
       const swarmResult = await executeSwarm(
@@ -488,6 +518,7 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
         context,
         graph,
         executionId,
+        sequential,
       );
 
       context.emit("swarm.completed", {
