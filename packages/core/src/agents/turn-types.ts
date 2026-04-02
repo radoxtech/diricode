@@ -1,3 +1,5 @@
+import type { CorrelationContext } from "../observability/correlation.js";
+
 export type TurnStatus = "running" | "completed" | "failed" | "timeout";
 
 export interface TurnStartEvent {
@@ -6,6 +8,7 @@ export interface TurnStartEvent {
   timestamp: number;
   sessionId: string;
   inputPreview: string;
+  correlation?: CorrelationContext;
 }
 
 export interface TurnEndEvent {
@@ -17,6 +20,7 @@ export interface TurnEndEvent {
   durationMs: number;
   outputSummary: string;
   telemetry: TurnTelemetry;
+  correlation?: CorrelationContext;
 }
 
 export interface TurnTimeoutEvent {
@@ -25,6 +29,7 @@ export interface TurnTimeoutEvent {
   timestamp: number;
   sessionId: string;
   elapsedMs: number;
+  correlation?: CorrelationContext;
 }
 
 export interface TurnTelemetry {

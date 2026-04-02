@@ -92,6 +92,8 @@ export interface ToolEventCorrelation {
   sessionId?: string;
   executionId?: string;
   agentName?: string;
+  parentSpanId?: string;
+  toolCallId?: string;
 }
 
 /** Payload emitted when a tool call starts. */

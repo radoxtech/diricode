@@ -242,3 +242,62 @@ export type {
   SequentialExecutionAbortedEvent,
   CheckpointSavedEvent,
 } from "./agents/checkpoint-events.js";
+
+export {
+  createCorrelationContext,
+  generateAgentSpanId,
+  generateToolCallId,
+  generatePlanId,
+  generateEventId,
+} from "./observability/correlation.js";
+export type { CorrelationContext } from "./observability/correlation.js";
+
+export { EventType, createCoordinatedEvent, baseEventSchema } from "./observability/event-types.js";
+export type {
+  BaseEvent,
+  CoordinatedEvent,
+  TurnStartEvent as CoordinatedTurnStartEvent,
+  TurnEndEvent as CoordinatedTurnEndEvent,
+  TurnTimeoutEvent as CoordinatedTurnTimeoutEvent,
+  AgentStartedEvent,
+  AgentCompletedEvent,
+  AgentFailedEvent,
+  ToolStartEvent as CoordinatedToolStartEvent,
+  ToolEndEvent as CoordinatedToolEndEvent,
+  ToolProgressEvent as CoordinatedToolProgressEvent,
+  ToolErrorEvent as CoordinatedToolErrorEvent,
+  ToolErrorRetryEvent as CoordinatedToolErrorRetryEvent,
+  ToolErrorRecoveredEvent as CoordinatedToolErrorRecoveredEvent,
+  ToolErrorEscalateEvent as CoordinatedToolErrorEscalateEvent,
+  ToolErrorStopEvent as CoordinatedToolErrorStopEvent,
+  ToolAccessDeniedEvent,
+  DelegationHandoffCreatedEvent,
+  DelegationChildStartedEvent,
+  DelegationChildCompletedEvent,
+  DelegationChildFailedEvent,
+  DelegationResultReceivedEvent,
+  SequentialExecutionStartedEvent as CoordinatedSequentialExecutionStartedEvent,
+  SequentialExecutionCompletedEvent as CoordinatedSequentialExecutionCompletedEvent,
+  SequentialExecutionAbortedEvent as CoordinatedSequentialExecutionAbortedEvent,
+  TaskStartedEvent as CoordinatedTaskStartedEvent,
+  TaskCompletedEvent as CoordinatedTaskCompletedEvent,
+  TaskFailedEvent as CoordinatedTaskFailedEvent,
+  TaskCheckpointEvent as CoordinatedTaskCheckpointEvent,
+  CheckpointSavedEvent as CoordinatedCheckpointSavedEvent,
+  SwarmStartedEvent,
+  SwarmCompletedEvent,
+  SwarmWaveStartEvent,
+  SwarmWaveEndEvent,
+  SwarmTaskStartEvent,
+  SwarmTaskCompleteEvent,
+  SwarmTaskFailedEvent,
+  SwarmDeadlockEvent,
+} from "./observability/event-types.js";
+
+export { ExecutionGraphBuilder } from "./observability/execution-graph.js";
+export type {
+  ExecutionGraphNode,
+  ExecutionGraph,
+  ExecutionNodeKind,
+  ExecutionNodeStatus,
+} from "./observability/execution-graph.js";
