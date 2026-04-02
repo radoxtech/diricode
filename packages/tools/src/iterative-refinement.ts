@@ -26,32 +26,33 @@ export interface IterativeRefinementResult {
   finalResult: unknown;
   stuckDetected: boolean;
   stoppedBy: "goal-achieved" | "max-iterations" | "stuck-detected" | "cost-limit" | "error";
-  iterationHistory: Array<{
+  iterationHistory: {
     iteration: number;
     verificationResult: unknown;
     fixResult: unknown;
     progress: "forward" | "backward" | "stuck";
-  }>;
+  }[];
 }
 
-const engineToolRegistry: Record<string, Tool<any, any>> = {};
+const engineToolRegistry: Record<string, Tool> = {};
 
-export function registerIterativeRefinementTools(tools: Tool<any, any>[]) {
+export function registerIterativeRefinementTools(tools: Tool[]): void {
   for (const tool of tools) {
     engineToolRegistry[tool.name] = tool;
   }
 }
 
-function normalizeOutput(result: any): string {
+function normalizeOutput(result: unknown): string {
   if (!result) return "";
   if (typeof result === "string") return result;
-  if (typeof result.stdout === "string" && typeof result.stderr === "string") {
-    return (result.stdout + result.stderr).trim();
+  const obj = result as Record<string, unknown>;
+  if (typeof obj.stdout === "string" && typeof obj.stderr === "string") {
+    return (obj.stdout + obj.stderr).trim();
   }
   try {
     return JSON.stringify(result).trim();
   } catch {
-    return String(result).trim();
+    return "";
   }
 }
 
@@ -99,23 +100,17 @@ export const iterativeRefinementTool: Tool<IterativeRefinementParams, IterativeR
 
     for (let i = 1; i <= params.maxIterations; i++) {
       // 1. Verify Phase
-      let verificationResult: any;
-      try {
-        const verifyParams = {
-          command: params.verifyCommand,
-        };
-        const vr = await verifyTool.execute(verifyParams, context);
-        verificationResult = vr.data;
-      } catch (err) {
-        stoppedBy = "error";
-        throw err;
-      }
+      const verifyParams = {
+        command: params.verifyCommand,
+      };
+      const vr = await verifyTool.execute(verifyParams, context);
+      const verificationResult = vr.data;
 
       finalResult = verificationResult;
 
       // Check success condition
-      const exitCode =
-        typeof verificationResult.exitCode === "number" ? verificationResult.exitCode : 0;
+      const vrObj = verificationResult as Record<string, unknown>;
+      const exitCode = typeof vrObj.exitCode === "number" ? vrObj.exitCode : 0;
       if (exitCode === params.verifyExpectedExitCode) {
         success = true;
         stoppedBy = "goal-achieved";
@@ -157,30 +152,40 @@ export const iterativeRefinementTool: Tool<IterativeRefinementParams, IterativeR
       previousOutput = currentOutput;
 
       // 2. Fix Phase
-      let fixResult: any;
-      try {
-        const injectedFixParams = {
-          ...params.fixParams,
-          verificationResult: verificationResult,
-        };
-        const fr = await fixTool.execute(injectedFixParams, context);
-        fixResult = fr.data;
-      } catch (err) {
-        stoppedBy = "error";
-        throw err;
-      }
+      let fixResult: unknown;
+      const fixProgress: "forward" | "backward" | "stuck" = progress;
 
-      iterationHistory.push({
-        iteration: i,
-        verificationResult,
-        fixResult,
-        progress,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!stuckDetected && !success) {
+        try {
+          const injectedFixParams = {
+            ...params.fixParams,
+            verificationResult: verificationResult,
+          };
+          const fr = await fixTool.execute(injectedFixParams, context);
+          fixResult = fr.data;
+        } catch (err) {
+          iterationHistory.push({
+            iteration: i,
+            verificationResult,
+            fixResult: { error: String(err) },
+            progress: "stuck",
+          });
+          throw err;
+        }
 
-      const currentCost = 0;
-      if (params.costLimit && currentCost > params.costLimit) {
-        stoppedBy = "cost-limit";
-        break;
+        iterationHistory.push({
+          iteration: i,
+          verificationResult,
+          fixResult,
+          progress: fixProgress,
+        });
+
+        const currentCost = 0;
+        if (params.costLimit && currentCost > params.costLimit) {
+          stoppedBy = "cost-limit";
+          break;
+        }
       }
     }
 

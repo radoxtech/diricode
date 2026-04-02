@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Tool, ToolContext } from "@diricode/core";
+import { z } from "zod";
 import {
   iterativeRefinementTool,
   registerIterativeRefinementTools,
@@ -12,20 +13,20 @@ const mockContext: ToolContext = {
 
 describe("Iterative Refinement Engine", () => {
   it("should achieve the goal in 1 iteration if verify succeeds immediately", async () => {
-    const mockVerifyTool: Tool<any, any> = {
+    const mockVerifyTool: Tool = {
       name: "mock-verify",
       description: "Mock Verify Tool",
-      parameters: {} as any,
+      parameters: z.object({ command: z.string() }),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-      execute: async () => ({ success: true, data: { exitCode: 0, output: "Success" } }),
+      execute: () => Promise.resolve({ success: true, data: { exitCode: 0, output: "Success" } }),
     };
 
-    const mockFixTool: Tool<any, any> = {
+    const mockFixTool: Tool = {
       name: "mock-fix",
       description: "Mock Fix Tool",
-      parameters: {} as any,
+      parameters: z.object({}),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-      execute: async () => ({ success: true, data: {} }),
+      execute: () => Promise.resolve({ success: true, data: {} }),
     };
 
     registerIterativeRefinementTools([mockVerifyTool, mockFixTool]);
@@ -51,20 +52,20 @@ describe("Iterative Refinement Engine", () => {
   });
 
   it("should detect stuck loop if output remains the same", async () => {
-    const mockVerifyTool: Tool<any, any> = {
+    const mockVerifyTool: Tool = {
       name: "mock-verify-fail",
       description: "Mock Verify Tool Fail",
-      parameters: {} as any,
+      parameters: z.object({ command: z.string() }),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-      execute: async () => ({ success: true, data: { exitCode: 1, output: "Error X" } }),
+      execute: () => Promise.resolve({ success: true, data: { exitCode: 1, output: "Error X" } }),
     };
 
-    const mockFixTool: Tool<any, any> = {
+    const mockFixTool: Tool = {
       name: "mock-fix-noop",
       description: "Mock Fix Tool Noop",
-      parameters: {} as any,
+      parameters: z.object({}),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-      execute: async () => ({ success: true, data: {} }),
+      execute: () => Promise.resolve({ success: true, data: {} }),
     };
 
     registerIterativeRefinementTools([mockVerifyTool, mockFixTool]);
