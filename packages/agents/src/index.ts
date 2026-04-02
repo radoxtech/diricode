@@ -13,6 +13,8 @@ export type {
   SwarmTask,
   SwarmResult,
 } from "./dispatcher.js";
+export { createSequentialTaskExecutor } from "./sequential-executor.js";
+export type { SequentialExecutorOptions } from "./sequential-executor.js";
 export { createCodeWriterAgent } from "./code-writer.js";
 export type { CodeWriterConfig } from "./code-writer.js";
 export { createPlannerQuickAgent } from "./planner-quick.js";
@@ -80,4 +82,7 @@ export type {
   SandboxExecutionResult,
   ModelConfig,
   ModelConfigResolver,
+  CheckpointPersistence,
+  PlannedTask,
+  TaskExecutionResult,
 } from "@diricode/core";

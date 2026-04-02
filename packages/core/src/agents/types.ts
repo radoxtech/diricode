@@ -385,3 +385,128 @@ export const DEFAULT_SANDBOX_CONFIG: SandboxConfig = {
   },
   toolLoopPolicy: DEFAULT_TOOL_LOOP_POLICY,
 };
+
+// ---------------------------------------------------------------------------
+// Checkpoint types for sequential task execution (DC-PIPE-003)
+// ---------------------------------------------------------------------------
+
+/**
+ * Status of a checkpoint in the execution pipeline.
+ */
+export type CheckpointStatus = "valid" | "invalid" | "partial";
+
+/**
+ * Result of executing a single task within a sequential plan.
+ */
+export interface TaskExecutionResult {
+  readonly taskId: string;
+  readonly success: boolean;
+  readonly output: string;
+  readonly toolCalls: number;
+  readonly tokensUsed: number;
+  readonly artifactsSummary: readonly string[];
+  readonly error?: string;
+  readonly stoppedReason?: "completed" | "failed" | "aborted";
+}
+
+/**
+ * Checkpoint data persisted after each task boundary.
+ * Contains enough metadata to resume execution from the last valid state.
+ */
+export interface Checkpoint {
+  readonly executionId: string;
+  readonly turnId: string;
+  readonly sessionId: string;
+  readonly planId: string;
+  readonly taskIndex: number;
+  readonly completedTasks: readonly TaskExecutionResult[];
+  readonly lastValidCheckpointIndex: number;
+  readonly status: CheckpointStatus;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+}
+
+/**
+ * Serialized form of a checkpoint for SQLite persistence.
+ */
+export interface SerializedCheckpoint {
+  readonly execution_id: string;
+  readonly turn_id: string;
+  readonly session_id: string;
+  readonly plan_id: string;
+  readonly task_index: number;
+  readonly completed_tasks: string; // JSON
+  readonly last_valid_checkpoint_index: number;
+  readonly status: CheckpointStatus;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+/**
+ * Summary of a checkpoint for quick resume decisions.
+ */
+export interface CheckpointSummary {
+  readonly executionId: string;
+  readonly turnId: string;
+  readonly sessionId: string;
+  readonly planId: string;
+  readonly lastValidTaskIndex: number;
+  readonly totalTasks: number;
+  readonly completedCount: number;
+  readonly failedCount: number;
+  readonly status: CheckpointStatus;
+  readonly createdAt: number;
+}
+
+/**
+ * Configuration for sequential task executor.
+ */
+export interface SequentialExecutorConfig {
+  readonly abortOnFailure: boolean;
+  readonly saveCheckpointAfterEachTask: boolean;
+}
+
+/**
+ * Default sequential executor configuration.
+ */
+export const DEFAULT_SEQUENTIAL_EXECUTOR_CONFIG: SequentialExecutorConfig = {
+  abortOnFailure: true,
+  saveCheckpointAfterEachTask: true,
+};
+
+/**
+ * Options for resuming from a checkpoint.
+ */
+export interface ResumeOptions {
+  readonly checkpoint: Checkpoint;
+  readonly resumeFromTaskIndex: number;
+}
+
+/**
+ * Input for a single planned task to be executed sequentially.
+ */
+export interface PlannedTask {
+  readonly id: string;
+  readonly description: string;
+  readonly blockedBy: readonly string[];
+}
+
+/**
+ * Result of a sequential execution plan.
+ */
+export interface SequentialExecutionResult {
+  readonly executionId: string;
+  readonly completedTasks: readonly TaskExecutionResult[];
+  readonly failedTaskId?: string;
+  readonly aborted: boolean;
+  readonly finalCheckpoint: CheckpointSummary;
+}
+
+/**
+ * Interface for checkpoint persistence operations.
+ * This abstraction allows the sequential executor to work with any checkpoint storage implementation.
+ */
+export interface CheckpointPersistence {
+  upsert(checkpoint: Omit<Checkpoint, "createdAt" | "updatedAt">): Checkpoint;
+  toCheckpointSummaryFromCheckpoint(checkpoint: Checkpoint, totalTasks: number): CheckpointSummary;
+}
