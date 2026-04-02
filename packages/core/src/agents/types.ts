@@ -233,6 +233,7 @@ export interface AgentMetadata {
 export interface AgentContext {
   readonly workspaceRoot: string;
   readonly sessionId: string;
+  readonly turnId?: string;
   readonly parentAgentId?: string;
   readonly tools: readonly Tool[];
   readonly promptBuilder?: PromptBuilder;

@@ -86,6 +86,7 @@ export {
   wouldCreateCycle,
   generateExecutionId,
   generateHandoffId,
+  generateTurnId,
 } from "./agents/protocol.js";
 
 export { SkillDefinitionSchema } from "./skills/index.js";
@@ -160,3 +161,19 @@ export * from "./agents/boundary-violation.js";
 export * from "./agents/handoff-filter.js";
 export * from "./agents/handoff-validator.js";
 export { enforceDispatcherBoundary } from "./agents/boundary-violation.js";
+
+export type {
+  TurnStatus,
+  TurnStartEvent,
+  TurnEndEvent,
+  TurnTimeoutEvent,
+  TurnTelemetry,
+  TurnEnvelopeData,
+  TurnPartialResult,
+} from "./agents/turn-types.js";
+export { TurnEnvelope } from "./agents/turn-envelope.js";
+export {
+  createTurnStartEvent,
+  createTurnEndEvent,
+  createTurnTimeoutEvent,
+} from "./agents/turn-events.js";
