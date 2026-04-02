@@ -2,7 +2,7 @@ import type { Database } from "better-sqlite3";
 import type { Migration } from "./runner.js";
 
 export const migration009: Migration = {
-  version: 8,
+  version: 9,
   description: "sequential task execution checkpoints",
   up(db: Database): void {
     db.exec(`
