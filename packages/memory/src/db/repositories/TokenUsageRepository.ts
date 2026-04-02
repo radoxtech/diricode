@@ -237,7 +237,6 @@ export class TokenUsageRepository {
     const row = (
       this.stmtBudgetCheck as { get(sessionId: string): { total_cost_usd: number } }
     ).get(sessionId);
-    if (!row) return false;
     return row.total_cost_usd >= threshold;
   }
 }
