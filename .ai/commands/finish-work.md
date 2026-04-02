@@ -27,21 +27,21 @@ delegate_task({
 
 **This command can ONLY be run from within a worktree directory.**
 
-| Condition                    | Result                              |
-| ---------------------------- | ----------------------------------- |
-| You're in the main repo      | ❌ ERROR — use `/start` first       |
-| You have uncommitted changes | ❌ ERROR — commit first             |
-| PR not yet merged            | ❌ ERROR — merge or use `--abandon` |
+| Condition               | Result                                   |
+| ----------------------- | ---------------------------------------- |
+| You're in the main repo | ❌ ERROR — use `/start` first            |
+| Rebase conflicts        | ❌ ERROR — resolve conflicts, then retry |
+| PR not yet merged       | ❌ ERROR — merge or use `--abandon`      |
 
 ---
 
 ## Workflow Overview
 
 1. **Validate** you're in a worktree (not main repo)
-2. **Check** for uncommitted changes
-3. **Run** quality verification
-4. **Update** issue status: `In Progress` → `Review`
-5. **Push** branch to remote
+2. **Fetch + rebase** latest `origin/main` (always — keeps branch current)
+3. **Run** quality verification (lint → typecheck → build → test)
+4. **Commit + push** (if uncommitted changes exist, commit and push together; otherwise push existing commits)
+5. **Update** issue status: `In Progress` → `Review`
 6. **Create** pull request linked to issue
 7. **Merge** PR (squash merge, auto-delete branch)
 8. **Update** issue status: `Review` → `Done` (or `Blocked` on failure)
@@ -82,58 +82,138 @@ echo "📂 Location: $WORKTREE_PATH"
 
 ---
 
-## Step 2: Check Uncommitted Changes
+## Step 2: Fetch + Rebase Latest Main
+
+**Always rebase onto latest main before running any quality checks.** This ensures the branch is current and tests run against the real baseline.
 
 ```bash
-if [ -n "$(git status --porcelain)" ]; then
-  echo "❌ ERROR: You have uncommitted changes!"
+echo "🔄 Fetching latest main and rebasing..."
+git fetch origin main
+
+REBASE_RESULT=$(git rebase origin/main 2>&1)
+REBASE_STATUS=$?
+
+if [ $REBASE_STATUS -ne 0 ]; then
+  echo "❌ Rebase failed!"
+  echo "$REBASE_RESULT"
   echo ""
-  git status
-  echo ""
-  echo "Commit all changes before finishing:"
-  echo "  git add ."
-  echo "  git commit -m 'type(scope): description - fixes #$ISSUE_NUMBER'"
+  echo "Resolve rebase conflicts manually, then run /finish-work again."
+  echo "Do NOT skip the rebase — other work may have landed on main."
   exit 1
 fi
 
-echo "✅ No uncommitted changes"
+echo "✅ Rebased onto latest origin/main"
+echo ""
+echo "Recent commits after rebase:"
+git log --oneline -3
 ```
 
 ---
 
 ## Step 3: Quality Verification
 
-Run quality checks before creating the PR:
+**🔴 GATE — All 4 checks must pass before proceeding. Do NOT push with failing checks.**
 
 ```bash
-# Linter
+echo "=============================================="
+echo "🔴 QUALITY VERIFICATION (GATE)"
+echo "=============================================="
+
+# 1/4: Lint
+echo ""
+echo "----------------------------------------------"
+echo "1/4: pnpm lint"
+echo "----------------------------------------------"
 pnpm lint
+if [ $? -ne 0 ]; then
+  echo "❌ LINT FAILED — fix locally and run /finish-work again"
+  exit 1
+fi
+echo "✅ Lint passed"
 
-# Type check
-pnpm type-check
+# 2/4: Typecheck
+echo ""
+echo "----------------------------------------------"
+echo "2/4: pnpm typecheck"
+echo "----------------------------------------------"
+pnpm typecheck
+if [ $? -ne 0 ]; then
+  echo "❌ TYPECHECK FAILED — fix locally and run /finish-work again"
+  exit 1
+fi
+echo "✅ Typecheck passed"
 
-# Build check
-pnpm build:all
+# 3/4: Build
+echo ""
+echo "----------------------------------------------"
+echo "3/4: pnpm build"
+echo "----------------------------------------------"
+pnpm build
+if [ $? -ne 0 ]; then
+  echo "❌ BUILD FAILED — fix locally and run /finish-work again"
+  exit 1
+fi
+echo "✅ Build passed"
+
+# 4/4: Tests
+echo ""
+echo "----------------------------------------------"
+echo "4/4: pnpm test"
+echo "----------------------------------------------"
+pnpm test
+if [ $? -ne 0 ]; then
+  echo "❌ TESTS FAILED — fix locally and run /finish-work again"
+  exit 1
+fi
+echo "✅ Tests passed"
+
+echo ""
+echo "=============================================="
+echo "✅ ALL QUALITY CHECKS PASSED"
+echo "=============================================="
 ```
-
-**If any checks fail:**
-
-```
-❌ Quality checks failed!
-
-Issues found:
-- Lint: Y errors
-- TypeScript: Z errors
-- Build: Failed
-
-Fix these issues, commit the fixes, then run /finish-work again.
-```
-
-> **Note:** Test requirements are defined in the project test specification. See AGENTS.md for the project test policy.
 
 ---
 
-## Step 4: Update Issue Status → Review
+## Step 4: Commit + Push Together
+
+**If there are uncommitted changes: stage, commit with proper message, and push — together.
+If the tree is clean: just push (commits already exist).**
+
+```bash
+echo "📦 Checking for uncommitted changes..."
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "⚠️  Uncommitted changes found — committing and pushing together"
+
+  # Auto-add all changes
+  git add .
+
+  # Extract message from current HEAD for reference, but prompt for proper commit
+  echo ""
+  echo "Commit message should follow: type(scope): description - fixes #$ISSUE_NUMBER"
+  echo "Committing all changes..."
+  git commit -m "$(git log -1 --format='%s') - fixes #$ISSUE_NUMBER"
+  echo "✅ Committed"
+else
+  echo "✅ Working tree clean — nothing to commit"
+fi
+
+echo ""
+echo "📤 Pushing branch to remote..."
+git push -u origin "$CURRENT_BRANCH"
+
+if [ $? -ne 0 ]; then
+  echo "❌ Push failed"
+  exit 1
+fi
+
+echo "✅ Branch pushed: $CURRENT_BRANCH"
+```
+
+---
+
+## Step 5: Update Issue Status → Review
 
 Before creating the PR, transition the issue to **Review** status:
 
@@ -159,23 +239,7 @@ In Progress → Review
 
 ---
 
-## Step 5: Push Branch to Remote
-
-```bash
-echo "📤 Pushing branch to remote..."
-git push -u origin "$CURRENT_BRANCH"
-
-if [ $? -ne 0 ]; then
-  echo "❌ ERROR: Failed to push branch"
-  exit 1
-fi
-
-echo "✅ Branch pushed: $CURRENT_BRANCH"
-```
-
----
-
-## Step 6: Create Pull Request
+## Step 7: Create Pull Request
 
 ```bash
 echo "📝 Creating pull request..."
@@ -199,7 +263,7 @@ echo "✅ PR #$PR_NUMBER created: $PR_URL"
 
 ---
 
-## Step 7: Merge Pull Request
+## Step 8: Merge Pull Request
 
 ```bash
 echo "🔀 Merging PR #$PR_NUMBER..."
@@ -220,7 +284,7 @@ echo "✅ PR #$PR_NUMBER merged (squash, remote branch deleted)"
 
 ---
 
-## Step 8: Update Issue Status → Done (or Blocked)
+## Step 9: Update Issue Status → Done (or Blocked)
 
 After successful merge:
 
@@ -262,7 +326,7 @@ Review → Blocked  (on merge failure, CI failure, or conflict)
 
 ---
 
-## Step 9: Update Epic Progress
+## Step 10: Update Epic Progress
 
 If this task is part of a Sub-Epic, Epic, or Meta-Epic, check parent progress:
 
@@ -302,7 +366,7 @@ fi
 
 ---
 
-## Step 10: Return to Main Repo and Pull
+## Step 11: Return to Main Repo and Pull
 
 ```bash
 MAIN_REPO=$(git rev-parse --git-common-dir | sed 's|/.git/worktrees/.*||; s|/.git$||')
@@ -318,7 +382,7 @@ echo "✅ Main branch up to date"
 
 ---
 
-## Step 11: Leave Worktree Intact
+## Step 12: Leave Worktree Intact
 
 ```bash
 echo "ℹ️  Leaving worktree intact: $WORKTREE_PATH"
@@ -328,7 +392,7 @@ echo "✅ Worktree NOT removed (per user request)"
 
 ---
 
-## Step 12: Delete Local Branch Reference
+## Step 13: Delete Local Branch Reference
 
 ```bash
 # Prune remote references (remote branch already deleted by --delete-branch in Step 7)
@@ -443,16 +507,17 @@ This command can only be run from within a worktree.
 Use /start to create a worktree first.
 ```
 
-### Uncommitted Changes
+### Rebase Failed
 
 ```
-❌ ERROR: You have uncommitted changes!
+❌ Rebase failed — origin/main has diverged.
 
-Commit all changes before finishing:
-  git add .
-  git commit -m "type(scope): description - fixes #<issue>"
+Resolve conflicts manually:
+  git rebase --abort  (to cancel)
+  git rebase origin/main  (to retry)
 
 Then run /finish-work again.
+Do NOT skip the rebase.
 ```
 
 ### Quality Checks Failed
@@ -460,8 +525,8 @@ Then run /finish-work again.
 ```
 ❌ Quality checks failed!
 
-Fix issues → commit → run /finish-work again.
-Do NOT bypass quality checks.
+Fix issues locally → run /finish-work again.
+Do NOT bypass quality checks — all 4 must pass.
 ```
 
 ### Merge Conflict or CI Failure
@@ -501,19 +566,20 @@ git worktree list  # Confirm clean
 # 🌿 Branch: feat/add-task-scheduler-#42
 # 🔢 Issue: #42
 
-# Step 2 — Check uncommitted changes
-# ✅ Clean working tree
+# Step 2 — Fetch + rebase latest main
+# ✅ Rebased onto latest origin/main
 
 # Step 3 — Quality checks
 # pnpm lint       → ✅ 0 errors
-# pnpm type-check → ✅ 0 errors
-# pnpm build:all  → ✅ Success
+# pnpm typecheck  → ✅ 0 errors
+# pnpm build      → ✅ Success
+# pnpm test       → ✅ All pass
 
-# Step 4 — Update status
+# Step 4 — Commit + push
+# ✅ Committed (if dirty) and pushed: feat/add-task-scheduler-#42
+
+# Step 5 — Update status
 # Issue #42: In Progress → Review
-
-# Step 5 — Push branch
-# ✅ Branch pushed: feat/add-task-scheduler-#42
 
 # Step 6 — Create PR
 # ✅ PR #15: https://github.com/{USER}/{REPO}/pull/15
