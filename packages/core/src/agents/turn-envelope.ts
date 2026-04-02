@@ -13,10 +13,10 @@ export class TurnEnvelope {
   private readonly _sessionId: string;
   private readonly _input: string;
   private readonly _timeoutMs: number;
-  private _startedAt: number = 0;
-  private _endedAt: number = 0;
+  private _startedAt = 0;
+  private _endedAt = 0;
   private _status: TurnStatus = "running";
-  private _outputSummary: string = "";
+  private _outputSummary = "";
   private _telemetry: TurnTelemetry = {
     totalTokens: 0,
     totalToolCalls: 0,
