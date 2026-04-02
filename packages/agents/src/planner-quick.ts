@@ -23,6 +23,9 @@ function findTool(tools: readonly Tool[], name: string): Tool | undefined {
 function buildToolContext(context: AgentContext): ToolContext {
   return {
     workspaceRoot: context.workspaceRoot,
+    turnId: context.turnId,
+    sessionId: context.sessionId,
+    agentName: "planner-quick",
     emit: context.emit,
   };
 }

@@ -79,7 +79,53 @@ export class ToolLoopError extends ToolError {
 }
 
 // ---------------------------------------------------------------------------
-// Event Payloads
+// Lifecycle Event Payloads
+// ---------------------------------------------------------------------------
+
+/**
+ * Correlation identifiers carried by every tool lifecycle event.
+ * All fields are optional to preserve backward compat, but callers should
+ * populate as many as are available in their ToolContext.
+ */
+export interface ToolEventCorrelation {
+  turnId?: string;
+  sessionId?: string;
+  executionId?: string;
+  agentName?: string;
+}
+
+/** Payload emitted when a tool call starts. */
+export interface ToolStartEvent extends ToolEventCorrelation {
+  type: "tool.start";
+  toolName: string;
+  timestamp: number;
+  params: unknown;
+}
+
+/** Payload emitted when a tool call completes successfully. */
+export interface ToolEndEvent extends ToolEventCorrelation {
+  type: "tool.end";
+  toolName: string;
+  timestamp: number;
+  durationMs: number;
+}
+
+/**
+ * Payload emitted for incremental progress during long-running tool execution.
+ * Used by bash (stdout chunks), file-read (large files), etc.
+ */
+export interface ToolProgressEvent extends ToolEventCorrelation {
+  type: "tool.progress";
+  toolName: string;
+  timestamp: number;
+  /** Incremental output chunk (e.g. one stdout line or block). */
+  chunk: string;
+  /** Stream source: stdout or stderr. */
+  stream: "stdout" | "stderr";
+}
+
+// ---------------------------------------------------------------------------
+// Error Event Payloads
 // ---------------------------------------------------------------------------
 
 /** Payload emitted when a tool call fails. */
@@ -432,6 +478,50 @@ export function buildToolErrorStopEvent(
     reason: classification.reason,
     errorCode: classification.cause instanceof ToolError ? classification.cause.code : "TOOL_ERROR",
     errorMessage: classification.cause.message,
+  };
+}
+
+export function buildToolStartEvent(
+  toolName: string,
+  correlation: ToolEventCorrelation,
+  params: unknown,
+): ToolStartEvent {
+  return {
+    type: "tool.start",
+    toolName,
+    timestamp: Date.now(),
+    params,
+    ...correlation,
+  };
+}
+
+export function buildToolEndEvent(
+  toolName: string,
+  correlation: ToolEventCorrelation,
+  durationMs: number,
+): ToolEndEvent {
+  return {
+    type: "tool.end",
+    toolName,
+    timestamp: Date.now(),
+    durationMs,
+    ...correlation,
+  };
+}
+
+export function buildToolProgressEvent(
+  toolName: string,
+  correlation: ToolEventCorrelation,
+  chunk: string,
+  stream: "stdout" | "stderr",
+): ToolProgressEvent {
+  return {
+    type: "tool.progress",
+    toolName,
+    timestamp: Date.now(),
+    chunk,
+    stream,
+    ...correlation,
   };
 }
 

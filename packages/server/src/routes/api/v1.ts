@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { eventsRouter } from "./events.js";
 import { sessionsRouter } from "./sessions.js";
+import { executeRouter } from "./execute.js";
 import { versionMiddleware } from "../../middleware/version.js";
 import { openapiSchema } from "../../openapi/schema.js";
 
@@ -18,3 +19,4 @@ v1Router.get("/openapi.json", (c) => {
 
 v1Router.route("/events", eventsRouter);
 v1Router.route("/sessions", sessionsRouter);
+v1Router.route("/execute", executeRouter);

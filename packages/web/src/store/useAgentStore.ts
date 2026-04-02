@@ -12,23 +12,72 @@ export interface AgentNode {
   logs: string[];
 }
 
+export interface ToolCallRecord {
+  toolName: string;
+  turnId?: string;
+  sessionId?: string;
+  agentName?: string;
+  startedAt: number;
+  endedAt?: number;
+  durationMs?: number;
+  progress: string[];
+  status: "running" | "completed";
+}
+
 export type AgentEvent =
   | { type: "agent_started"; agentId: string; parentId?: string; name: string }
   | { type: "agent_status"; agentId: string; status: AgentStatus }
   | { type: "agent_log"; agentId: string; message: string };
 
+export type ToolEvent =
+  | {
+      type: "tool_start";
+      toolName: string;
+      turnId?: string;
+      sessionId?: string;
+      agentName?: string;
+      timestamp: number;
+    }
+  | {
+      type: "tool_end";
+      toolName: string;
+      turnId?: string;
+      sessionId?: string;
+      agentName?: string;
+      timestamp: number;
+      durationMs: number;
+    }
+  | {
+      type: "tool_progress";
+      toolName: string;
+      turnId?: string;
+      sessionId?: string;
+      agentName?: string;
+      timestamp: number;
+      chunk: string;
+      stream: "stdout" | "stderr";
+    };
+
+type IncomingEvent = AgentEvent | ToolEvent;
+
 interface AgentStoreState {
   agents: Record<string, AgentNode>;
   rootAgents: string[];
+  toolCalls: Record<string, ToolCallRecord>;
   sseClient: SSEClient | null;
   connect: (url: string) => void;
   disconnect: () => void;
-  handleEvent: (event: AgentEvent) => void;
+  handleEvent: (event: IncomingEvent) => void;
+}
+
+function toolCallKey(toolName: string, turnId?: string): string {
+  return turnId ? `${turnId}:${toolName}` : toolName;
 }
 
 export const useAgentStore = create<AgentStoreState>((set, get) => ({
   agents: {},
   rootAgents: [],
+  toolCalls: {},
   sseClient: null,
 
   connect: (url: string) => {
@@ -38,14 +87,19 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
 
     const client = new SSEClient({ url });
 
-    client.on("message", (e) => {
+    const handleRaw = (e: MessageEvent) => {
       try {
-        const data = JSON.parse(e.data) as AgentEvent;
+        const data = JSON.parse(e.data) as IncomingEvent;
         get().handleEvent(data);
       } catch (err) {
         console.error("[useAgentStore] Failed to parse SSE message", err);
       }
-    });
+    };
+
+    client.on("message", handleRaw);
+    client.on("tool_start", handleRaw);
+    client.on("tool_end", handleRaw);
+    client.on("tool_progress", handleRaw);
 
     client.connect();
     set({ sseClient: client });
@@ -56,8 +110,58 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
     set({ sseClient: null });
   },
 
-  handleEvent: (event: AgentEvent) => {
+  handleEvent: (event: IncomingEvent) => {
     set((state) => {
+      if (event.type === "tool_start") {
+        const key = toolCallKey(event.toolName, event.turnId);
+        return {
+          toolCalls: {
+            ...state.toolCalls,
+            [key]: {
+              toolName: event.toolName,
+              turnId: event.turnId,
+              sessionId: event.sessionId,
+              agentName: event.agentName,
+              startedAt: event.timestamp,
+              progress: [],
+              status: "running" as const,
+            },
+          },
+        };
+      }
+
+      if (event.type === "tool_end") {
+        const key = toolCallKey(event.toolName, event.turnId);
+        const existing = state.toolCalls[key];
+        if (!existing) return {};
+        return {
+          toolCalls: {
+            ...state.toolCalls,
+            [key]: {
+              ...existing,
+              endedAt: event.timestamp,
+              durationMs: event.durationMs,
+              status: "completed" as const,
+            },
+          },
+        };
+      }
+
+      if (event.type === "tool_progress") {
+        const key = toolCallKey(event.toolName, event.turnId);
+        const existing = state.toolCalls[key];
+        if (!existing) return {};
+        return {
+          toolCalls: {
+            ...state.toolCalls,
+            [key]: {
+              ...existing,
+              progress: [...existing.progress, event.chunk],
+            },
+          },
+        };
+      }
+
       const agents = { ...state.agents };
       let rootAgents = [...state.rootAgents];
 
