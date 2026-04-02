@@ -36,7 +36,8 @@ const ALL_TOOLS = [
   diagnosticsTool,
 ] as unknown as readonly Tool[];
 
-function noopEmit(_event: string, _payload: unknown): void {}
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+const noopEmit = (_event: string, _payload: unknown): void => {};
 
 export const executeRouter = new Hono();
 
