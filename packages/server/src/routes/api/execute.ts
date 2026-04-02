@@ -19,6 +19,7 @@ import {
   lspSymbolsTool,
   diagnosticsTool,
 } from "@diricode/tools";
+import type { Tool } from "@diricode/core";
 import type { ApiEnvelope } from "../../middleware/error.js";
 import { createEventBusEmitBridge } from "../../sse/emit-bridge.js";
 
@@ -33,7 +34,7 @@ const ALL_TOOLS = [
   astGrepReplaceTool,
   lspSymbolsTool,
   diagnosticsTool,
-] as const;
+] as unknown as readonly Tool[];
 
 function noopEmit(_event: string, _payload: unknown): void {}
 
