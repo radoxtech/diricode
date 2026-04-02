@@ -8,7 +8,18 @@ import type {
   SandboxExecutionResult,
   SandboxStopReason,
 } from "@diricode/core";
-import { AgentError, DEFAULT_SANDBOX_CONFIG } from "@diricode/core";
+import {
+  AgentError,
+  DEFAULT_SANDBOX_CONFIG,
+  DEFAULT_TOOL_LOOP_POLICY,
+  classifyToolError,
+  buildToolErrorEvent,
+  buildToolErrorRetryEvent,
+  buildToolErrorStopEvent,
+  buildToolErrorEscalateEvent,
+  computeToolRetryDelay,
+  type ToolLoopPolicy,
+} from "@diricode/core";
 
 export interface SandboxContext extends AgentContext {
   readonly sandboxConfig: SandboxConfig;
@@ -31,10 +42,12 @@ function determineStopReason(
   tokenBudgetExceeded: boolean,
   timeout: boolean,
   retriesExhausted: boolean,
+  toolLoopError = false,
 ): SandboxStopReason {
   if (tokenBudgetExceeded) return "budget_exceeded";
   if (timeout) return "timeout";
   if (retriesExhausted) return "retry_exhausted";
+  if (toolLoopError) return "tool_loop_error";
   if (error instanceof AgentError) {
     if (error.code === "UPSTREAM_ERROR" || error.code === "DELEGATION_FAILED") {
       return "upstream_error";
@@ -155,6 +168,87 @@ export async function executeInSandbox(
       });
       break;
     } catch (error) {
+      const toolPolicy: ToolLoopPolicy = config.toolLoopPolicy ?? DEFAULT_TOOL_LOOP_POLICY;
+      const toolLoopError =
+        error instanceof Error && (error.name === "ToolLoopError" || error.name === "ToolError");
+
+      if (toolLoopError && toolPolicy.emitEvents) {
+        const err = error as Error & {
+          classification?: ReturnType<typeof classifyToolError>;
+          toolName?: string;
+        };
+        const tName: string = err.toolName ?? "unknown";
+        const classification = err.classification ?? classifyToolError(error, tName, retries > 0);
+
+        context.emit("tool.error", buildToolErrorEvent(tName, context.turnId, classification));
+
+        if (classification.action === "retry") {
+          const delayMs = computeToolRetryDelay(
+            retries,
+            toolPolicy.baseDelayMs,
+            toolPolicy.maxDelayMs,
+          );
+          context.emit(
+            "tool.error.retry",
+            buildToolErrorRetryEvent(
+              tName,
+              context.turnId,
+              retries + 1,
+              toolPolicy.maxToolRetries,
+              delayMs,
+              classification.reason,
+            ),
+          );
+          if (retries < maxRetries && retries < toolPolicy.maxToolRetries) {
+            retries++;
+            continue;
+          }
+          context.emit(
+            "tool.error.stop",
+            buildToolErrorStopEvent(tName, context.turnId, classification),
+          );
+          finalStopReason = "tool_loop_error";
+          attempts.push({
+            success: false,
+            output: "",
+            tokensUsed: 0,
+            toolCalls: 0,
+            stopReason: finalStopReason,
+            retryCount: retries,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          break;
+        }
+
+        if (classification.action === "escalate") {
+          context.emit(
+            "tool.error.escalate",
+            buildToolErrorEscalateEvent(tName, context.turnId, classification),
+          );
+        }
+
+        if (classification.action === "stop" || classification.action === "escalate") {
+          finalStopReason = "tool_loop_error";
+          attempts.push({
+            success: false,
+            output: "",
+            tokensUsed: 0,
+            toolCalls: 0,
+            stopReason: finalStopReason,
+            retryCount: retries,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          break;
+        }
+
+        context.emit("tool.error.recovered", {
+          toolName: tName,
+          turnId: context.turnId,
+          timestamp: Date.now(),
+          reason: classification.reason,
+        });
+      }
+
       if (error instanceof AgentError && error.code === "TIMEOUT") {
         timeout = true;
         stopReason = "timeout";
@@ -165,6 +259,7 @@ export async function executeInSandbox(
           tokenBudgetExceeded,
           timeout,
           retries >= maxRetries,
+          toolLoopError,
         );
         stopReason = finalStopReason;
       }
@@ -183,7 +278,8 @@ export async function executeInSandbox(
         retries < maxRetries &&
         stopReason !== "upstream_error" &&
         stopReason !== "timeout" &&
-        stopReason !== "budget_exceeded";
+        stopReason !== "budget_exceeded" &&
+        stopReason !== "tool_loop_error";
       if (shouldRetry) {
         retries++;
         continue;
