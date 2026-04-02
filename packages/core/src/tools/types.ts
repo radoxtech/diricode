@@ -9,6 +9,9 @@ export interface ToolAnnotations {
 export interface ToolContext {
   workspaceRoot: string;
   turnId?: string;
+  sessionId?: string;
+  executionId?: string;
+  agentName?: string;
   emit: (event: string, payload: unknown) => void;
 }
 
