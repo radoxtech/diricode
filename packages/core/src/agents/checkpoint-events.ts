@@ -1,4 +1,5 @@
 import type { CheckpointStatus, TaskExecutionResult, CheckpointSummary } from "./types.js";
+import type { CorrelationContext } from "../observability/correlation.js";
 
 export interface TaskCheckpointEvent {
   type: "task.checkpoint";
@@ -11,6 +12,7 @@ export interface TaskCheckpointEvent {
   result: TaskExecutionResult;
   checkpoint: CheckpointSummary;
   timestamp: number;
+  correlation?: CorrelationContext;
 }
 
 export interface TaskStartedEvent {
@@ -23,6 +25,7 @@ export interface TaskStartedEvent {
   taskId: string;
   taskDescription: string;
   timestamp: number;
+  correlation?: CorrelationContext;
 }
 
 export interface TaskCompletedEvent {
@@ -36,6 +39,7 @@ export interface TaskCompletedEvent {
   success: boolean;
   durationMs: number;
   timestamp: number;
+  correlation?: CorrelationContext;
 }
 
 export interface TaskFailedEvent {
@@ -49,6 +53,7 @@ export interface TaskFailedEvent {
   error: string;
   checkpoint: CheckpointSummary;
   timestamp: number;
+  correlation?: CorrelationContext;
 }
 
 export interface SequentialExecutionStartedEvent {
@@ -60,6 +65,7 @@ export interface SequentialExecutionStartedEvent {
   totalTasks: number;
   abortOnFailure: boolean;
   timestamp: number;
+  correlation?: CorrelationContext;
 }
 
 export interface SequentialExecutionCompletedEvent {
@@ -74,6 +80,7 @@ export interface SequentialExecutionCompletedEvent {
   durationMs: number;
   finalCheckpoint: CheckpointSummary;
   timestamp: number;
+  correlation?: CorrelationContext;
 }
 
 export interface SequentialExecutionAbortedEvent {
@@ -86,6 +93,7 @@ export interface SequentialExecutionAbortedEvent {
   completedCount: number;
   lastValidCheckpoint: CheckpointSummary;
   timestamp: number;
+  correlation?: CorrelationContext;
 }
 
 export interface CheckpointSavedEvent {
@@ -97,6 +105,7 @@ export interface CheckpointSavedEvent {
   checkpointIndex: number;
   status: CheckpointStatus;
   timestamp: number;
+  correlation?: CorrelationContext;
 }
 
 export function createTaskCheckpointEvent(
