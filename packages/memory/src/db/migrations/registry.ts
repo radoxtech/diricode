@@ -8,8 +8,8 @@ import { migration006 } from "./006_fts5_search.js";
 import { migration007 } from "./007_turns.js";
 import { migration008 } from "./008_token_usage.js";
 import { migration009 } from "./009_checkpoints.js";
+import { migration010 } from "./010_issues.js";
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- cascading type resolution limit with 9+ migrations
 export const migrations: Migration[] = [
   migration001,
   migration002,
@@ -20,4 +20,5 @@ export const migrations: Migration[] = [
   migration007,
   migration008,
   migration009,
+  migration010,
 ];
