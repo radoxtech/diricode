@@ -55,3 +55,15 @@ export const SearchFilterSchema = z.object({
 export type SearchFilter = z.input<typeof SearchFilterSchema>;
 
 export type ParsedSearchFilter = z.infer<typeof SearchFilterSchema>;
+
+export const CreateObservationInputSchema = z.object({
+  type: ObservationTypeSchema,
+  content: z.string().min(1),
+  sessionId: z.string().optional(),
+  agentId: z.string().optional(),
+  taskId: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+  timestamp: z.string().optional(),
+});
+
+export type CreateObservationInput = z.infer<typeof CreateObservationInputSchema>;
