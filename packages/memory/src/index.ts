@@ -39,11 +39,14 @@ export {
   InvalidSessionTransition,
 } from "./db/schemas/session.js";
 export { SearchRepository } from "./db/repositories/SearchRepository.js";
+export { ObservationRepository } from "./db/repositories/ObservationRepository.js";
+export type { TimelineFilter } from "./db/repositories/ObservationRepository.js";
 export type {
   SearchResult,
   SearchFilter,
   Observation,
   ObservationType,
+  CreateObservationInput,
 } from "./db/schemas/search.js";
 export { TurnRepository } from "./db/repositories/TurnRepository.js";
 export type {
