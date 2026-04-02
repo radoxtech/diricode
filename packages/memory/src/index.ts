@@ -56,3 +56,11 @@ export type {
   TurnTelemetry,
   TurnPartialResult,
 } from "./db/schemas/turn.js";
+export { TokenUsageRepository } from "./db/repositories/TokenUsageRepository.js";
+export type {
+  TokenUsage,
+  RecordTokenUsageInput,
+  SessionUsageSummary,
+  ModelUsageBreakdown,
+  AgentUsageSummary,
+} from "./db/schemas/token-usage.js";
