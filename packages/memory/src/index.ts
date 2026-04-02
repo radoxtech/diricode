@@ -18,6 +18,8 @@ export type {
   ErrorDetails,
   TaskPriority,
 } from "./db/repositories/BackgroundTaskRepository.js";
+export { CheckpointRepository } from "./db/repositories/CheckpointRepository.js";
+export type { CheckpointRecord } from "./db/repositories/CheckpointRepository.js";
 export { SessionRepository } from "./db/repositories/SessionRepository.js";
 export type { ListSessionsFilter } from "./db/repositories/SessionRepository.js";
 export { MessageRepository } from "./db/repositories/MessageRepository.js";
