@@ -14,6 +14,31 @@ export type {
   ToolAccessPolicy,
 } from "./tools/types.js";
 
+export {
+  ToolLoopError,
+  classifyToolError,
+  deriveRecoveryAction,
+  buildToolErrorEvent,
+  buildToolErrorRetryEvent,
+  buildToolErrorRecoveredEvent,
+  buildToolErrorEscalateEvent,
+  buildToolErrorStopEvent,
+  computeToolRetryDelay,
+  DEFAULT_TOOL_RETRY_BASE_DELAY_MS,
+  DEFAULT_TOOL_RETRY_MAX_DELAY_MS,
+  DEFAULT_TOOL_RETRY_MAX_RETRIES,
+} from "./tools/tool-error.js";
+export type {
+  ToolErrorKind,
+  ToolRecoveryAction,
+  ToolErrorClassification,
+  ToolErrorEvent,
+  ToolErrorRetryEvent,
+  ToolErrorRecoveredEvent,
+  ToolErrorEscalateEvent,
+  ToolErrorStopEvent,
+} from "./tools/tool-error.js";
+
 export { DiriCodeConfigSchema } from "./config/schema.js";
 export type { DiriCodeConfig } from "./config/schema.js";
 export { loadConfig } from "./config/loader.js";
@@ -25,6 +50,7 @@ export {
   serializeTask,
   deserializeTask,
   DEFAULT_SANDBOX_CONFIG,
+  DEFAULT_TOOL_LOOP_POLICY,
 } from "./agents/types.js";
 export type {
   Agent,
@@ -56,6 +82,7 @@ export type {
   SandboxRetryPolicy,
   SandboxAttemptResult,
   SandboxExecutionResult,
+  ToolLoopPolicy,
 } from "./agents/types.js";
 export { PromptBuilder, DEFAULT_BUDGET } from "./agents/prompt-builder.js";
 export type { PromptBuilderConfig } from "./agents/prompt-builder.js";
