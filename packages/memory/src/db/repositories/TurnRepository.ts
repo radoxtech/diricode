@@ -1,10 +1,5 @@
 import type { Database } from "better-sqlite3";
-import {
-  type TurnEnvelopeData,
-  TurnEnvelopeDataSchema,
-  TurnEventSchema,
-  type TurnEvent,
-} from "../schemas/turn.js";
+import { type TurnEnvelopeData, TurnEnvelopeDataSchema, type TurnEvent } from "../schemas/turn.js";
 
 interface TurnRow {
   id: string;
@@ -30,9 +25,11 @@ function rowToTurnEnvelope(row: TurnRow): TurnEnvelopeData {
     durationMs: row.duration_ms,
     input: row.input,
     outputSummary: row.output_summary,
-    telemetry: JSON.parse(row.telemetry),
+    telemetry: TurnEnvelopeDataSchema.shape.telemetry.parse(JSON.parse(row.telemetry)),
     error: row.error ?? undefined,
-    partialResults: JSON.parse(row.partial_results),
+    partialResults: TurnEnvelopeDataSchema.shape.partialResults.parse(
+      JSON.parse(row.partial_results),
+    ),
   });
 }
 
