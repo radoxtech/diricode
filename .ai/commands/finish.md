@@ -32,14 +32,14 @@ Jeśli którykolwiek check nie przechodzi → NAPRAW LOKALNIE → przetestuj pon
 ## Workflow Overview
 
 1. **Validate** worktree location
-2. **Check** for uncommitted changes
+2. **Fetch + rebase** latest `origin/main` (always — keeps branch current)
 3. **🔴 LOKALNE TESTY** — wszystkie muszą przejść:
    - `pnpm lint` — 0 errors
    - `pnpm typecheck` — 0 errors
    - `pnpm build` — success
    - `pnpm test` — all pass
 4. **NIE PRZECHODŹ DALEJ** dopóki krok 3 nie przejdzie w 100%
-5. **Push** branch
+5. **Commit + Push together** (if dirty: commit and push; if clean: just push)
 6. **Create** PR
 7. **Merge** PR
 8. **Update** issue status
@@ -68,19 +68,30 @@ echo "🔢 Issue: #$ISSUE_NUMBER"
 
 ---
 
-## Step 2: Check Uncommitted Changes
+## Step 2: Fetch + Rebase Latest Main (Always)
+
+**Always rebase onto latest main before running any quality checks.** This ensures the branch is current and tests run against the real baseline.
 
 ```bash
-if [ -n "$(git status --porcelain)" ]; then
-  echo "❌ ERROR: Uncommitted changes!"
+echo "🔄 Fetching latest main and rebasing..."
+git fetch origin main
+
+REBASE_RESULT=$(git rebase origin/main 2>&1)
+REBASE_STATUS=$?
+
+if [ $REBASE_STATUS -ne 0 ]; then
+  echo "❌ Rebase failed!"
+  echo "$REBASE_RESULT"
   echo ""
-  echo "Commit all changes before finishing:"
-  echo "  git add ."
-  echo "  git commit -m 'type(scope): description - fixes #$ISSUE_NUMBER'"
+  echo "Resolve rebase conflicts manually, then run /finish again."
+  echo "Do NOT skip the rebase — other work may have landed on main."
   exit 1
 fi
 
-echo "✅ No uncommitted changes"
+echo "✅ Rebased onto latest origin/main"
+echo ""
+echo "Recent commits after rebase:"
+git log --oneline -3
 ```
 
 ---
@@ -178,14 +189,33 @@ Nie wysyłaj wadliwego kodu na remote.
 
 ---
 
-## Step 4: Push Branch
+## Step 4: Commit + Push Together
+
+**If uncommitted changes exist: stage, commit with proper message, and push together.
+If working tree is clean: just push existing commits.**
 
 ```bash
+echo "📦 Checking for uncommitted changes..."
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "⚠️  Uncommitted changes found — committing and pushing together"
+
+  # Stage all changes
+  git add .
+
+  # Commit with proper message referencing the issue
+  git commit -m "$(git log -1 --format='%s') - fixes #$ISSUE_NUMBER"
+  echo "✅ Committed"
+else
+  echo "✅ Working tree clean — nothing to commit"
+fi
+
+echo ""
 echo "📤 Pushing branch to remote..."
 git push -u origin "$CURRENT_BRANCH"
 
 if [ $? -ne 0 ]; then
-  echo "❌ ERROR: Failed to push branch"
+  echo "❌ Push failed"
   exit 1
 fi
 
@@ -250,6 +280,19 @@ echo "✅ Back on main, updated"
 
 ## Error States
 
+### Rebase Failed
+
+```
+❌ Rebase failed — origin/main has diverged.
+
+Resolve conflicts manually:
+  git rebase --abort  (to cancel)
+  git rebase origin/main  (to retry)
+
+Then run /finish again.
+Do NOT skip the rebase.
+```
+
 ### Test Failed → STOP
 
 ```
@@ -286,7 +329,7 @@ START
   ↓
 Validate worktree
   ↓
-Check uncommitted
+Fetch + rebase origin/main
   ↓
 🔴 LOKALNE TESTY:
   ├─ pnpm lint      → FAIL → NAPRAW → RETEST
@@ -294,7 +337,7 @@ Check uncommitted
   ├─ pnpm build     → FAIL → NAPRAW → RETEST
   └─ pnpm test      → FAIL → NAPRAW → RETEST
   ↓ (ALL PASS)
-📤 Push
+📦 Commit + push together (if dirty)
   ↓
 📝 Create PR
   ↓
