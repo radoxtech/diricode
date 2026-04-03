@@ -1,4 +1,4 @@
-import type { Agent, AgentCategory, AgentMetadata, AgentTier } from "@diricode/core";
+import type { Agent, AgentDomain, AgentMetadata, AgentTier, ModelAttribute } from "@diricode/core";
 
 export class AgentNotFoundError extends Error {
   constructor(name: string) {
@@ -54,6 +54,13 @@ function satisfiesTierConstraint(tier: AgentTier, constraint: TierConstraint): b
   }
 }
 
+function metadataSatisfiesTierConstraint(
+  metadata: AgentMetadata,
+  constraint: TierConstraint,
+): boolean {
+  return metadata.allowedTiers.some((tier) => satisfiesTierConstraint(tier, constraint));
+}
+
 export class AgentRegistry {
   readonly #entries = new Map<string, Agent>();
   readonly #emit?: (event: string, payload: unknown) => void;
@@ -65,13 +72,13 @@ export class AgentRegistry {
   }
 
   register(agent: Agent): this {
-    const { name, tier } = agent.metadata;
+    const { name, allowedTiers } = agent.metadata;
 
     if (this.#entries.has(name)) {
       const error = new AgentAlreadyRegisteredError(name);
       this.#emit?.("agent.rejected", {
         agent: name,
-        tier,
+        allowedTiers,
         reason: "already_registered",
         error: error.message,
       });
@@ -81,9 +88,10 @@ export class AgentRegistry {
     this.#entries.set(name, agent);
     this.#emit?.("agent.registered", {
       agent: name,
-      tier,
-      category: agent.metadata.category,
-      tags: agent.metadata.tags,
+      allowedTiers,
+      primary: agent.metadata.capabilities.primary,
+      specialization: agent.metadata.capabilities.specialization,
+      modelAttributes: agent.metadata.capabilities.modelAttributes,
     });
 
     return this;
@@ -101,29 +109,32 @@ export class AgentRegistry {
     return agent;
   }
 
-  list(category?: AgentCategory, tierConstraint?: TierConstraint): readonly AgentMetadata[] {
+  list(domain?: AgentDomain, tierConstraint?: TierConstraint): readonly AgentMetadata[] {
     let all = Array.from(this.#entries.values()).map((a) => a.metadata);
 
-    if (category !== undefined) {
-      all = all.filter((m) => m.category === category);
+    if (domain !== undefined) {
+      all = all.filter((m) => m.capabilities.primary === domain);
     }
 
     const constraint = tierConstraint ?? this.#defaultTierConstraint;
     if (constraint !== undefined) {
-      all = all.filter((m) => satisfiesTierConstraint(m.tier, constraint));
+      all = all.filter((m) => metadataSatisfiesTierConstraint(m, constraint));
     }
 
     return all;
   }
 
-  listByTag(tag: string, tierConstraint?: TierConstraint): readonly AgentMetadata[] {
+  listByModelAttribute(
+    modelAttribute: ModelAttribute,
+    tierConstraint?: TierConstraint,
+  ): readonly AgentMetadata[] {
     let matches = Array.from(this.#entries.values())
-      .filter((a) => a.metadata.tags.includes(tag))
+      .filter((a) => a.metadata.capabilities.modelAttributes.includes(modelAttribute))
       .map((a) => a.metadata);
 
     const constraint = tierConstraint ?? this.#defaultTierConstraint;
     if (constraint !== undefined) {
-      matches = matches.filter((m) => satisfiesTierConstraint(m.tier, constraint));
+      matches = matches.filter((m) => metadataSatisfiesTierConstraint(m, constraint));
     }
 
     return matches;
@@ -131,7 +142,7 @@ export class AgentRegistry {
 
   listByTier(tier: AgentTier): readonly AgentMetadata[] {
     return Array.from(this.#entries.values())
-      .filter((a) => a.metadata.tier === tier)
+      .filter((a) => a.metadata.allowedTiers.includes(tier))
       .map((a) => a.metadata);
   }
 
@@ -150,16 +161,16 @@ export class AgentRegistry {
     for (const agent of this.#entries.values()) {
       const { metadata } = agent;
 
-      if (constraint && !satisfiesTierConstraint(metadata.tier, constraint)) {
+      if (constraint && !metadataSatisfiesTierConstraint(metadata, constraint)) {
         continue;
       }
 
       const haystack = [
         metadata.name,
         metadata.description,
-        ...metadata.capabilities,
-        ...metadata.tags,
-        metadata.category,
+        metadata.capabilities.primary,
+        ...metadata.capabilities.specialization,
+        ...metadata.capabilities.modelAttributes,
       ]
         .join(" ")
         .toLowerCase();
