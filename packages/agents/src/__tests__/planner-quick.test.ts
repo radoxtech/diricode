@@ -49,40 +49,23 @@ describe("createPlannerQuickAgent", () => {
       expect(agent.metadata.name).toBe("planner-quick");
     });
 
-    it("has tier 'medium'", () => {
+    it("allows medium tier", () => {
       const agent = createPlannerQuickAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tier).toBe("medium");
+      expect(agent.metadata.allowedTiers).toContain("medium");
     });
 
-    it("has category 'strategy'", () => {
+    it("has primary domain 'planning'", () => {
       const agent = createPlannerQuickAgent({ tools: makeAllTools() });
-      expect(agent.metadata.category).toBe("strategy");
+      expect(agent.metadata.capabilities.primary).toBe("planning");
     });
 
-    it("has all required capabilities", () => {
+    it("has expected specialization and model attributes", () => {
       const agent = createPlannerQuickAgent({ tools: makeAllTools() });
       const caps = agent.metadata.capabilities;
-      expect(caps).toContain("repository-mapping");
-      expect(caps).toContain("task-decomposition");
-      expect(caps).toContain("lightweight-search");
-      expect(caps).toContain("context-reading");
-      expect(caps).toContain("plan-generation");
-      expect(caps).toContain("success-criteria-definition");
-    });
-
-    it("has 'planning' tag", () => {
-      const agent = createPlannerQuickAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tags).toContain("planning");
-    });
-
-    it("has 'quick' tag", () => {
-      const agent = createPlannerQuickAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tags).toContain("quick");
-    });
-
-    it("has 'strategy' tag", () => {
-      const agent = createPlannerQuickAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tags).toContain("strategy");
+      expect(caps.specialization).toContain("task-decomposition");
+      expect(caps.specialization).toContain("operational-plan");
+      expect(caps.modelAttributes).toContain("reasoning");
+      expect(caps.modelAttributes).toContain("speed");
     });
 
     it("has non-empty description", () => {
@@ -356,10 +339,8 @@ describe("createPlannerQuickAgent", () => {
       expect(agent).toHaveProperty("execute");
       expect(typeof agent.execute).toBe("function");
       expect(agent.metadata).toHaveProperty("name");
-      expect(agent.metadata).toHaveProperty("tier");
-      expect(agent.metadata).toHaveProperty("category");
+      expect(agent.metadata).toHaveProperty("allowedTiers");
       expect(agent.metadata).toHaveProperty("capabilities");
-      expect(agent.metadata).toHaveProperty("tags");
     });
   });
 
