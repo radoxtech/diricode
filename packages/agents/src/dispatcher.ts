@@ -26,6 +26,8 @@ import {
   createFilterPolicyForDomain,
   TurnEnvelope,
 } from "@diricode/core";
+import type { DecisionRequest, ModelAttribute, ModelTier } from "@diricode/core/llm-picker";
+import type { DiriRouter } from "@diricode/providers";
 
 import type { AgentRegistry } from "./registry.js";
 import { DelegationGraph, createHandoffEnvelope, createDelegationResult } from "./protocol.js";
@@ -38,6 +40,7 @@ export interface DispatcherConfig {
   readonly maxDelegationDepth: number;
   readonly sandboxConfig?: SandboxConfig;
   readonly modelTierResolver?: ModelConfigResolver;
+  readonly diriRouter?: DiriRouter;
 }
 
 interface ClassifiedIntent {
@@ -111,6 +114,30 @@ function classifyIntent(input: string): ClassifiedIntent {
   }
 
   return { primary: "coding", query: input, confidence: 0.5 };
+}
+
+function buildDecisionRequest(
+  agent: AgentMetadata,
+  taskType: string,
+  requestedTier: AgentTier,
+): DecisionRequest {
+  function toModelTier(tier: AgentTier): ModelTier {
+    if (tier === "light") return "low";
+    if (tier === "heavy") return "heavy";
+    return "medium";
+  }
+
+  return {
+    chatId: crypto.randomUUID(),
+    requestId: crypto.randomUUID(),
+    agent: { id: agent.name, role: agent.capabilities.primary },
+    task: { type: taskType },
+    modelDimensions: {
+      tier: toModelTier(requestedTier),
+      modelAttributes: agent.capabilities.modelAttributes as ModelAttribute[],
+      fallbackType: null,
+    },
+  };
 }
 
 export interface DispatcherDelegationOptions {
@@ -372,16 +399,56 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
 
     const agent = config.registry.get(selected.agent.name);
     const requestedTier = selectTierForTask(input, agent.metadata.allowedTiers);
-    const modelConfig = modelTierResolver.resolve(agent.metadata, requestedTier);
 
-    context.emit("dispatcher.model-resolved", {
-      agent: selected.agent.name,
-      tier: requestedTier,
-      model: modelConfig.model,
-      maxTokens: modelConfig.maxTokens,
-      temperature: modelConfig.temperature,
-      executionId,
-    });
+    let selectedProvider: string | undefined;
+    let selectedModel: string | undefined;
+
+    if (config.diriRouter) {
+      const decisionRequest = buildDecisionRequest(agent.metadata, intent.primary, requestedTier);
+      const decisionResponse = await config.diriRouter.pick(decisionRequest);
+
+      if (decisionResponse.status === "resolved" && decisionResponse.selected) {
+        selectedProvider = decisionResponse.selected.provider;
+        selectedModel = decisionResponse.selected.model;
+
+        context.emit("dispatcher.model-resolved", {
+          agent: selected.agent.name,
+          tier: requestedTier,
+          model: selectedModel,
+          provider: selectedProvider,
+          selectionSource: "diri-router",
+          executionId,
+        });
+      } else {
+        const modelConfig = modelTierResolver.resolve(agent.metadata, requestedTier);
+        selectedProvider = modelConfig.provider;
+        selectedModel = modelConfig.model;
+
+        context.emit("dispatcher.model-resolved", {
+          agent: selected.agent.name,
+          tier: requestedTier,
+          model: selectedModel,
+          provider: selectedProvider,
+          selectionSource: "model-tier-resolver",
+          executionId,
+        });
+      }
+    } else {
+      const modelConfig = modelTierResolver.resolve(agent.metadata, requestedTier);
+      selectedProvider = modelConfig.provider;
+      selectedModel = modelConfig.model;
+
+      context.emit("dispatcher.model-resolved", {
+        agent: selected.agent.name,
+        tier: requestedTier,
+        model: modelConfig.model,
+        provider: modelConfig.provider,
+        maxTokens: modelConfig.maxTokens,
+        temperature: modelConfig.temperature,
+        selectionSource: "model-tier-resolver",
+        executionId,
+      });
+    }
 
     const filterPolicy = createFilterPolicyForDomain(agent.metadata.capabilities.primary);
     const { filteredContext, metadata: filterMetadata } = filterContextForHandoff(
@@ -466,6 +533,8 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
       ...childContext,
       sandboxConfig: sandboxConfig,
       requestedTier,
+      selectedProvider,
+      selectedModel,
     };
 
     let sandboxResult: SandboxExecutionResult | undefined;

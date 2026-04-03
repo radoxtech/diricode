@@ -24,6 +24,8 @@ import {
 export interface SandboxContext extends AgentContext {
   readonly sandboxConfig: SandboxConfig;
   readonly requestedTier?: AgentTier;
+  readonly selectedProvider?: string;
+  readonly selectedModel?: string;
 }
 
 function getEffectiveTier(agent: Agent, requestedTier?: AgentTier): AgentTier {
