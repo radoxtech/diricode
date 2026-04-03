@@ -5,7 +5,7 @@
 | Status      | Accepted                                                      |
 | Date        | 2026-03-21                                                    |
 | Scope       | MVP-2 (subscription rotation), v2 (quality scoring), v3 (A/B testing) |
-| References  | ADR-004 (agent roster 3 tiers), ADR-005 (families), ADR-006 (4 fallback types), ADR-025 (native TS router + fallback chain), ADR-054 (Vercel AI SDK transport layer), Survey Decision E1 |
+| References  | ADR-004 (agent roster 3 tiers), ADR-005 (unified capability taxonomy), ADR-006 (4 fallback types), ADR-025 (native TS router + fallback chain), ADR-054 (Vercel AI SDK transport layer), Survey Decision E1 |
 
 ### Context
 
@@ -16,7 +16,7 @@ The current architecture (ADR-025) handles provider failover reactively: when a 
 **Problems this ADR solves:**
 
 1. **Quota waste.** When one subscription hits its limit, the system retries and eventually errors out — even though an identical or equivalent model is available on a different subscription.
-2. **No cost visibility.** Users cannot see which subscription is burning tokens fastest or which offers the best price for a given model family.
+2. **No cost visibility.** Users cannot see which subscription is burning tokens fastest or which offers the best price for a given model capability profile.
 3. **No quality signal.** Two models that fill the same role (e.g., Opus 4.6 via Anthropic direct vs. Opus 4.6 via Azure) may differ in latency, reliability, or even output quality (different inference stacks). There is no mechanism to measure and compare.
 4. **Manual key management.** Users must manually reconfigure providers when a subscription resets or a new one is added.
 
@@ -54,7 +54,7 @@ interface SubscriptionLimits {
 
 interface ModelCapability {
   modelId: string;                   // "claude-opus-4.6", "gpt-5.4"
-  family: ModelFamily;               // "reasoning", "creative", "fast", "bulk"
+  modelAttributes: ModelAttribute[]; // "reasoning", "creative", "speed", "bulk", etc.
   tier: ModelTier;                   // "heavy", "medium", "low"
   contextWindow: number;             // Max input tokens
   maxOutput: number;                 // Max output tokens
@@ -75,9 +75,9 @@ Models are classified along two independent dimensions:
 | MEDIUM | Balanced cost/quality | Sonnet 4.6, Kimi 2.5, Qwen3 Coder Next |
 | LOW | Cheapest, fastest, utility tasks | Haiku 4.5, DeepSeek V3.2, MiniMax M2 |
 
-**Family** (capability profile):
+**Model attributes** (capability profile):
 
-| Family | Strength | Example Models |
+| Attribute | Strength | Example Models |
 |--------|----------|----------------|
 | `reasoning` | Complex logic, math, architecture | Opus 4.6, GPT-5.4, Gemini 3.1 Pro |
 | `creative` | Writing, brainstorming, unconventional solutions | Opus 4.6, GPT-5.4 |
@@ -87,7 +87,7 @@ Models are classified along two independent dimensions:
 | `bulk` | High volume, low cost batch work | DeepSeek V3.2, Qwen3, MiniMax M2 |
 | `agentic` | Tool use, multi-step execution, autonomy | Sonnet 4.6, Opus 4.6 |
 
-A single model can belong to multiple families. For example, Opus 4.6 is `reasoning` + `creative` + `agentic`. Agent configs (ADR-006) specify `{ tier, family }` requirements instead of a specific `modelId`, and the SubscriptionRouter resolves this to the best available model across all active subscriptions.
+A single model can expose multiple attributes. For example, Opus 4.6 is `reasoning` + `creative` + `agentic`. Agent/runtime hints now specify `tier` plus capability metadata instead of a specific `family`, and the router resolves this to the best available model across all active subscriptions.
 
 #### 3. Subscription Health Tracking
 
@@ -136,7 +136,7 @@ Health is updated after every API call by parsing provider-specific response hea
 
 When an agent needs a model, the SubscriptionRouter:
 
-1. **Filter** — Find all subscriptions that provide a model matching `{ tier, family }`.
+1. **Filter** — Find all subscriptions that provide a model matching the requested tier and capability attributes.
 2. **Exclude** — Remove subscriptions in `cooldown` or `exhausted` status.
 3. **Rank** — Sort remaining by: `priority` (config) → `status` (healthy > degraded) → `cost` (cheapest) → `latency` (fastest).
 4. **Select** — Pick the top-ranked subscription.
@@ -424,4 +424,3 @@ ADR-054 establishes Vercel AI SDK (`@ai-sdk/*`) as the LLM transport layer. This
 - Static **Model Cards** (`ModelDescriptor[]`) are bundled per provider for metadata AI SDK doesn't expose (context window, capabilities, pricing tier). These cards feed into the routing strategy's cost and capability scoring.
 
 See `docs/adr/adr-054-ai-sdk-transport-layer.md` for the full AI SDK adoption decision.
-

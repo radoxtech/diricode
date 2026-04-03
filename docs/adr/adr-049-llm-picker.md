@@ -61,10 +61,9 @@ The Picker uses a hierarchical cascade to classify tasks with increasing depth, 
 
 The Picker respects and utilizes dimensions defined in previous ADRs:
 
-*   **Tiers (ADR-004)**: Maps legacy `AgentTier` to `tier:heavy`, `tier:medium`, `tier:low` tags.
-*   **Families (ADR-005)**: Filters by `family:coding`, `family:reasoning`, or `family:creative`.
+*   **Tiers (ADR-004)**: Uses `heavy`, `medium`, `low` as the requested compute tier.
+*   **Capability taxonomy (ADR-005)**: Uses `modelAttributes` for scoring instead of family/tag taxonomies.
 *   **Fallback Types (ADR-006)**: Includes `largeContext`, `largeOutput`, `error`, and `strong` candidates in the response.
-*   **Tags (ADR-004)**: Uses the 7 core tags (orchestration, planning, coding, quality, research, creative, utility) for policy matching.
 *   **Elo Scoring (ADR-044)**: Augments static quality scores using Bradley-Terry models (v2).
 
 #### 4. Decision Request Contract
@@ -78,8 +77,7 @@ The orchestrator sends a structured request to the Picker.
   "task": { "type": "refactor", "description": "Update imports" },
   "model_dimensions": {
     "tier": "medium",
-    "family": "coding",
-    "tags": ["coding", "quality"],
+    "modelAttributes": ["reasoning", "agentic", "quality"],
     "fallback_type": null // null, or "largeContext"/"error"/etc
   },
   "constraints": { "max_cost_usd": 0.05 }
@@ -194,7 +192,7 @@ A unified dashboard with multiple tabs provides deep visibility:
 
 #### 10. SQLite Schema
 
-Persistent storage uses 6 tables: `models`, `policies`, `decisions`, `execution_feedback`, `picker_errors`, and `agents_registry`. The `models` table includes columns for `tier`, `family`, and `tags` to support advanced filtering.
+Persistent storage uses 6 tables: `models`, `policies`, `decisions`, `execution_feedback`, `picker_errors`, and `agents_registry`. The `models` table should store `tier` plus capability-oriented metadata (for example `model_attributes`) rather than legacy family/tag columns.
 
 #### 11. REST + WebSocket API
 
