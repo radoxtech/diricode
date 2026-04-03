@@ -2,7 +2,7 @@
   <img src="diricode.jpg" alt="DiriCode banner" width="100%" />
 </p>
 
-# DiriCode
+# DiriCode - The Most Advanced Vibe Coding Framework
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/radoxtech/diricode/ci.yml?branch=main)](https://github.com/radoxtech/diricode/actions)
