@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { AgentError, AgentRegistry, createDispatcher } from "../index.js";
 import type { Agent, AgentContext, AgentResult } from "../index.js";
+import type { DiriRouter } from "@diricode/providers";
 
 type MockFn = ReturnType<typeof vi.fn>;
 
@@ -295,6 +296,133 @@ describe("createDispatcher", () => {
         const payload = classifiedCall[1] as { intent: { primary: string } };
         expect(payload.intent.primary).toBe("coding");
       }
+    });
+  });
+
+  describe("with DiriRouter", () => {
+    it("calls diriRouter.pick() when diriRouter is provided", async () => {
+      const registry = new AgentRegistry();
+      registry.register(makeAgent("coder", ["write", "implement"]));
+
+      const mockPick = vi.fn().mockResolvedValue({
+        requestId: "test-request-id",
+        decisionId: "test-decision-id",
+        timestamp: new Date().toISOString(),
+        status: "resolved" as const,
+        selected: {
+          provider: "openai",
+          model: "gpt-4o",
+          score: 85,
+        },
+      });
+
+      const mockDiriRouter = {
+        pick: mockPick,
+        chat: vi.fn(),
+        stream: vi.fn(),
+        getProvider: vi.fn(),
+        getModelConfig: vi.fn(),
+        resolver: {},
+        router: {},
+      };
+
+      const dispatcher = createDispatcher({
+        registry,
+        maxDelegationDepth: 5,
+        diriRouter: mockDiriRouter as unknown as DiriRouter,
+      });
+
+      const { ctx } = makeContext();
+      await dispatcher.execute("write some code", ctx);
+
+      expect(mockPick).toHaveBeenCalledTimes(1);
+      const pickCall = mockPick.mock.calls[0]?.[0] as
+        | {
+            agent: { id: string };
+            task: { type: string };
+          }
+        | undefined;
+      expect(pickCall?.agent.id).toBe("coder");
+      expect(pickCall?.task.type).toBe("coding");
+    });
+
+    it("emits dispatcher.model-resolved with selectionSource=diri-router when DiriRouter returns resolved", async () => {
+      const registry = new AgentRegistry();
+      registry.register(makeAgent("coder", ["write"]));
+
+      const mockPick = vi.fn().mockResolvedValue({
+        requestId: "test-request-id",
+        decisionId: "test-decision-id",
+        timestamp: new Date().toISOString(),
+        status: "resolved" as const,
+        selected: {
+          provider: "openai",
+          model: "gpt-4o",
+          score: 85,
+        },
+      });
+
+      const mockDiriRouter = {
+        pick: mockPick,
+        chat: vi.fn(),
+        stream: vi.fn(),
+        getProvider: vi.fn(),
+        getModelConfig: vi.fn(),
+        resolver: {},
+        router: {},
+      };
+
+      const dispatcher = createDispatcher({
+        registry,
+        maxDelegationDepth: 5,
+        diriRouter: mockDiriRouter as unknown as DiriRouter,
+      });
+
+      const { ctx, emit } = makeContext();
+      await dispatcher.execute("write some code", ctx);
+
+      const modelResolvedCall = findEmitCall(emit, "dispatcher.model-resolved");
+      expect(modelResolvedCall).toBeDefined();
+      const payload = modelResolvedCall?.[1] as Record<string, unknown>;
+      expect(payload.selectionSource).toBe("diri-router");
+      expect(payload.model).toBe("gpt-4o");
+      expect(payload.provider).toBe("openai");
+    });
+
+    it("falls back to modelTierResolver when DiriRouter returns no_match", async () => {
+      const registry = new AgentRegistry();
+      registry.register(makeAgent("coder", ["write"]));
+
+      const mockPick = vi.fn().mockResolvedValue({
+        requestId: "test-request-id",
+        decisionId: "test-decision-id",
+        timestamp: new Date().toISOString(),
+        status: "no_match" as const,
+      });
+
+      const mockDiriRouter = {
+        pick: mockPick,
+        chat: vi.fn(),
+        stream: vi.fn(),
+        getProvider: vi.fn(),
+        getModelConfig: vi.fn(),
+        resolver: {},
+        router: {},
+      };
+
+      const dispatcher = createDispatcher({
+        registry,
+        maxDelegationDepth: 5,
+        diriRouter: mockDiriRouter as unknown as DiriRouter,
+      });
+
+      const { ctx, emit } = makeContext();
+      await dispatcher.execute("write some code", ctx);
+
+      const modelResolvedCall = findEmitCall(emit, "dispatcher.model-resolved");
+      expect(modelResolvedCall).toBeDefined();
+      const payload = modelResolvedCall?.[1] as Record<string, unknown>;
+      expect(payload.selectionSource).toBe("model-tier-resolver");
     });
   });
 });
