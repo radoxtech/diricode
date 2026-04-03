@@ -1,47 +1,52 @@
-import type { AgentCategory, AgentMetadata, AgentTier } from "./types.js";
+import type { AgentDomain, AgentMetadata, AgentTier } from "./types.js";
+import { DEFAULT_AGENT_MODEL_POLICY } from "./model-selection-policy.js";
+import type { AgentModelConfig } from "./model-selection-policy.js";
 
 export interface ModelConfig {
+  readonly provider: string;
   readonly model: string;
   readonly maxTokens: number;
   readonly temperature: number;
 }
 
 export interface ModelConfigResolver {
-  resolve(agent: AgentMetadata): ModelConfig;
+  resolve(agent: AgentMetadata, requestedTier?: AgentTier): ModelConfig;
 }
 
-type TierCategory = `${AgentTier}:${AgentCategory}`;
+type TierDomain = `${AgentTier}:${AgentDomain}`;
 
-const TIER_CATEGORY_MAP: ReadonlyMap<TierCategory, ModelConfig> = new Map([
-  ["heavy:code", { model: "opus-4", maxTokens: 8192, temperature: 0.2 }],
-  ["heavy:strategy", { model: "opus-4", maxTokens: 8192, temperature: 0.3 }],
-  ["medium:research", { model: "sonnet-4", maxTokens: 4096, temperature: 0.4 }],
-  ["medium:code", { model: "sonnet-4", maxTokens: 4096, temperature: 0.2 }],
-  ["light:utility", { model: "haiku-4", maxTokens: 2048, temperature: 0.3 }],
-]);
+const TIER_PRIORITY: readonly AgentTier[] = ["light", "medium", "heavy"];
 
-const TIER_DEFAULT_MAP: ReadonlyMap<AgentTier, ModelConfig> = new Map([
-  ["heavy", { model: "opus-4", maxTokens: 8192, temperature: 0.3 }],
-  ["medium", { model: "sonnet-4", maxTokens: 4096, temperature: 0.3 }],
-  ["light", { model: "haiku-4", maxTokens: 2048, temperature: 0.3 }],
-]);
+function resolveEffectiveTier(
+  allowedTiers: readonly AgentTier[],
+  requestedTier?: AgentTier,
+): AgentTier {
+  if (requestedTier !== undefined && allowedTiers.includes(requestedTier)) {
+    return requestedTier;
+  }
 
-const GLOBAL_FALLBACK: ModelConfig = {
-  model: "sonnet-4",
-  maxTokens: 4096,
-  temperature: 0.3,
-};
+  const sortedAllowed = [...allowedTiers].sort(
+    (left, right) => TIER_PRIORITY.indexOf(right) - TIER_PRIORITY.indexOf(left),
+  );
+
+  return sortedAllowed[0] ?? "medium";
+}
+
+function policyEntryToConfig(entry: AgentModelConfig): ModelConfig {
+  return {
+    provider: entry.provider,
+    model: entry.model,
+    maxTokens: entry.maxTokens,
+    temperature: entry.temperature,
+  };
+}
 
 export class DefaultModelTierResolver implements ModelConfigResolver {
-  resolve(agent: AgentMetadata): ModelConfig {
-    const key: TierCategory = `${agent.tier}:${agent.category}`;
+  resolve(agent: AgentMetadata, requestedTier?: AgentTier): ModelConfig {
+    const tier = resolveEffectiveTier(agent.allowedTiers, requestedTier);
+    const key: TierDomain = `${tier}:${agent.capabilities.primary}`;
 
-    const exact = TIER_CATEGORY_MAP.get(key);
-    if (exact !== undefined) {
-      return exact;
-    }
-
-    return TIER_DEFAULT_MAP.get(agent.tier) ?? GLOBAL_FALLBACK;
+    return policyEntryToConfig(DEFAULT_AGENT_MODEL_POLICY[key]);
   }
 }
 

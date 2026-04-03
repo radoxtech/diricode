@@ -47,8 +47,8 @@ describe("DelegationGraph", () => {
         executionId: "exec-1",
         agentName: "test-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "code",
+        allowedTiers: ["heavy"],
+        primary: "coding",
       });
 
       expect(node.executionId).toBe("exec-1");
@@ -64,16 +64,16 @@ describe("DelegationGraph", () => {
         executionId: "parent",
         agentName: "parent-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "strategy",
+        allowedTiers: ["heavy"],
+        primary: "planning",
       });
 
       const child = graph.registerNode({
         executionId: "child",
         agentName: "child-agent",
         parentExecutionId: "parent",
-        tier: "medium",
-        category: "code",
+        allowedTiers: ["medium"],
+        primary: "coding",
       });
 
       expect(child.depth).toBe(1);
@@ -85,16 +85,16 @@ describe("DelegationGraph", () => {
         executionId: "parent",
         agentName: "parent-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "strategy",
+        allowedTiers: ["heavy"],
+        primary: "planning",
       });
 
       graph.registerNode({
         executionId: "child",
         agentName: "child-agent",
         parentExecutionId: "parent",
-        tier: "medium",
-        category: "code",
+        allowedTiers: ["medium"],
+        primary: "coding",
       });
 
       const parent = graph.getNode("parent");
@@ -106,24 +106,24 @@ describe("DelegationGraph", () => {
         executionId: "root",
         agentName: "root-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "strategy",
+        allowedTiers: ["heavy"],
+        primary: "planning",
       });
 
       graph.registerNode({
         executionId: "level1",
         agentName: "level1-agent",
         parentExecutionId: "root",
-        tier: "medium",
-        category: "code",
+        allowedTiers: ["medium"],
+        primary: "coding",
       });
 
       const level2 = graph.registerNode({
         executionId: "level2",
         agentName: "level2-agent",
         parentExecutionId: "level1",
-        tier: "light",
-        category: "utility",
+        allowedTiers: ["light"],
+        primary: "utility",
       });
 
       expect(level2.depth).toBe(2);
@@ -136,8 +136,8 @@ describe("DelegationGraph", () => {
         executionId: "exec-1",
         agentName: "test-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "code",
+        allowedTiers: ["heavy"],
+        primary: "coding",
       });
 
       const completed = graph.completeNode("exec-1", true);
@@ -151,8 +151,8 @@ describe("DelegationGraph", () => {
         executionId: "exec-1",
         agentName: "test-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "code",
+        allowedTiers: ["heavy"],
+        primary: "coding",
       });
 
       const completed = graph.completeNode("exec-1", false);
@@ -172,8 +172,8 @@ describe("DelegationGraph", () => {
         executionId: "exec-1",
         agentName: "test-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "code",
+        allowedTiers: ["heavy"],
+        primary: "coding",
       });
 
       const node = graph.getNode("exec-1");
@@ -193,24 +193,24 @@ describe("DelegationGraph", () => {
         executionId: "parent",
         agentName: "parent-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "strategy",
+        allowedTiers: ["heavy"],
+        primary: "planning",
       });
 
       graph.registerNode({
         executionId: "child1",
         agentName: "child1-agent",
         parentExecutionId: "parent",
-        tier: "medium",
-        category: "code",
+        allowedTiers: ["medium"],
+        primary: "coding",
       });
 
       graph.registerNode({
         executionId: "child2",
         agentName: "child2-agent",
         parentExecutionId: "parent",
-        tier: "medium",
-        category: "research",
+        allowedTiers: ["medium"],
+        primary: "research",
       });
 
       const children = graph.getChildren("parent");
@@ -225,8 +225,8 @@ describe("DelegationGraph", () => {
         executionId: "leaf",
         agentName: "leaf-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "code",
+        allowedTiers: ["heavy"],
+        primary: "coding",
       });
 
       const children = graph.getChildren("leaf");
@@ -246,16 +246,16 @@ describe("DelegationGraph", () => {
         executionId: "a",
         agentName: "agent-a",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "strategy",
+        allowedTiers: ["heavy"],
+        primary: "planning",
       });
 
       graph.registerNode({
         executionId: "b",
         agentName: "agent-b",
         parentExecutionId: "a",
-        tier: "medium",
-        category: "code",
+        allowedTiers: ["medium"],
+        primary: "coding",
       });
 
       expect(graph.wouldCreateCycle("b", "a")).toBe(true);
@@ -266,24 +266,24 @@ describe("DelegationGraph", () => {
         executionId: "a",
         agentName: "agent-a",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "strategy",
+        allowedTiers: ["heavy"],
+        primary: "planning",
       });
 
       graph.registerNode({
         executionId: "b",
         agentName: "agent-b",
         parentExecutionId: "a",
-        tier: "medium",
-        category: "code",
+        allowedTiers: ["medium"],
+        primary: "coding",
       });
 
       graph.registerNode({
         executionId: "c",
         agentName: "agent-c",
         parentExecutionId: "b",
-        tier: "light",
-        category: "utility",
+        allowedTiers: ["light"],
+        primary: "utility",
       });
 
       expect(graph.wouldCreateCycle("c", "a")).toBe(true);
@@ -294,16 +294,16 @@ describe("DelegationGraph", () => {
         executionId: "a",
         agentName: "agent-a",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "strategy",
+        allowedTiers: ["heavy"],
+        primary: "planning",
       });
 
       graph.registerNode({
         executionId: "b",
         agentName: "agent-b",
         parentExecutionId: "a",
-        tier: "medium",
-        category: "code",
+        allowedTiers: ["medium"],
+        primary: "coding",
       });
 
       expect(graph.wouldCreateCycle("a", "new-child")).toBe(false);
@@ -316,8 +316,8 @@ describe("DelegationGraph", () => {
         executionId: "root",
         agentName: "root-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "strategy",
+        allowedTiers: ["heavy"],
+        primary: "planning",
       });
 
       expect(graph.exceedsMaxDepth("root")).toBe(false);
@@ -332,8 +332,8 @@ describe("DelegationGraph", () => {
           executionId: id,
           agentName: `agent-${String(i)}`,
           parentExecutionId: lastId,
-          tier: "medium",
-          category: "code",
+          allowedTiers: ["medium"],
+          primary: "coding",
         });
         lastId = id;
       }
@@ -352,8 +352,8 @@ describe("DelegationGraph", () => {
           executionId: id,
           agentName: `agent-${String(i)}`,
           parentExecutionId: lastId,
-          tier: "medium",
-          category: "code",
+          allowedTiers: ["medium"],
+          primary: "coding",
         });
         lastId = id;
       }
@@ -370,24 +370,24 @@ describe("DelegationGraph", () => {
         executionId: "root1",
         agentName: "root1-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "strategy",
+        allowedTiers: ["heavy"],
+        primary: "planning",
       });
 
       graph.registerNode({
         executionId: "root2",
         agentName: "root2-agent",
         parentExecutionId: null,
-        tier: "heavy",
-        category: "code",
+        allowedTiers: ["heavy"],
+        primary: "coding",
       });
 
       graph.registerNode({
         executionId: "child",
         agentName: "child-agent",
         parentExecutionId: "root1",
-        tier: "medium",
-        category: "code",
+        allowedTiers: ["medium"],
+        primary: "coding",
       });
 
       const roots = graph.getRoots();
@@ -715,10 +715,12 @@ describe("ProtocolEngine", () => {
         metadata: {
           name: "test-agent",
           description: "Test agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: vi.fn().mockResolvedValue({
           success: true,
@@ -761,10 +763,12 @@ describe("ProtocolEngine", () => {
         metadata: {
           name: "child-agent",
           description: "Child agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: vi.fn().mockResolvedValue({
           success: true,
@@ -808,10 +812,12 @@ describe("ProtocolEngine", () => {
         metadata: {
           name: "test-agent",
           description: "Test agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: vi.fn().mockResolvedValue({
           success: true,
@@ -859,10 +865,12 @@ describe("ProtocolEngine", () => {
         metadata: {
           name: "test-agent",
           description: "Test agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: vi.fn().mockResolvedValue({
           success: true,
@@ -912,10 +920,12 @@ describe("ProtocolEngine", () => {
         metadata: {
           name: "test-agent",
           description: "Test agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: vi.fn().mockRejectedValue(new Error("Execution failed")),
       };
@@ -960,10 +970,12 @@ describe("ProtocolEngine", () => {
         metadata: {
           name: "test-agent",
           description: "Test agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: vi.fn().mockRejectedValue(new Error("Execution failed")),
       };
@@ -1007,8 +1019,8 @@ describe("wouldCreateCycle utility", () => {
     agentName: partial.agentName ?? "test-agent",
     parentExecutionId: partial.parentExecutionId ?? null,
     childExecutionIds: partial.childExecutionIds ?? [],
-    tier: partial.tier ?? "medium",
-    category: partial.category ?? "code",
+    allowedTiers: partial.allowedTiers ?? ["medium"],
+    primary: partial.primary ?? "coding",
     depth: partial.depth ?? 0,
     startedAt: partial.startedAt ?? new Date(),
     completedAt: partial.completedAt ?? null,

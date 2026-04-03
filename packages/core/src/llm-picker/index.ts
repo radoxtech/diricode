@@ -1,7 +1,6 @@
 export {
   ModelTierSchema,
-  ModelFamilySchema,
-  ModelTagSchema,
+  ModelAttributeSchema,
   FallbackTypeSchema,
   ModelDimensionsSchema,
   CascadeTierSchema,
@@ -20,8 +19,7 @@ export {
 
 export type {
   ModelTier,
-  ModelFamily,
-  ModelTag,
+  ModelAttribute,
   FallbackType,
   ModelDimensions,
   CascadeTier,

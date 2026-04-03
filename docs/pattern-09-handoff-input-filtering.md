@@ -26,29 +26,23 @@ Filter and shape parent→child handoff inputs so child agents receive only the 
 
 ### Context Filter Policy
 
-Each agent category has a default filter policy in `packages/core/src/agents/handoff-filter.ts`:
+Each agent primary domain has a default filter policy in `packages/core/src/agents/handoff-filter.ts`:
 
 ```typescript
-export const DEFAULT_FILTER_POLICIES: Record<AgentCategory, ContextFilterPolicy> = {
-  command: {
-    includeCategories: ["constraints", "artifacts"],
-    excludeCategories: ["tool-results", "memory-state", "conversation-history"],
-    includeWorkspaceState: true,
-    includeToolHistory: false,
-  },
-  strategy: {
-    includeCategories: ["decisions", "constraints", "conversation-history"],
-    excludeCategories: ["tool-results", "file-state"],
-    includeWorkspaceState: false,
-    includeToolHistory: true,
-  },
-  code: {
+export const DEFAULT_FILTER_POLICIES: Record<AgentDomain, ContextFilterPolicy> = {
+  coding: {
     includeCategories: ["file-state", "artifacts", "constraints"],
     excludeCategories: ["memory-state", "conversation-history"],
     includeWorkspaceState: true,
     includeToolHistory: false,
   },
-  quality: {
+  planning: {
+    includeCategories: ["decisions", "constraints", "conversation-history"],
+    excludeCategories: ["tool-results", "file-state"],
+    includeWorkspaceState: false,
+    includeToolHistory: true,
+  },
+  review: {
     includeCategories: ["tool-results", "file-state", "decisions"],
     excludeCategories: ["memory-state"],
     includeWorkspaceState: true,
@@ -65,6 +59,12 @@ export const DEFAULT_FILTER_POLICIES: Record<AgentCategory, ContextFilterPolicy>
     excludeCategories: ["tool-results", "file-state", "memory-state", "conversation-history", "decisions", "artifacts"],
     includeWorkspaceState: false,
     includeToolHistory: false,
+  },
+  devops: {
+    includeCategories: ["tool-results", "file-state", "artifacts", "constraints"],
+    excludeCategories: ["memory-state", "conversation-history"],
+    includeWorkspaceState: true,
+    includeToolHistory: true,
   },
 };
 ```
@@ -99,7 +99,7 @@ This enables observability into what context each child received.
 ### Filtering Process
 
 1. **Mode-based filtering** — Apply `ContextInheritanceRules.mode` (isolated/summary/full)
-2. **Policy-based filtering** — Remove categories based on agent category policy
+2. **Policy-based filtering** — Remove categories based on agent domain policy
 3. **Emit metadata** — Record what was filtered for observability
 
 ```typescript
@@ -107,7 +107,7 @@ function filterContextForHandoff(
   parentContext: AgentContext,
   rules: ContextInheritanceRules,
   policy: ContextFilterPolicy,
-  agentCategory: AgentCategory
+  agentDomain: AgentDomain
 ): FilteredHandoffContext {
   // Apply mode filtering
   let context = applyModeFiltering(parentContext, rules);
@@ -137,7 +137,7 @@ The following events are emitted during handoff filtering:
 ### Research Agent Handoff
 
 ```typescript
-const policy = createFilterPolicyForCategory("research");
+const policy = createFilterPolicyForDomain("research");
 
 const result = filterContextForHandoff(
   parentContext,
@@ -158,7 +158,7 @@ const result = filterContextForHandoff(
 ### Utility Agent Handoff
 
 ```typescript
-const policy = createFilterPolicyForCategory("utility");
+const policy = createFilterPolicyForDomain("utility");
 
 const result = filterContextForHandoff(
   parentContext,
@@ -174,7 +174,7 @@ const result = filterContextForHandoff(
 
 ## Benefits
 
-1. **Predictable delegation** — Each agent category gets appropriate context
+1. **Predictable delegation** — Each agent domain gets appropriate context
 2. **Token efficiency** — Filtering reduces unnecessary context passing
 3. **Security** — Stale or irrelevant context doesn't leak to child agents
 4. **Observability** — Filter metadata enables debugging and auditing
@@ -184,7 +184,7 @@ const result = filterContextForHandoff(
 
 - **Complexity** — More moving parts in delegation
 - **Potential over-filtering** — Might miss edge cases where context is needed
-- **Configuration burden** — Each agent category needs policy definition
+- **Configuration burden** — Each agent domain needs policy definition
 
 ## Testing
 

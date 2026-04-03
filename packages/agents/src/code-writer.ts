@@ -44,22 +44,12 @@ export function createCodeWriterAgent(_config: CodeWriterConfig): Agent {
       "Primary implementation agent for feature code and multi-file changes. " +
       "Reads and writes source files, searches the codebase with grep and AST patterns, " +
       "inspects symbols, runs diagnostics to verify correctness, and executes tests/builds.",
-    tier: "heavy",
-    category: "code",
-    capabilities: [
-      "file-read",
-      "file-write",
-      "file-edit",
-      "multi-file-changes",
-      "ast-grep",
-      "lsp-symbols",
-      "diagnostics",
-      "test-execution",
-      "build-execution",
-      "code-generation",
-      "refactoring",
-    ],
-    tags: ["implementation", "heavy", "code-production"],
+    allowedTiers: ["heavy", "medium"],
+    capabilities: {
+      primary: "coding",
+      specialization: ["implementation", "refactoring", "multi-file"],
+      modelAttributes: ["reasoning", "agentic"],
+    },
     toolPolicy: {
       allowedTools: [...CODE_WRITER_ALLOWED_TOOLS],
     },

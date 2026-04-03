@@ -1,4 +1,4 @@
-import type { AgentCategory, AgentContext } from "./types.js";
+import type { AgentContext, AgentDomain } from "./types.js";
 import type { ToolAccessPolicy } from "../tools/types.js";
 import type { ContextInheritanceRules, DelegationContext, ArtifactReference } from "./protocol.js";
 
@@ -60,33 +60,26 @@ export interface FilteredHandoffContext {
 }
 
 /**
- * Default filter policies per agent category.
+ * Default filter policies per agent domain.
  * Enforces bounded context inheritance per ADR-020.
  * Research agents get more context, utility agents get minimal context.
  */
-export const DEFAULT_FILTER_POLICIES: Record<AgentCategory, ContextFilterPolicy> = {
-  command: {
-    includeCategories: ["constraints", "artifacts"],
-    excludeCategories: ["tool-results", "memory-state", "conversation-history"],
-    includeWorkspaceState: true,
-    includeToolHistory: false,
-    maxTokenBudget: 4000,
-  },
-  strategy: {
-    includeCategories: ["decisions", "constraints", "conversation-history"],
-    excludeCategories: ["tool-results", "file-state"],
-    includeWorkspaceState: false,
-    includeToolHistory: true,
-    maxTokenBudget: 6000,
-  },
-  code: {
+export const DEFAULT_FILTER_POLICIES: Record<AgentDomain, ContextFilterPolicy> = {
+  coding: {
     includeCategories: ["file-state", "artifacts", "constraints"],
     excludeCategories: ["memory-state", "conversation-history"],
     includeWorkspaceState: true,
     includeToolHistory: false,
     maxTokenBudget: 8000,
   },
-  quality: {
+  planning: {
+    includeCategories: ["decisions", "constraints", "conversation-history"],
+    excludeCategories: ["tool-results", "file-state"],
+    includeWorkspaceState: false,
+    includeToolHistory: true,
+    maxTokenBudget: 6000,
+  },
+  review: {
     includeCategories: ["tool-results", "file-state", "decisions"],
     excludeCategories: ["memory-state"],
     includeWorkspaceState: true,
@@ -114,6 +107,13 @@ export const DEFAULT_FILTER_POLICIES: Record<AgentCategory, ContextFilterPolicy>
     includeToolHistory: false,
     maxTokenBudget: 2000,
   },
+  devops: {
+    includeCategories: ["tool-results", "file-state", "artifacts", "constraints"],
+    excludeCategories: ["memory-state", "conversation-history"],
+    includeWorkspaceState: true,
+    includeToolHistory: true,
+    maxTokenBudget: 7000,
+  },
 };
 
 /**
@@ -128,13 +128,13 @@ export const DEFAULT_FILTER_POLICY: ContextFilterPolicy = {
 };
 
 /**
- * Creates a filter policy for a specific agent category.
+ * Creates a filter policy for a specific agent domain.
  */
-export function createFilterPolicyForCategory(
-  category: AgentCategory,
+export function createFilterPolicyForDomain(
+  domain: AgentDomain,
   overrides?: Partial<ContextFilterPolicy>,
 ): ContextFilterPolicy {
-  const base = DEFAULT_FILTER_POLICIES[category];
+  const base = DEFAULT_FILTER_POLICIES[domain];
   return {
     ...base,
     ...overrides,
@@ -150,7 +150,7 @@ export function filterContextForHandoff(
   parentContext: AgentContext,
   rules: ContextInheritanceRules,
   policy: ContextFilterPolicy,
-  _agentCategory: AgentCategory,
+  _agentDomain: AgentDomain,
   toolPolicy?: ToolAccessPolicy,
 ): FilteredHandoffContext {
   const filteredCategories: ContextCategory[] = [];

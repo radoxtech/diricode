@@ -59,39 +59,24 @@ describe("createCodeWriterAgent", () => {
       expect(agent.metadata.name).toBe("code-writer");
     });
 
-    it("has tier 'heavy'", () => {
+    it("allows heavy tier", () => {
       const agent = createCodeWriterAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tier).toBe("heavy");
+      expect(agent.metadata.allowedTiers).toContain("heavy");
     });
 
-    it("has category 'code'", () => {
+    it("has primary domain 'coding'", () => {
       const agent = createCodeWriterAgent({ tools: makeAllTools() });
-      expect(agent.metadata.category).toBe("code");
+      expect(agent.metadata.capabilities.primary).toBe("coding");
     });
 
-    it("has all required capabilities", () => {
+    it("has expected specialization and model attributes", () => {
       const agent = createCodeWriterAgent({ tools: makeAllTools() });
       const caps = agent.metadata.capabilities;
-      expect(caps).toContain("file-read");
-      expect(caps).toContain("file-write");
-      expect(caps).toContain("file-edit");
-      expect(caps).toContain("multi-file-changes");
-      expect(caps).toContain("ast-grep");
-      expect(caps).toContain("lsp-symbols");
-      expect(caps).toContain("diagnostics");
-      expect(caps).toContain("test-execution");
-      expect(caps).toContain("build-execution");
-      expect(caps).toContain("code-generation");
-    });
-
-    it("has 'implementation' tag", () => {
-      const agent = createCodeWriterAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tags).toContain("implementation");
-    });
-
-    it("has 'heavy' tag", () => {
-      const agent = createCodeWriterAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tags).toContain("heavy");
+      expect(caps.specialization).toContain("implementation");
+      expect(caps.specialization).toContain("refactoring");
+      expect(caps.specialization).toContain("multi-file");
+      expect(caps.modelAttributes).toContain("reasoning");
+      expect(caps.modelAttributes).toContain("agentic");
     });
 
     it("has non-empty description", () => {
@@ -357,10 +342,8 @@ describe("createCodeWriterAgent", () => {
       expect(agent).toHaveProperty("execute");
       expect(typeof agent.execute).toBe("function");
       expect(agent.metadata).toHaveProperty("name");
-      expect(agent.metadata).toHaveProperty("tier");
-      expect(agent.metadata).toHaveProperty("category");
+      expect(agent.metadata).toHaveProperty("allowedTiers");
       expect(agent.metadata).toHaveProperty("capabilities");
-      expect(agent.metadata).toHaveProperty("tags");
     });
   });
 

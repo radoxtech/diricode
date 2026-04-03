@@ -49,42 +49,23 @@ describe("createCodeExplorerAgent", () => {
       expect(agent.metadata.name).toBe("code-explorer");
     });
 
-    it("has tier 'medium'", () => {
+    it("allows medium tier", () => {
       const agent = createCodeExplorerAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tier).toBe("medium");
+      expect(agent.metadata.allowedTiers).toContain("medium");
     });
 
-    it("has category 'research'", () => {
+    it("has primary domain 'research'", () => {
       const agent = createCodeExplorerAgent({ tools: makeAllTools() });
-      expect(agent.metadata.category).toBe("research");
+      expect(agent.metadata.capabilities.primary).toBe("research");
     });
 
-    it("has all required capabilities", () => {
+    it("has expected specialization", () => {
       const agent = createCodeExplorerAgent({ tools: makeAllTools() });
       const caps = agent.metadata.capabilities;
-      expect(caps).toContain("file-read");
-      expect(caps).toContain("glob");
-      expect(caps).toContain("grep");
-      expect(caps).toContain("ast-grep");
-      expect(caps).toContain("lsp-symbols");
-      expect(caps).toContain("codebase-search");
-      expect(caps).toContain("pattern-discovery");
-      expect(caps).toContain("file-navigation");
-    });
-
-    it("has 'exploration' tag", () => {
-      const agent = createCodeExplorerAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tags).toContain("exploration");
-    });
-
-    it("has 'medium' tag", () => {
-      const agent = createCodeExplorerAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tags).toContain("medium");
-    });
-
-    it("has 'research' tag", () => {
-      const agent = createCodeExplorerAgent({ tools: makeAllTools() });
-      expect(agent.metadata.tags).toContain("research");
+      expect(caps.specialization).toContain("codebase-search");
+      expect(caps.specialization).toContain("pattern-discovery");
+      expect(caps.specialization).toContain("file-navigation");
+      expect(caps.modelAttributes).toContain("speed");
     });
 
     it("has non-empty description", () => {
@@ -92,13 +73,11 @@ describe("createCodeExplorerAgent", () => {
       expect(agent.metadata.description.length).toBeGreaterThan(0);
     });
 
-    it("does not include write capabilities", () => {
+    it("does not advertise coding-specialized capabilities", () => {
       const agent = createCodeExplorerAgent({ tools: makeAllTools() });
       const caps = agent.metadata.capabilities;
-      expect(caps).not.toContain("file-write");
-      expect(caps).not.toContain("file-edit");
-      expect(caps).not.toContain("bash");
-      expect(caps).not.toContain("code-generation");
+      expect(caps.specialization).not.toContain("implementation");
+      expect(caps.specialization).not.toContain("refactoring");
     });
   });
 
@@ -426,10 +405,8 @@ describe("createCodeExplorerAgent", () => {
       expect(agent).toHaveProperty("execute");
       expect(typeof agent.execute).toBe("function");
       expect(agent.metadata).toHaveProperty("name");
-      expect(agent.metadata).toHaveProperty("tier");
-      expect(agent.metadata).toHaveProperty("category");
+      expect(agent.metadata).toHaveProperty("allowedTiers");
       expect(agent.metadata).toHaveProperty("capabilities");
-      expect(agent.metadata).toHaveProperty("tags");
     });
   });
 

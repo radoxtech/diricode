@@ -71,8 +71,8 @@ export class DelegationGraph {
     executionId: string;
     agentName: string;
     parentExecutionId: string | null;
-    tier: ParentChildGraphNode["tier"];
-    category: ParentChildGraphNode["category"];
+    allowedTiers: ParentChildGraphNode["allowedTiers"];
+    primary: ParentChildGraphNode["primary"];
   }): ParentChildGraphNode {
     const parentNode = params.parentExecutionId ? this.#nodes.get(params.parentExecutionId) : null;
 
@@ -83,8 +83,8 @@ export class DelegationGraph {
       agentName: params.agentName,
       parentExecutionId: params.parentExecutionId,
       childExecutionIds: [],
-      tier: params.tier,
-      category: params.category,
+      allowedTiers: params.allowedTiers,
+      primary: params.primary,
       depth,
       startedAt: new Date(),
       completedAt: null,
@@ -205,7 +205,7 @@ export function serializeContext(
 
     case "summary": {
       const summary = generateSummary(parentContext, parentConversation);
-      const relevantFiles = extractRelevantFiles(parentContext, rules);
+      const relevantFiles = extractRelevantFiles(rules);
       return {
         ...base,
         summary,
@@ -221,7 +221,7 @@ export function serializeContext(
         summary: generateSummary(parentContext, parentConversation),
         keyDecisions: extractKeyDecisions(parentConversation),
         messages: rules.includeHistory ? parentConversation : [],
-        artifactReferences: extractRelevantFiles(parentContext, rules).map((path) =>
+        artifactReferences: extractRelevantFiles(rules).map((path) =>
           createArtifactReference(path, "file"),
         ),
         tokenCount: estimateTokens(JSON.stringify(parentConversation)),
@@ -236,7 +236,7 @@ function generateSummary(context: AgentContext, _conversation?: unknown[]): stri
   return `Session ${context.sessionId}: Working in ${context.workspaceRoot}`;
 }
 
-function extractRelevantFiles(context: AgentContext, rules: ContextInheritanceRules): string[] {
+function extractRelevantFiles(rules: ContextInheritanceRules): string[] {
   const files: string[] = [];
 
   if (rules.includeFiles) {
@@ -444,8 +444,8 @@ export class ProtocolEngine {
       executionId: envelope.childExecutionId,
       agentName: childAgent.metadata.name,
       parentExecutionId: envelope.parent.executionId,
-      tier: childAgent.metadata.tier,
-      category: childAgent.metadata.category,
+      allowedTiers: childAgent.metadata.allowedTiers,
+      primary: childAgent.metadata.capabilities.primary,
     });
 
     emit("delegation.child.started", {

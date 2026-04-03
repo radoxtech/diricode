@@ -1,4 +1,4 @@
-import type { AgentTier, AgentCategory } from "./types.js";
+import type { AgentDomain, AgentTier } from "./types.js";
 
 /**
  * Context inheritance modes for parent-to-child agent handoff.
@@ -40,10 +40,10 @@ export interface ParentChildGraphNode {
   readonly parentExecutionId: string | null;
   /** Child execution IDs */
   readonly childExecutionIds: readonly string[];
-  /** Agent tier */
-  readonly tier: AgentTier;
-  /** Agent category */
-  readonly category: AgentCategory;
+  /** Allowed execution tiers declared by the agent */
+  readonly allowedTiers: readonly AgentTier[];
+  /** Primary functional domain of the agent */
+  readonly primary: AgentDomain;
   /** Depth in delegation tree (0 = root) */
   readonly depth: number;
   /** Timestamp when execution started */
