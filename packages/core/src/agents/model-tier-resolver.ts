@@ -122,6 +122,39 @@ function defaultAvailabilityChecker(_model: ModelClass): boolean {
 /**
  * Configurable tier → model class resolver with fallback support.
  *
+ * ## Resolver Composition (DC-DR-006)
+ *
+ * `ModelTierResolver` and `CascadeModelResolver` serve different roles:
+ *
+ * - **`ModelTierResolver`** — Legacy tier→model mapper. Takes a `ModelTier`
+ *   (heavy/medium/low) and returns which model class to use. Does NOT implement
+ *   `ModelResolver`. Used as a **candidate pool source** for `CascadeModelResolver`.
+ *
+ * - **`CascadeModelResolver`** — Full decision engine (implements `ModelResolver`).
+ *   Takes a `DecisionRequest`, applies hard rules, constraint filtering, and scoring
+ *   to select from the candidate pool.
+ *
+ * ### Composition seam
+ *
+ * ```
+ * ModelTierResolver.resolve(tier)
+ *          ↓
+ *   Returns: tier + model class
+ *          ↓
+ *   Maps to: candidate pool entries
+ *          ↓
+ * CascadeModelResolver.resolve(request)
+ *          ↓
+ *   Applies: hard rules + scoring
+ *          ↓
+ *   Returns: selected model
+ * ```
+ *
+ * `ModelTierResolver` feeds the **preferred model per tier** into the
+ * `CascadeModelResolver` candidate pool. `CascadeModelResolver` then applies
+ * the full selection logic (hard rules, constraint filtering, scoring, ADR-055
+ * context-window tier scoring) on top.
+ *
  * @example
  * ```typescript
  * const resolver = new ModelTierResolver({
@@ -133,6 +166,9 @@ function defaultAvailabilityChecker(_model: ModelClass): boolean {
  * const result = resolver.resolve("heavy");
  * // → { model: "claude-opus-4.6", reason: "preferred", isDegraded: false, ... }
  * ```
+ *
+ * @see CascadeModelResolver
+ * @see ADR-055 Addendum (Context Window Tiers)
  */
 export class ModelTierResolver {
   readonly #mappings: ReadonlyMap<ModelTier, TierMappingConfig>;

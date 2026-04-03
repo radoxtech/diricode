@@ -709,6 +709,130 @@ describe("CascadeModelResolver", () => {
     });
   });
 
+  describe("context window tier scoring", () => {
+    // Use architect agent + complex task to allow premium tier (min: standard, max: premium)
+    // This isolates context window scoring from pricing tier filtering.
+    const baseRequest = (tier: ModelTier): DecisionRequest => ({
+      requestId: "550e8400-e29b-41d4-a716-446655440000",
+      agent: { id: "test-agent", role: "architect" },
+      task: { type: "complex-architecture" },
+      modelDimensions: {
+        tier,
+        family: "coding",
+        tags: ["coding"],
+        fallbackType: null,
+      },
+    });
+
+    it("penalizes models below LOW tier minimum (200k)", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        defaultProvider: "ok",
+        defaultModel: "ok-model",
+        candidatePool: [
+          {
+            provider: "tiny",
+            model: "tiny-model",
+            pricingTier: "standard",
+            contextWindow: 32_000,
+            trusted: false,
+            estimatedCostUsd: 0.01,
+            knownForRoles: [],
+            knownForComplexities: [],
+          },
+          {
+            provider: "ok",
+            model: "ok-model",
+            pricingTier: "standard",
+            contextWindow: 200_000,
+            trusted: false,
+            estimatedCostUsd: 0.01,
+            knownForRoles: [],
+            knownForComplexities: [],
+          },
+        ],
+      });
+      const response = await resolver.resolve(baseRequest("low"));
+      const tinyCandidate = response.candidates?.find((c) => c.model === "tiny-model");
+      const okCandidate = response.candidates?.find((c) => c.model === "ok-model");
+      expect(tinyCandidate?.score ?? 0).toBeLessThan(okCandidate?.score ?? 0);
+    });
+
+    it("HEAVY tier selects model with 800k+ over model with 200k", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        defaultProvider: "huge",
+        defaultModel: "huge-model",
+        candidatePool: [
+          {
+            provider: "mid",
+            model: "mid-model",
+            pricingTier: "premium",
+            contextWindow: 200_000,
+            trusted: true,
+            estimatedCostUsd: 0.3,
+            knownForRoles: [],
+            knownForComplexities: [],
+          },
+          {
+            provider: "huge",
+            model: "huge-model",
+            pricingTier: "premium",
+            contextWindow: 1_000_000,
+            trusted: true,
+            estimatedCostUsd: 5,
+            knownForRoles: [],
+            knownForComplexities: [],
+          },
+        ],
+      });
+      const response = await resolver.resolve(baseRequest("heavy"));
+      // huge-model (1M) meets HEAVY min, mid-model (200k) is penalized -50
+      expect(response.selected?.model).toBe("huge-model");
+      const hugeCandidate = response.candidates?.find((c) => c.model === "huge-model");
+      const midCandidate = response.candidates?.find((c) => c.model === "mid-model");
+      expect(hugeCandidate?.score).toBeGreaterThan(midCandidate?.score ?? 0);
+    });
+
+    it("LOW tier accepts model with 200k+ context", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        defaultProvider: "mid",
+        defaultModel: "mid-model",
+        candidatePool: [
+          {
+            provider: "mid",
+            model: "mid-model",
+            pricingTier: "standard",
+            contextWindow: 200_000,
+            trusted: true,
+            estimatedCostUsd: 0.3,
+            knownForRoles: [],
+            knownForComplexities: [],
+          },
+        ],
+      });
+      const response = await resolver.resolve(baseRequest("low"));
+      expect(response.status).toBe("resolved");
+      expect(response.selected?.model).toBe("mid-model");
+    });
+
+    it("model without contextWindow field is not penalized", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        defaultProvider: "unknown",
+        defaultModel: "no-context-field-model",
+        candidatePool: [
+          {
+            provider: "unknown",
+            model: "no-context-field-model",
+            pricingTier: "standard",
+            trusted: true,
+            estimatedCostUsd: 0.5,
+          },
+        ],
+      });
+      const response = await resolver.resolve(baseRequest("heavy"));
+      expect(response.status).toBe("resolved");
+    });
+  });
+
   describe("CascadeModelResolverOptions", () => {
     it("uses custom defaultProvider and defaultModel", async () => {
       const resolver = new CascadeModelResolver(undefined, {
