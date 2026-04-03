@@ -1,11 +1,14 @@
 # ADR-025 — Native TS Router with Fallback Chain
 
+> ⚠️ **SUPERSEDED by [ADR-055: diri-router Unified Package](./adr-055-diri-router-unified-package.md)**  
+> This ADR is preserved for historical context. The Provider Router described here has been merged into the unified `diri-router` package.
+
 | Field       | Value                                         |
 |-------------|-----------------------------------------------|
-| Status      | Accepted                                      |
+| Status      | Superseded by ADR-055                         |
 | Date        | 2026-03-09                                    |
 | Scope       | MVP                                           |
-| References  | analiza-router.md, ADR-054                   |
+| References  | analiza-router.md, ADR-054, ADR-055           |
 
 ### Context
 

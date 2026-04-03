@@ -233,7 +233,7 @@ MVP alignment:
 - Core logging/error primitives from `@diricode/core` conventions
 
 ### Downstream (consumers of this epic)
-- `epic-router` (`@diricode/providers`) — provider/account/routing config
+- `epic-diri-router` (`@diricode/diri-router`) — provider/account/routing config
 - `epic-agents-core` + `epic-agents-roster` — agent/hook defaults and toggles
 - `epic-pipeline` — work-mode defaults and execution guardrail config
 - `epic-cli` — CLI flags mapped to layer-4 overrides

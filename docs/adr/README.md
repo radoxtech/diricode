@@ -1,7 +1,7 @@
 # DiriCode — Architecture Decision Records
 
 > All ADRs in English. Consistent with all 13 analysis documents and user decisions.
-> Last updated: 2026-03-31
+> Last updated: 2026-04-03
 
 ## Index
 
@@ -31,7 +31,7 @@
 | [022](adr-022-github-issues-sqlite-timeline.md) | ~~Project Memory: GitHub Issues + SQLite Timeline~~ (Superseded by 048) | MVP | State |
 | [023](adr-023-no-snapshot-git-recovery.md) | No Snapshot System (Git-Based Recovery) | MVP | State |
 | [024](adr-024-hook-framework-20-types.md) | Hook Framework: 20 Types, 6 MVP, Hybrid Model | MVP+v2+v3 | Hooks |
-| [025](adr-025-native-ts-router-fallback-chain.md) | Native TS Router with Fallback Chain | MVP | Router |
+| [025](adr-025-native-ts-router-fallback-chain.md) | ~~Native TS Router with Fallback Chain~~ (Superseded by 055) | MVP | Router |
 | [026](adr-026-prompt-caching-phase-2.md) | Prompt Caching in MVP Phase 2 | MVP Phase 2 | Router |
 | [027](adr-027-git-safety-rails.md) | Git Safety Rails | MVP | Safety |
 | [028](adr-028-secret-redaction.md) | Automatic Secret Redaction | MVP | Safety |
@@ -55,11 +55,12 @@
 | [046](adr-046-swarm-coordination.md) | Swarm Coordination | MVP | Architecture |
 | [047](adr-047-governance-policy-engine.md) | Governance & Policy Engine | MVP | Pipeline |
 | [048](adr-048-sqlite-issue-system.md) | SQLite Issue System (supersedes ADR-022) | MVP | State |
-| [049](adr-049-llm-picker.md) | LLM Picker | MVP-2+v2+v3 | Router |
+| [049](adr-049-llm-picker.md) | ~~LLM Picker~~ (Superseded by 055) | MVP-2+v2+v3 | Router |
 | [051](adr-051-permission-context-engine-phase1.md) | Permission Context Engine: Phase 1 (Core) | MVP-2 | Safety |
 | [052](adr-052-permission-context-engine-phase2.md) | Permission Context Engine: Phase 2 (Smart) | v2 | Safety |
 | [053](adr-053-router-cost-tracking.md) | Router-Centric Cost Tracking | MVP-2+v2 | Router |
 | [054](adr-054-ai-sdk-transport-layer.md) | Vercel AI SDK as Transport Layer | MVP-1 | Router |
+| [055](adr-055-diri-router-unified-package.md) | diri-router Unified Package | MVP-1+MVP-2 | Router |
 
 ## Template
 

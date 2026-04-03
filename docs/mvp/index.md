@@ -14,7 +14,7 @@
 Epics active:
 - [epic-monorepo-setup.md](epic-monorepo-setup.md) — Project scaffolding
 - [epic-config.md](epic-config.md) — JSONC + c12 + Zod
-- [epic-router.md](epic-router.md) — Copilot/Kimi + failover
+- [epic-diri-router.md](epic-diri-router.md) — Model routing (Picker + Router)
 - [epic-server.md](epic-server.md) — Hono HTTP + SSE
 - [epic-tools.md](epic-tools.md) — Basic file ops + bash (subset)
 - [epic-safety.md](epic-safety.md) — Secret redactor + bash guard (basics)
@@ -98,7 +98,7 @@ Epics active:
 |------|-----------|------------|--------|
 | [monorepo-setup](epic-monorepo-setup.md) | root | POC | DC-SETUP-001..005 |
 | [config](epic-config.md) | @diricode/core | POC | DC-CORE-001..004 |
-| [router](epic-router.md) | @diricode/providers | POC | DC-PROV-001..007 |
+| [diri-router](epic-diri-router.md) | @diricode/diri-router | POC→MVP-2 | DC-DR-001..011 |
 | [server](epic-server.md) | @diricode/server | POC | DC-SRV-001..004 |
 | [tools](epic-tools.md) | @diricode/tools | POC→MVP-2 | DC-TOOL-001..012 + #45 |
 | [memory](epic-memory.md) | @diricode/memory | MVP-1 | DC-MEM-001..009 |
@@ -113,7 +113,6 @@ Epics active:
 | [web-ui](epic-web-ui.md) | @diricode/web | MVP-3 | DC-WEB-001..007 |
 | [cli](epic-cli.md) | apps/cli | POC→MVP-1 | DC-CLI-001..004 |
 | [testing-infra](epic-testing-infra.md) | root, test-utils | POC | DC-TEST-001..004 |
-| [llm-picker](epic-llm-picker.md) | @diricode/providers, web | MVP-2→v2 | DC-LLP-001..033 |
 
 ---
 

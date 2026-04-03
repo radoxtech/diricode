@@ -5,7 +5,7 @@
 | Status      | Accepted                                                      |
 | Date        | 2026-03-22                                                    |
 | Scope       | v2 (quality scoring), v3 (A/B testing)                        |
-| References  | ADR-042 (multi-subscription management)                       |
+| References  | ADR-042, ADR-055 |
 
 ### Context
 

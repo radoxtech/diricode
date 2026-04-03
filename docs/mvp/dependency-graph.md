@@ -1,6 +1,6 @@
 # DiriCode: MVP Dependency Graph
 
-> **Last updated**: 2026-03-31  
+> **Last updated**: 2026-04-03
 > **Purpose**: Tracks dependencies between epics and issue groups to guide delivery sequencing.
 
 ## Epic Dependency Graph
@@ -12,7 +12,7 @@ graph TD
     CONF[epic-config]
     SAFE[epic-safety]
     TOOL[epic-tools]
-    PROV[epic-providers]
+    DIRI[epic-diri-router]
     CORE[epic-agents-core]
     PIPE[epic-pipeline]
     SKILL[epic-skills]
@@ -24,13 +24,11 @@ graph TD
     HOOK[epic-hooks]
     CTX[epic-context]
     ROST[epic-agents-roster]
-    LLM[epic-llm-picker]
-    ROUTER[epic-router]
 
     MONO --> TEST
     MONO --> CONF
     CONF --> CORE
-    PROV --> CORE
+    DIRI --> CORE
     CORE --> PIPE
     CORE --> SKILL
     CORE --> OBS
@@ -43,8 +41,6 @@ graph TD
     TOOL --> CTX
     SAFE --> PIPE
     SAFE --> HOOK
-    PROV --> LLM
-    PROV --> ROUTER
     SKILL --> ROST
     PIPE --> ROST
     SRV --> CLI
