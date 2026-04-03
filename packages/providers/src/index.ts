@@ -25,6 +25,8 @@ export type {
   ExperimentLogger,
 } from "./diri-router.js";
 
+export { LogFeedbackCollector } from "./feedback.js";
+
 export { classifyError, deriveRetryable, parseRetryAfter } from "./error-classifier.js";
 
 export type {

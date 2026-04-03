@@ -188,6 +188,8 @@ export {
   isPricingTierAllowed,
   getPricingTierRejectionReason,
   resolveHardRuleRange,
+  FeedbackOutcomeSchema,
+  FeedbackSubmissionSchema,
   Tier1HeuristicRouter,
   Tier2BertRouter,
   Tier3TinyLLMRouter,
@@ -206,6 +208,9 @@ export type {
   ResolverCandidate,
   DecisionRequest,
   DecisionResponse,
+  FeedbackOutcome,
+  FeedbackSubmission,
+  FeedbackCollector,
 } from "./llm-picker/index.js";
 
 export * from "./agents/dispatcher-contract.js";
