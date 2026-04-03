@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import type { AgentContext, ContextInheritanceRules } from "@diricode/core";
 import {
   DEFAULT_FILTER_POLICIES,
-  createFilterPolicyForCategory,
+  createFilterPolicyForDomain,
   filterContextForHandoff,
   mergeFilterPolicies,
 } from "@diricode/core";
@@ -41,8 +41,8 @@ describe("DC-CORE-016: Handoff Input Filtering", () => {
       expect(policy.excludeCategories).toContain("decisions");
     });
 
-    test("code agents receive file state and artifacts", () => {
-      const policy = DEFAULT_FILTER_POLICIES.code;
+    test("coding agents receive file state and artifacts", () => {
+      const policy = DEFAULT_FILTER_POLICIES.coding;
 
       expect(policy.includeCategories).toContain("file-state");
       expect(policy.includeCategories).toContain("artifacts");
@@ -50,8 +50,8 @@ describe("DC-CORE-016: Handoff Input Filtering", () => {
       expect(policy.excludeCategories).toContain("memory-state");
     });
 
-    test("quality agents receive tool results and file state", () => {
-      const policy = DEFAULT_FILTER_POLICIES.quality;
+    test("review agents receive tool results and file state", () => {
+      const policy = DEFAULT_FILTER_POLICIES.review;
 
       expect(policy.includeCategories).toContain("tool-results");
       expect(policy.includeCategories).toContain("file-state");
@@ -59,26 +59,26 @@ describe("DC-CORE-016: Handoff Input Filtering", () => {
     });
   });
 
-  describe("createFilterPolicyForCategory", () => {
-    test("returns correct policy for known category", () => {
-      const policy = createFilterPolicyForCategory("research");
+  describe("createFilterPolicyForDomain", () => {
+    test("returns correct policy for known domain", () => {
+      const policy = createFilterPolicyForDomain("research");
 
       expect(policy).toEqual(DEFAULT_FILTER_POLICIES.research);
     });
 
     test("applies overrides correctly", () => {
-      const policy = createFilterPolicyForCategory("code", {
+      const policy = createFilterPolicyForDomain("coding", {
         includeWorkspaceState: false,
       });
 
       expect(policy.includeWorkspaceState).toBe(false);
-      expect(policy.includeCategories).toEqual(DEFAULT_FILTER_POLICIES.code.includeCategories);
+      expect(policy.includeCategories).toEqual(DEFAULT_FILTER_POLICIES.coding.includeCategories);
     });
   });
 
   describe("filterContextForHandoff", () => {
     test("isolated mode removes all optional context", () => {
-      const policy = createFilterPolicyForCategory("research");
+      const policy = createFilterPolicyForDomain("research");
       const isolatedRules: ContextInheritanceRules = { mode: "isolated" };
 
       const result = filterContextForHandoff(mockContext, isolatedRules, policy, "research");
@@ -88,13 +88,13 @@ describe("DC-CORE-016: Handoff Input Filtering", () => {
     });
 
     test("summary mode preserves basic context", () => {
-      const policy = createFilterPolicyForCategory("code");
+      const policy = createFilterPolicyForDomain("coding");
       const rulesWithFiles: ContextInheritanceRules = {
         ...mockRules,
         includeFiles: ["/test/file.ts"],
       };
 
-      const result = filterContextForHandoff(mockContext, rulesWithFiles, policy, "code");
+      const result = filterContextForHandoff(mockContext, rulesWithFiles, policy, "coding");
 
       expect(result.filteredContext.summary).toBeDefined();
       expect(result.metadata.filteredCategories).toBeDefined();
@@ -102,7 +102,7 @@ describe("DC-CORE-016: Handoff Input Filtering", () => {
     });
 
     test("returns filter metadata for observability", () => {
-      const policy = createFilterPolicyForCategory("research");
+      const policy = createFilterPolicyForDomain("research");
       const result = filterContextForHandoff(mockContext, mockRules, policy, "research");
 
       expect(result.metadata).toHaveProperty("filteredCategories");
@@ -111,7 +111,7 @@ describe("DC-CORE-016: Handoff Input Filtering", () => {
       expect(result.metadata).toHaveProperty("timestamp");
     });
 
-    test("research category preserves tool results and history", () => {
+    test("research domain preserves tool results and history", () => {
       const policy = DEFAULT_FILTER_POLICIES.research;
 
       const result = filterContextForHandoff(mockContext, mockRules, policy, "research");
@@ -121,7 +121,7 @@ describe("DC-CORE-016: Handoff Input Filtering", () => {
       expect(result.metadata.filteredCategories).not.toContain("conversation-history");
     });
 
-    test("utility category filters out most context", () => {
+    test("utility domain filters out most context", () => {
       const policy = DEFAULT_FILTER_POLICIES.utility;
 
       const result = filterContextForHandoff(mockContext, mockRules, policy, "utility");
