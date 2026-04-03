@@ -163,10 +163,16 @@ interface DecisionRequest {
   };
   modelDimensions: {
     tier: "heavy" | "medium" | "low";
-    family: "coding" | "reasoning" | "creative";
-    tags: string[];
+    modelAttributes: (
+      | "reasoning"
+      | "speed"
+      | "agentic"
+      | "creative"
+      | "ui-ux"
+      | "bulk"
+      | "quality"
+    )[];
     fallbackType: "largeContext" | "largeOutput" | "error" | "strong" | null;
-    speedPreference: "latency_critical" | "latency_flexible";
   };
   constraints?: {
     requiredCapabilities?: string[];  // ["tool-calling", "vision"]
@@ -179,6 +185,8 @@ interface DecisionRequest {
   enableDeepAnalysis?: boolean; // Toggle TinyLLM (default: false)
 }
 ```
+
+`family` + `tags` were removed during the AgentCapabilities migration. Picker-facing scoring now consumes `modelAttributes`.
 
 ### DecisionResponse (Output)
 

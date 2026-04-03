@@ -6,7 +6,7 @@
 > **Dependencies**: DC-CORE-001..004 (config), DC-SRV-001..004 (EventStream transport), DC-PROV-001..007 (model routing)
 
 ## Summary
-This epic defines the runtime substrate for all agents: lifecycle, registry, dispatcher, delegation protocol, sandboxing, prompt assembly, and tier→model mapping.
+This epic defines the runtime substrate for all agents: lifecycle, registry, dispatcher, delegation protocol, sandboxing, prompt assembly, and tier→model selection policy.
 
 Scope is **framework-level only** (how agents run), not individual agent personas/prompts (covered in `epic-agents-roster.md`).
 
@@ -24,7 +24,7 @@ Key constraints baked into this epic:
 
 ### Description
 Define canonical agent runtime contracts:
-- `AgentDefinition`: `name`, `tier`, `tags/capabilities`, `modelRequirements`, `systemPromptTemplate`, `toolAccess`, `maxTokens`.
+- `AgentDefinition`: `name`, `allowedTiers`, `capabilities`, `modelRequirements`, `systemPromptTemplate`, `toolAccess`, `maxTokens`.
 - `AgentExecutionContext`: task input, conversation/context slices, trace IDs, parent/child metadata.
 - Lifecycle state machine: `initialize -> execute -> complete | error` with typed transitions.
 - `AgentResult`: `{ success, output, tokensUsed, cost, errors }` (+ optional metadata like duration/model).
@@ -54,7 +54,7 @@ Unify all downstream execution around this interface (dispatcher, verifier, obse
 ### Description
 Implement a registry for runtime agent discovery and policy enforcement:
 - Register/unregister/resolve agents by unique name.
-- Query by tags/capabilities (e.g., `planning`, `review`, `regular-coding`).
+- Query by capability metadata (`primary`, `specialization`, `modelAttributes`).
 - Apply tier constraints at selection time (HEAVY prefers strongest models; LOW prefers cheapest).
 - Validate duplicate names and invalid tier/model configs early.
 
