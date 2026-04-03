@@ -3,24 +3,56 @@ import type { PromptBuilder } from "./prompt-builder.js";
 
 export type AgentTier = "heavy" | "medium" | "light";
 
-export type AgentCategory = "command" | "strategy" | "code" | "quality" | "research" | "utility";
+// ---------------------------------------------------------------------------
+// Unified Agent Capabilities — replaces AgentCategory, ModelFamily (agents),
+// ModelFamily (llm-picker), and ModelTag with a single taxonomy.
+// @see ADR-005 (updated), ADR-055 §Agent Capabilities
+// ---------------------------------------------------------------------------
+
+/**
+ * Primary functional domain of an agent.
+ * Used for handoff filtering (1:1 replacement for AgentCategory) and
+ * registry lookup.
+ */
+export type AgentDomain = "coding" | "review" | "research" | "planning" | "devops" | "utility";
+
+/**
+ * Model-level attribute tags used by the Picker to score candidates.
+ * These describe *what kind of model behaviour* is needed, not the agent's
+ * domain.
+ */
+export type ModelAttribute =
+  | "reasoning"
+  | "speed"
+  | "agentic"
+  | "creative"
+  | "ui-ux"
+  | "bulk"
+  | "quality";
+
+/**
+ * Latency preference for model selection.
+ * @see ADR-055 §SpeedPreference
+ */
+export type SpeedPreference = "latency_critical" | "latency_flexible";
+
+/**
+ * Unified capability descriptor for an agent.
+ * Replaces the old AgentCategory + ModelFamily + tags triad.
+ *
+ * - `primary`: handoff-filter key (replaces AgentCategory)
+ * - `specialization`: free-form strings for domain refinement (e.g. "backend", "react")
+ * - `modelAttributes`: forwarded to Picker for model scoring
+ */
+export interface AgentCapabilities {
+  readonly primary: AgentDomain;
+  readonly specialization: readonly string[];
+  readonly modelAttributes: readonly ModelAttribute[];
+}
 
 // ---------------------------------------------------------------------------
 // Agent prompt builder types
 // ---------------------------------------------------------------------------
-
-/**
- * Model family hint for the model selection handoff.
- * @see ADR-005 model family classification
- */
-export type ModelFamily =
-  | "reasoning"
-  | "creative"
-  | "ui-ux"
-  | "speed"
-  | "web-research"
-  | "bulk"
-  | "agentic";
 
 /**
  * Context size class required by the task.
@@ -33,8 +65,9 @@ export type ContextSize = "standard" | "extended" | "massive";
  */
 export interface ModelHints {
   readonly tier?: AgentTier;
-  readonly families?: readonly ModelFamily[];
+  readonly capabilities?: AgentCapabilities;
   readonly contextSize?: ContextSize;
+  readonly speedPreference?: SpeedPreference;
 }
 
 /**
@@ -218,15 +251,8 @@ export interface BuiltPrompt {
 export interface AgentMetadata {
   readonly name: string;
   readonly description: string;
-  readonly tier: AgentTier;
-  readonly category: AgentCategory;
-  readonly capabilities: readonly string[];
-  readonly tags: readonly string[];
-  /**
-   * Explicit tool access policy for this agent.
-   * When defined, the agent may ONLY use the listed tools.
-   * This enforces tool filtering at both prompt-build and runtime layers.
-   */
+  readonly allowedTiers: readonly AgentTier[];
+  readonly capabilities: AgentCapabilities;
   readonly toolPolicy?: ToolAccessPolicy;
 }
 

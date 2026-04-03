@@ -62,12 +62,14 @@ export {
 } from "./agents/types.js";
 export type {
   Agent,
-  AgentCategory,
+  AgentDomain,
+  AgentCapabilities,
+  ModelAttribute,
+  SpeedPreference,
   AgentContext,
   AgentMetadata,
   AgentResult,
   AgentTier,
-  ModelFamily,
   ContextSize,
   ModelHints,
   RepoMap,
@@ -155,6 +157,9 @@ export {
   DEFAULT_MODEL_CONFIG_RESOLVER,
 } from "./agents/model-config-resolver.js";
 export type { ModelConfig, ModelConfigResolver } from "./agents/model-config-resolver.js";
+
+export { DEFAULT_AGENT_MODEL_POLICY } from "./agents/model-selection-policy.js";
+export type { AgentModelConfig, ResolvedModelTarget } from "./agents/model-selection-policy.js";
 
 export {
   SubscriptionSchema,
