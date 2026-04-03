@@ -22,6 +22,7 @@ export type {
   ChatResponse,
   DiriRouterOptions,
   SelectedModelInfo,
+  ExperimentLogger,
 } from "./diri-router.js";
 
 export { classifyError, deriveRetryable, parseRetryAfter } from "./error-classifier.js";
