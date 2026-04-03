@@ -551,6 +551,24 @@ export class CascadeModelResolver implements ModelResolver {
       score += 5;
     }
 
+    // Context window tier scoring — ADR-055 Addendum
+    // Models must meet the minimum context window for the requested tier,
+    // and are rewarded for exceeding it.
+    const TIER_MIN_CONTEXT: Record<string, number> = {
+      low: 200_000,
+      medium: 200_000,
+      heavy: 800_000,
+    };
+    const minRequired = TIER_MIN_CONTEXT[request.modelDimensions.tier];
+    if (descriptor.contextWindow !== undefined && minRequired !== undefined) {
+      if (descriptor.contextWindow < minRequired) {
+        score -= 50; // heavy penalty for insufficient context window
+      } else {
+        // bonus for exceeding minimum (capped at +20)
+        score += Math.min(20, (descriptor.contextWindow - minRequired) / 100_000);
+      }
+    }
+
     return Math.max(0, Math.min(100, score));
   }
 }

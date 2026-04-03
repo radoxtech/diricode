@@ -82,6 +82,64 @@ interface ModelDescriptor {
 
 ---
 
+## Resolver Composition (DC-DR-006)
+
+`ModelTierResolver` and `CascadeModelResolver` serve different roles and compose in a specific order:
+
+### ModelTierResolver — Legacy tier→model mapper
+
+Located in `packages/core/src/agents/model-tier-resolver.ts`.
+
+- Takes a `ModelTier` (heavy/medium/low) and returns which model class to use
+- Does **NOT** implement `ModelResolver` interface
+- Provides **preferred model per tier** as candidate pool entries for `CascadeModelResolver`
+
+### CascadeModelResolver — Full decision engine
+
+Located in `packages/core/src/llm-picker/model-resolver.ts`.
+
+- Implements `ModelResolver` interface
+- Takes a `DecisionRequest`, applies hard rules, constraint filtering, and scoring
+- Returns selected model with full metadata
+
+### Composition seam
+
+```
+ModelTierResolver.resolve(tier)
+         ↓
+  Returns: tier + model class
+         ↓
+  Maps to: candidate pool entries
+         ↓
+CascadeModelResolver.resolve(request)
+         ↓
+  Applies: hard rules + scoring
+         ↓
+  Returns: selected model
+```
+
+`ModelTierResolver` is the **source of truth** for which model is preferred per tier. `CascadeModelResolver` then applies the full selection logic on top, including:
+
+- Hard rules (pricing tier constraints per agent role / task complexity)
+- Constraint filtering (excluded providers, max cost, min context window)
+- **Context window tier scoring** (ADR-055 Addendum — this document)
+- Role/complexity match scoring
+- Preferred provider/model bonuses
+
+### No duplication
+
+Both resolvers operate at different abstraction levels:
+
+| Concern | `ModelTierResolver` | `CascadeModelResolver` |
+|---------|--------------------|-----------------------|
+| Tier → model mapping | ✓ Primary | Uses as candidate source |
+| Hard rule enforcement | ✗ | ✓ |
+| Constraint filtering | ✗ | ✓ |
+| Context window scoring | ✗ | ✓ |
+| Confidence-based cascade | ✗ | ✓ |
+
+---
+
 ## References
 
 - ADR-004: Agent roster 3 tiers
