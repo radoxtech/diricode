@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type {
   DecisionRequest,
   DecisionResponse,
+  ModelAttribute,
   ModelCandidate,
   ModelResolver,
   ModelRouter,
@@ -74,6 +75,7 @@ export interface ResolverCandidate {
   readonly contextWindow?: number;
   readonly estimatedCostUsd?: number;
   readonly trusted?: boolean;
+  readonly modelAttributes?: readonly ModelAttribute[];
   readonly capabilities?: readonly string[];
   readonly knownForRoles?: readonly string[];
   readonly knownForComplexities?: readonly string[];
@@ -90,6 +92,7 @@ export function resolverCandidateFromContracts(
     contextWindow: subscription.context_window,
     estimatedCostUsd: subscription.cost_per_1k_input + subscription.cost_per_1k_output,
     trusted: subscription.trusted,
+    modelAttributes: deriveModelAttributesFromCard(modelCard),
     capabilities: capabilitiesToList(modelCard.capabilities),
     knownForRoles: modelCard.known_for.roles,
     knownForComplexities: modelCard.known_for.complexities,
@@ -115,6 +118,54 @@ function capabilitiesToList(capabilities: ModelCapabilities): string[] {
   return supported;
 }
 
+function deriveModelAttributesFromCard(modelCard: ModelCard): ModelAttribute[] {
+  const attributes = new Set<ModelAttribute>();
+  const modelName = modelCard.model.toLowerCase();
+  const roles = new Set(modelCard.known_for.roles.map((role) => role.toLowerCase()));
+  const complexities = new Set(
+    modelCard.known_for.complexities.map((level) => level.toLowerCase()),
+  );
+  const specializations = new Set(
+    modelCard.known_for.specializations.map((specialization) => specialization.toLowerCase()),
+  );
+
+  if (roles.has("architect") || complexities.has("complex") || complexities.has("expert")) {
+    attributes.add("reasoning");
+  }
+
+  if (roles.has("reviewer")) {
+    attributes.add("quality");
+  }
+
+  if (modelCard.capabilities.tool_calling || roles.has("coder")) {
+    attributes.add("agentic");
+  }
+
+  if (
+    modelName.includes("flash") ||
+    modelName.includes("haiku") ||
+    modelName.includes("mini") ||
+    modelName.includes("turbo") ||
+    modelName.includes("highspeed")
+  ) {
+    attributes.add("speed");
+  }
+
+  if (modelCard.capabilities.vision && specializations.has("frontend")) {
+    attributes.add("ui-ux");
+  }
+
+  if ((modelCard.capabilities.max_context ?? 0) >= 200_000 || modelName.includes("pro")) {
+    attributes.add("bulk");
+  }
+
+  if (modelName.includes("opus")) {
+    attributes.add("creative");
+  }
+
+  return [...attributes];
+}
+
 const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
   {
     provider: "openai",
@@ -123,6 +174,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 128000,
     estimatedCostUsd: 0.08,
     trusted: true,
+    modelAttributes: ["reasoning", "speed", "agentic"],
     capabilities: ["tool-calling", "streaming", "json-mode"],
     knownForRoles: ["coder", "researcher"],
     knownForComplexities: ["simple", "moderate"],
@@ -134,6 +186,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 128000,
     estimatedCostUsd: 0.12,
     trusted: true,
+    modelAttributes: ["reasoning", "speed", "agentic"],
     capabilities: ["tool-calling", "streaming", "json-mode"],
     knownForRoles: ["coder", "researcher"],
     knownForComplexities: ["simple", "moderate"],
@@ -145,6 +198,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 200000,
     estimatedCostUsd: 0.15,
     trusted: true,
+    modelAttributes: ["speed", "agentic"],
     capabilities: ["tool-calling", "streaming", "vision"],
     knownForRoles: ["coder", "researcher"],
     knownForComplexities: ["simple", "moderate"],
@@ -156,6 +210,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 1000000,
     estimatedCostUsd: 0.1,
     trusted: false,
+    modelAttributes: ["speed", "bulk", "agentic"],
     capabilities: ["tool-calling", "streaming", "json-mode", "vision"],
     knownForRoles: ["coder", "researcher"],
     knownForComplexities: ["simple", "moderate"],
@@ -167,6 +222,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 128000,
     estimatedCostUsd: 0.09,
     trusted: false,
+    modelAttributes: ["speed", "agentic"],
     capabilities: ["tool-calling", "streaming"],
     knownForRoles: ["coder"],
     knownForComplexities: ["simple", "moderate"],
@@ -178,6 +234,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 128000,
     estimatedCostUsd: 0.06,
     trusted: false,
+    modelAttributes: ["speed", "bulk", "agentic"],
     capabilities: ["tool-calling", "streaming", "json-mode"],
     knownForRoles: ["coder", "researcher"],
     knownForComplexities: ["simple", "moderate"],
@@ -189,6 +246,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 128000,
     estimatedCostUsd: 0.7,
     trusted: true,
+    modelAttributes: ["reasoning", "agentic", "quality"],
     capabilities: ["tool-calling", "streaming", "json-mode"],
     knownForRoles: ["architect", "reviewer", "orchestrator", "coder"],
     knownForComplexities: ["moderate", "complex"],
@@ -200,6 +258,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 200000,
     estimatedCostUsd: 0.8,
     trusted: true,
+    modelAttributes: ["reasoning", "agentic", "quality"],
     capabilities: ["tool-calling", "streaming", "json-mode", "vision"],
     knownForRoles: ["architect", "reviewer", "orchestrator", "coder"],
     knownForComplexities: ["moderate", "complex"],
@@ -211,6 +270,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 1000000,
     estimatedCostUsd: 0.75,
     trusted: false,
+    modelAttributes: ["reasoning", "bulk", "quality", "agentic"],
     capabilities: ["tool-calling", "streaming", "json-mode", "vision"],
     knownForRoles: ["architect", "researcher", "orchestrator"],
     knownForComplexities: ["moderate", "complex"],
@@ -222,6 +282,7 @@ const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
     contextWindow: 200000,
     estimatedCostUsd: 2.5,
     trusted: true,
+    modelAttributes: ["reasoning", "quality", "creative", "agentic"],
     capabilities: ["tool-calling", "streaming", "json-mode", "vision"],
     knownForRoles: ["architect", "reviewer", "orchestrator"],
     knownForComplexities: ["expert", "complex"],
@@ -533,6 +594,15 @@ export class CascadeModelResolver implements ModelResolver {
 
     if (descriptor.knownForComplexities?.includes(classification.classification) === true) {
       score += 15;
+    }
+
+    if (request.modelDimensions.modelAttributes.length > 0) {
+      const matchedAttributes = request.modelDimensions.modelAttributes.filter((attribute) =>
+        descriptor.modelAttributes?.includes(attribute),
+      ).length;
+      score += Math.round(
+        (matchedAttributes / request.modelDimensions.modelAttributes.length) * 20,
+      );
     }
 
     if (request.constraints?.preferredProviders?.includes(descriptor.provider) === true) {
