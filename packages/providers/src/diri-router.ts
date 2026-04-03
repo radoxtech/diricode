@@ -3,12 +3,22 @@ import { CascadeModelResolver } from "@diricode/core";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "./types.js";
 import { ProviderRouter } from "./router.js";
 import type { Registry } from "./registry.js";
+import type {
+  ABExperimentManager,
+  ABEvaluationResult,
+  TaskDescriptor,
+} from "./ab/ABExperimentManager.js";
+
+export interface ExperimentLogger {
+  log(chatId: string, result: ABEvaluationResult): void;
+}
 
 export interface ChatOptions {
   readonly prompt: string;
   readonly model?: ModelConfig;
   readonly selected?: SelectedModelInfo;
   readonly signal?: AbortSignal;
+  readonly chatId?: string;
 }
 
 export interface SelectedModelInfo {
@@ -31,6 +41,8 @@ export interface DiriRouterOptions {
   readonly providerRouter?: ProviderRouter;
   readonly registry?: Registry;
   readonly defaultModel?: ModelConfig;
+  readonly abExperimentManager?: ABExperimentManager;
+  readonly experimentLogger?: ExperimentLogger;
 }
 
 export class DiriRouter {
@@ -38,16 +50,50 @@ export class DiriRouter {
   readonly #router: ProviderRouter;
   readonly #registry: Registry;
   readonly #defaultModel: ModelConfig;
+  readonly #abExperimentManager?: ABExperimentManager;
+  readonly #experimentLogger?: ExperimentLogger;
 
   constructor(options: DiriRouterOptions = {}) {
     this.#resolver = options.cascadeResolver ?? new CascadeModelResolver();
     this.#registry = options.registry ?? throwNoRegistry();
     this.#router = options.providerRouter ?? new ProviderRouter(this.#registry);
     this.#defaultModel = options.defaultModel ?? { modelId: "gpt-4o" };
+    this.#abExperimentManager = options.abExperimentManager;
+    this.#experimentLogger = options.experimentLogger;
   }
 
-  async pick(request: DecisionRequest): Promise<DecisionResponse> {
+  async pick(request: DecisionRequest, chatId?: string): Promise<DecisionResponse> {
+    const taskDescriptor: TaskDescriptor = {
+      id: request.requestId,
+      type: request.task.type,
+    };
+
+    let experimentResult: ABEvaluationResult | undefined;
+    if (this.#abExperimentManager) {
+      experimentResult = await this.#abExperimentManager.evaluate(taskDescriptor);
+      if (this.#experimentLogger && chatId) {
+        this.#experimentLogger.log(chatId, experimentResult);
+      }
+      if (experimentResult.kind === "branch") {
+        const variant = this.selectVariant(experimentResult);
+        const modifiedRequest = this.applyVariant(request, variant);
+        return this.#resolver.resolve(modifiedRequest);
+      }
+    }
     return this.#resolver.resolve(request);
+  }
+
+  private selectVariant(_result: {
+    kind: "branch";
+    experimentId: string;
+    variantA: { label: string; taskId: string };
+    variantB: { label: string; taskId: string };
+  }): "A" | "B" {
+    return Math.random() < 0.5 ? "A" : "B";
+  }
+
+  private applyVariant(request: DecisionRequest, _variant: "A" | "B"): DecisionRequest {
+    return request;
   }
 
   async chat(options: ChatOptions): Promise<ChatResponse> {
