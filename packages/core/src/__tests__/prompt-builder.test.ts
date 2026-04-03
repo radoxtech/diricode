@@ -6,10 +6,12 @@ function makeMetadata(overrides?: Partial<AgentMetadata>): AgentMetadata {
   return {
     name: "test-agent",
     description: "A test agent for unit testing",
-    tier: "medium",
-    category: "code",
-    capabilities: ["file-read", "file-write", "test-execution"],
-    tags: ["test", "unit"],
+    allowedTiers: ["medium"],
+    capabilities: {
+      primary: "coding",
+      specialization: ["test", "unit"],
+      modelAttributes: ["reasoning", "agentic"],
+    },
     ...overrides,
   };
 }
@@ -230,11 +232,17 @@ describe("PromptBuilder", () => {
       expect(result.modelHints.tier).toBe("heavy");
     });
 
-    it("sets families hint", () => {
+    it("sets capabilities hint", () => {
       const pb = new PromptBuilder({ metadata: makeMetadata() });
-      pb.withModelHints({ families: ["reasoning", "agentic"] });
+      pb.withModelHints({
+        capabilities: {
+          primary: "coding",
+          specialization: ["backend"],
+          modelAttributes: ["reasoning", "agentic"],
+        },
+      });
       const result = pb.build("hello", []);
-      expect(result.modelHints.families).toEqual(["reasoning", "agentic"]);
+      expect(result.modelHints.capabilities?.modelAttributes).toEqual(["reasoning", "agentic"]);
     });
 
     it("sets contextSize hint", () => {
