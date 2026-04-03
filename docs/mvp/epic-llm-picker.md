@@ -1,5 +1,8 @@
 # Epic: LLM Picker (@diricode/providers)
 
+> ⚠️ **SUPERSEDED by [epic-diri-router.md](./epic-diri-router.md)**  
+> This epic is preserved for historical context. The LLM Picker decision engine has been merged into the unified `diri-router` package. See [ADR-055](../adr/adr-055-diri-router-unified-package.md).
+
 ## Summary
 
 The LLM Picker is a **hybrid decision engine** combining a 3-tier ML cascade (Heuristic → BERT/ONNX → TinyLLM/ONNX) with policy-driven weighted scoring to select optimal LLM models for concurrent swarm agents. Sits between dispatcher/agent layer and SubscriptionRouter (ADR-042). Picker **never** makes LLM API calls.

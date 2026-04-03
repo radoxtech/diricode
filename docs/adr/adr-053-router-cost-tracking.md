@@ -5,7 +5,7 @@
 | Status      | Accepted                                                              |
 | Date        | 2026-03-31                                                            |
 | Scope       | MVP-2 (core) + v2 (intelligence)                                      |
-| References  | ADR-025 (Router), ADR-042 (Multi-Subscription), DC-SAFE-004 (Token Guardrails) |
+| References  | ADR-025, ADR-042, ADR-054, ADR-055 |
 
 ### Context
 

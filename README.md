@@ -133,10 +133,10 @@ graph TD
         SQLite[SQLite runtime state]
     end
 
-    subgraph Providers
+    subgraph diri-router
         AISDK[Vercel AI SDK Transport]
         Cards[Model Cards - static metadata]
-        Picker[LLM Picker - decision engine]
+        DiriRouter[diri-router - unified Picker + Router]
         ErrorClassifier[Error Classifier + Retry]
     end
 
@@ -152,9 +152,9 @@ graph TD
     Specialists --> Git
     Dispatcher --> SQLite
     Specialists --> SQLite
-    Specialists --> Picker
-    Picker --> Cards
-    Picker --> AISDK
+    Specialists --> DiriRouter
+    DiriRouter --> Cards
+    DiriRouter --> AISDK
     AISDK --> ErrorClassifier
 ```
 
@@ -233,7 +233,7 @@ packages/
   core/
   agents/
   tools/
-  providers/
+  diri-router/      # Unified model routing (Picker + Router)
   server/
   memory/
   web/
@@ -247,22 +247,21 @@ docs/
 
 ## Current Status
 
-| Area                                          | Status          | Notes                                                                   |
-| --------------------------------------------- | --------------- | ----------------------------------------------------------------------- |
-| Dispatcher / delegation                       | ✅ Partial-real | **Runtime boundary enforcement implemented (DC-CORE-015)**              |
-| Tool layer                                    | ✅ Partial-real | File/search/bash/LSP/AST foundations exist                              |
-| SQLite memory backbone                        | ✅ Partial-real | Repositories and local-first direction are real                         |
-| SSE / transport                               | ✅ Partial-real | Transport exists; full event model still in progress                    |
-| Provider layer                                | ✅ Partial-real | Vercel AI SDK transport (ADR-054); Model Cards + error classifier exist |
-| LLM Picker                                    | 📐 Designed     | ADR-049 accepted; AI SDK is transport, Model Cards are metadata         |
-| End-to-end pipeline                           | 🏗️ In progress  | Core integration still being wired                                      |
-| Checkpoint / resume                           | 🏗️ In progress  | Explicit MVP-1 requirement                                              |
-| Semantic navigation / refactoring             | 🏗️ In progress  | High-priority prototype multiplier                                      |
-| Full context budgeting / compaction           | 📋 Later        | Deliberately not first-wave                                             |
-| Full swarm / broad autonomy                   | 📋 Later        | Architectural direction kept, delivery delayed                          |
-| Permission Context Engine                     | 📐 Designed     | ADR-051/052 accepted; Faza 1 in MVP-2, smart features in v2             |
-| Router Cost Tracking                          | 📐 Designed     | ADR-053 accepted; router-centric, API + subscription types; MVP-2       |
-| Memory Systems (ReasoningBank v2 + MemoryDir) | 🔬 Research     | Two systems; deep research required before implementation; v2           |
+| Area                                          | Status          | Notes                                                             |
+| --------------------------------------------- | --------------- | ----------------------------------------------------------------- |
+| Dispatcher / delegation                       | ✅ Partial-real | **Runtime boundary enforcement implemented (DC-CORE-015)**        |
+| Tool layer                                    | ✅ Partial-real | File/search/bash/LSP/AST foundations exist                        |
+| SQLite memory backbone                        | ✅ Partial-real | Repositories and local-first direction are real                   |
+| SSE / transport                               | ✅ Partial-real | Transport exists; full event model still in progress              |
+| diri-router (unified)                         | 🏗️ In progress  | ADR-055; Picker + Router being integrated (DC-DR-001..011)        |
+| End-to-end pipeline                           | 🏗️ In progress  | Core integration still being wired                                |
+| Checkpoint / resume                           | 🏗️ In progress  | Explicit MVP-1 requirement                                        |
+| Semantic navigation / refactoring             | 🏗️ In progress  | High-priority prototype multiplier                                |
+| Full context budgeting / compaction           | 📋 Later        | Deliberately not first-wave                                       |
+| Full swarm / broad autonomy                   | 📋 Later        | Architectural direction kept, delivery delayed                    |
+| Permission Context Engine                     | 📐 Designed     | ADR-051/052 accepted; Faza 1 in MVP-2, smart features in v2       |
+| Router Cost Tracking                          | 📐 Designed     | ADR-053 accepted; router-centric, API + subscription types; MVP-2 |
+| Memory Systems (ReasoningBank v2 + MemoryDir) | 🔬 Research     | Two systems; deep research required before implementation; v2     |
 
 ## Getting Started
 
@@ -303,7 +302,7 @@ The project is still in active architectural shaping. If you want to understand 
 1. `docs/adr/adr-002-dispatcher-first-agent-architecture.md`
 2. `docs/adr/adr-013-project-pipeline.md`
 3. `docs/adr/adr-054-ai-sdk-transport-layer.md`
-4. `docs/adr/adr-049-llm-picker.md`
+4. `docs/adr/adr-055-diri-router-unified-package.md`
 5. `docs/adr/adr-031-observability-eventstream-agent-tree.md`
 6. `docs/adr/adr-048-sqlite-issue-system.md`
 7. `docs/mvp/index.md`

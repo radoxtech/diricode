@@ -5,7 +5,7 @@
 | Status      | Accepted                                                                                       |
 | Date        | 2026-04-01                                                                                     |
 | Scope       | MVP-1 (transport migration), MVP-2 (LLM Picker integration)                                   |
-| References  | ADR-025, ADR-042, ADR-049, Vercel AI SDK v4                                                    |
+| References  | ADR-025, ADR-049, ADR-055, Vercel AI SDK v4 |
 
 ### Context
 
