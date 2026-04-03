@@ -1,4 +1,8 @@
-# DiriCode
+<p align="center">
+  <img src="diricode.jpg" alt="DiriCode banner" width="100%" />
+</p>
+
+# DiriCode - The Most Advanced Vibe Coding Framework
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/radoxtech/diricode/ci.yml?branch=main)](https://github.com/radoxtech/diricode/actions)
@@ -48,11 +52,10 @@ These parts are already real in the repository:
   - SSE transport
   - event emission foundations
 - **Provider layer**
-  - Vercel AI SDK as transport layer (ADR-054) — `@ai-sdk/github`, `@ai-sdk/google`, `@ai-sdk/moonshotai`
-  - `createProviderRegistry()` for unified model access
-  - static Model Cards (`ModelDescriptor`) for metadata the SDK doesn't expose (context window, capabilities, pricing tier)
-  - error classifier, retry engine, fallback chain (ADR-025)
-  - LLM Picker decision engine (ADR-049) — 3-tier ML cascade for intelligent model selection
+  - provider registry
+  - router foundations
+  - model scoring / experiment primitives
+  - LLM Picker design (ADR-049)
 
 The biggest remaining gap is **integration**, not “missing ideas.”
 
@@ -86,9 +89,6 @@ After the first runtime path works:
 - stronger intent gate evolution
 - richer router/cost intelligence
 - LLM Picker decision engine (ADR-049)
-- Permission Context Engine (multi-context handlers, audit logging, granular levels — MVP-2; smart features in v2)
-- router-centric cost tracking (API vs subscription provider types — MVP-2)
-- Memory Systems research (ReasoningBank v2 + MemoryDir — v2, research required)
 
 ### Later priorities
 
@@ -133,11 +133,10 @@ graph TD
         SQLite[SQLite runtime state]
     end
 
-    subgraph diri-router
-        AISDK[Vercel AI SDK Transport]
-        Cards[Model Cards - static metadata]
-        DiriRouter[diri-router - unified Picker + Router]
-        ErrorClassifier[Error Classifier + Retry]
+    subgraph Providers
+        Registry[Provider registry]
+        Picker[LLM Picker]
+        Router[Routing foundations]
     end
 
     CLI --> API
@@ -152,10 +151,9 @@ graph TD
     Specialists --> Git
     Dispatcher --> SQLite
     Specialists --> SQLite
-    Specialists --> DiriRouter
-    DiriRouter --> Cards
-    DiriRouter --> AISDK
-    AISDK --> ErrorClassifier
+    Specialists --> Picker
+    Picker --> Router
+    Router --> Registry
 ```
 
 ## Key Architectural Decisions
@@ -220,9 +218,6 @@ Expand safely:
 - smarter context management
 - ReasoningBank live integration
 - richer observability UI
-- Permission Context Engine (2-phase)
-- Router Cost Tracking (API + Subscription)
-- Memory Systems (ReasoningBank + MemoryDir)
 
 ## Current Package Layout
 
@@ -233,7 +228,7 @@ packages/
   core/
   agents/
   tools/
-  diri-router/      # Unified model routing (Picker + Router)
+  providers/
   server/
   memory/
   web/
@@ -247,21 +242,19 @@ docs/
 
 ## Current Status
 
-| Area                                          | Status          | Notes                                                             |
-| --------------------------------------------- | --------------- | ----------------------------------------------------------------- |
-| Dispatcher / delegation                       | ✅ Partial-real | **Runtime boundary enforcement implemented (DC-CORE-015)**        |
-| Tool layer                                    | ✅ Partial-real | File/search/bash/LSP/AST foundations exist                        |
-| SQLite memory backbone                        | ✅ Partial-real | Repositories and local-first direction are real                   |
-| SSE / transport                               | ✅ Partial-real | Transport exists; full event model still in progress              |
-| diri-router (unified)                         | 🏗️ In progress  | ADR-055; Picker + Router being integrated (DC-DR-001..011)        |
-| End-to-end pipeline                           | 🏗️ In progress  | Core integration still being wired                                |
-| Checkpoint / resume                           | 🏗️ In progress  | Explicit MVP-1 requirement                                        |
-| Semantic navigation / refactoring             | 🏗️ In progress  | High-priority prototype multiplier                                |
-| Full context budgeting / compaction           | 📋 Later        | Deliberately not first-wave                                       |
-| Full swarm / broad autonomy                   | 📋 Later        | Architectural direction kept, delivery delayed                    |
-| Permission Context Engine                     | 📐 Designed     | ADR-051/052 accepted; Faza 1 in MVP-2, smart features in v2       |
-| Router Cost Tracking                          | 📐 Designed     | ADR-053 accepted; router-centric, API + subscription types; MVP-2 |
-| Memory Systems (ReasoningBank v2 + MemoryDir) | 🔬 Research     | Two systems; deep research required before implementation; v2     |
+| Area                                | Status          | Notes                                                |
+| ----------------------------------- | --------------- | ---------------------------------------------------- |
+| Dispatcher / delegation             | ✅ Partial-real | Strong runtime foundation exists                     |
+| Tool layer                          | ✅ Partial-real | File/search/bash/LSP/AST foundations exist           |
+| SQLite memory backbone              | ✅ Partial-real | Repositories and local-first direction are real      |
+| SSE / transport                     | ✅ Partial-real | Transport exists; full event model still in progress |
+| Provider layer                      | ✅ Partial-real | Registry exists; richer routing still evolving       |
+| LLM Picker                          | 📐 Designed     | ADR-049 accepted; implementation in MVP-2            |
+| End-to-end pipeline                 | 🏗️ In progress  | Core integration still being wired                   |
+| Checkpoint / resume                 | 🏗️ In progress  | Explicit MVP-1 requirement                           |
+| Semantic navigation / refactoring   | 🏗️ In progress  | High-priority prototype multiplier                   |
+| Full context budgeting / compaction | 📋 Later        | Deliberately not first-wave                          |
+| Full swarm / broad autonomy         | 📋 Later        | Architectural direction kept, delivery delayed       |
 
 ## Getting Started
 
@@ -301,11 +294,9 @@ The project is still in active architectural shaping. If you want to understand 
 
 1. `docs/adr/adr-002-dispatcher-first-agent-architecture.md`
 2. `docs/adr/adr-013-project-pipeline.md`
-3. `docs/adr/adr-054-ai-sdk-transport-layer.md`
-4. `docs/adr/adr-055-diri-router-unified-package.md`
-5. `docs/adr/adr-031-observability-eventstream-agent-tree.md`
-6. `docs/adr/adr-048-sqlite-issue-system.md`
-7. `docs/mvp/index.md`
+3. `docs/adr/adr-031-observability-eventstream-agent-tree.md`
+4. `docs/adr/adr-048-sqlite-issue-system.md`
+5. `docs/mvp/index.md`
 
 ## License
 
