@@ -98,5 +98,13 @@ export type {
   ReResolutionConfig,
   ResolveResult,
 } from "./hashline.js";
+export {
+  iterativeRefinementTool,
+  registerIterativeRefinementTools,
+} from "./iterative-refinement.js";
+export type {
+  IterativeRefinementParams,
+  IterativeRefinementResult,
+} from "./iterative-refinement.js";
 export type { Tool, ToolAnnotations, ToolContext, ToolResult } from "@diricode/core";
 export { ToolError } from "@diricode/core";
