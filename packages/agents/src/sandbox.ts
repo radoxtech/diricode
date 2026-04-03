@@ -23,6 +23,20 @@ import {
 
 export interface SandboxContext extends AgentContext {
   readonly sandboxConfig: SandboxConfig;
+  readonly requestedTier?: AgentTier;
+}
+
+function getEffectiveTier(agent: Agent, requestedTier?: AgentTier): AgentTier {
+  if (requestedTier !== undefined && agent.metadata.allowedTiers.includes(requestedTier)) {
+    return requestedTier;
+  }
+
+  const priority: readonly AgentTier[] = ["heavy", "medium", "light"];
+  return (
+    priority.find((tier) => agent.metadata.allowedTiers.includes(tier)) ??
+    agent.metadata.allowedTiers[0] ??
+    "medium"
+  );
 }
 
 function getTimeoutMs(tier: AgentTier, config: SandboxConfig): number {
@@ -90,7 +104,7 @@ export async function executeInSandbox(
   context: SandboxContext,
   config: SandboxConfig = DEFAULT_SANDBOX_CONFIG,
 ): Promise<SandboxExecutionResult> {
-  const tier = agent.metadata.tier;
+  const tier = getEffectiveTier(agent, context.requestedTier);
   const maxRetries = getMaxRetries(tier, config);
   const maxTokens = getMaxTokens(tier, config);
   const timeoutMs = getTimeoutMs(tier, config);
