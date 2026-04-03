@@ -17,6 +17,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@diricode/core": "workspace:*",
     "@diricode/picker-contracts": "workspace:*",
     "@ai-sdk/openai-compatible": "^2.0.0",
     "@github/models": "0.0.1-beta.2",

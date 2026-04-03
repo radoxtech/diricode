@@ -199,6 +199,8 @@ export type {
   HardRuleEvaluationResult,
   CascadeModelResolverOptions,
   ResolverCandidate,
+  DecisionRequest,
+  DecisionResponse,
 } from "./llm-picker/index.js";
 
 export * from "./agents/dispatcher-contract.js";
