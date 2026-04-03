@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="diricode.jpg" alt="DiriCode banner" width="100%" />
+</p>
+
 # DiriCode
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
