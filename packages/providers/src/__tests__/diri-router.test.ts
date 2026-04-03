@@ -96,6 +96,7 @@ describe("DiriRouter", () => {
       const router = new DiriRouter({ registry });
 
       const request: DecisionRequest = {
+        chatId: "test-chat-session",
         requestId: "test-request-id",
         agent: { id: "test-agent", role: "coder" },
         task: { type: "simple" },

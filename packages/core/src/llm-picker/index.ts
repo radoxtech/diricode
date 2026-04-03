@@ -14,6 +14,8 @@ export {
   DecisionMetaSchema,
   SelectedModelSchema,
   DecisionResponseSchema,
+  FeedbackOutcomeSchema,
+  FeedbackSubmissionSchema,
   RouterClassificationSchema,
 } from "./types.js";
 
@@ -33,6 +35,9 @@ export type {
   DecisionMeta,
   SelectedModel,
   DecisionResponse,
+  FeedbackOutcome,
+  FeedbackSubmission,
+  FeedbackCollector,
   RouterClassification,
   ModelRouter,
   ModelResolver,

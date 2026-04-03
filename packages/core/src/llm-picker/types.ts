@@ -122,6 +122,7 @@ export type DecisionConstraints = z.infer<typeof DecisionConstraintsSchema>;
  * @see ADR-049
  */
 export const DecisionRequestSchema = z.object({
+  chatId: z.string().min(1),
   requestId: z.string().uuid(),
   agent: AgentInfoSchema,
   task: TaskInfoSchema,
@@ -197,6 +198,42 @@ export const DecisionResponseSchema = z.object({
   classificationTrace: ClassificationTraceSchema.optional(),
 });
 export type DecisionResponse = z.infer<typeof DecisionResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Feedback Collection — ADR-055 chatId correlation
+// ---------------------------------------------------------------------------
+
+/**
+ * Outcome metrics for a single model decision.
+ */
+export const FeedbackOutcomeSchema = z.object({
+  success: z.boolean(),
+  tokenCount: z.object({
+    input: z.number().int().nonnegative(),
+    output: z.number().int().nonnegative(),
+  }),
+  latencyMs: z.number().int().nonnegative(),
+  costUsd: z.number().nonnegative(),
+});
+export type FeedbackOutcome = z.infer<typeof FeedbackOutcomeSchema>;
+
+/**
+ * Feedback submission linking outcome to original decision.
+ */
+export const FeedbackSubmissionSchema = z.object({
+  chatId: z.string().min(1),
+  requestId: z.string().uuid(),
+  outcome: FeedbackOutcomeSchema,
+});
+export type FeedbackSubmission = z.infer<typeof FeedbackSubmissionSchema>;
+
+/**
+ * Interface for collecting feedback on model decisions.
+ * POC: log-only. v2: Elo scoring integration.
+ */
+export interface FeedbackCollector {
+  submit(feedback: FeedbackSubmission): Promise<void>;
+}
 
 // ---------------------------------------------------------------------------
 // Router Types

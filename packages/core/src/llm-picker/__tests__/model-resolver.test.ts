@@ -36,6 +36,7 @@ import type {
   ModelTier,
 } from "../types.js";
 const validRequest = (): DecisionRequest => ({
+  chatId: "test-chat-session",
   requestId: "550e8400-e29b-41d4-a716-446655440000",
   agent: { id: "coder-agent", role: "coding" },
   task: { type: "implement-feature", description: "Add dark mode" },
@@ -686,6 +687,7 @@ describe("CascadeModelResolver", () => {
     // Use architect agent + complex task to allow premium tier (min: standard, max: premium)
     // This isolates context window scoring from pricing tier filtering.
     const baseRequest = (tier: ModelTier): DecisionRequest => ({
+      chatId: "test-chat-session",
       requestId: "550e8400-e29b-41d4-a716-446655440000",
       agent: { id: "test-agent", role: "architect" },
       task: { type: "complex-architecture" },
