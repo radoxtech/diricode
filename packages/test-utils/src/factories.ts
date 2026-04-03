@@ -88,10 +88,13 @@ export function createMockAgent(
   const metadata: AgentMetadata = {
     name: overrides.name ?? "test-agent",
     description: overrides.description ?? "Mock agent for testing",
-    tier: overrides.tier ?? "medium",
-    category: overrides.category ?? "code",
-    capabilities: overrides.capabilities ?? [],
-    tags: overrides.tags ?? ["test"],
+    allowedTiers: overrides.allowedTiers ?? ["medium"],
+    capabilities: overrides.capabilities ?? {
+      primary: "coding",
+      specialization: ["test"],
+      modelAttributes: ["reasoning"],
+    },
+    toolPolicy: overrides.toolPolicy,
   };
 
   return {

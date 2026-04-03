@@ -68,21 +68,23 @@ describe("factories", () => {
     it("returns an Agent with default metadata", () => {
       const agent = createMockAgent();
       expect(agent.metadata.name).toBe("test-agent");
-      expect(agent.metadata.tier).toBe("medium");
+      expect(agent.metadata.allowedTiers).toContain("medium");
     });
 
     it("accepts custom metadata overrides", () => {
       const agent = createMockAgent({
         name: "custom-agent",
-        tier: "heavy",
-        category: "code",
-        capabilities: ["code-generation"],
-        tags: ["test", "custom"],
+        allowedTiers: ["heavy"],
+        capabilities: {
+          primary: "coding",
+          specialization: ["code-generation"],
+          modelAttributes: ["reasoning", "agentic"],
+        },
       });
       expect(agent.metadata.name).toBe("custom-agent");
-      expect(agent.metadata.tier).toBe("heavy");
-      expect(agent.metadata.category).toBe("code");
-      expect(agent.metadata.capabilities).toContain("code-generation");
+      expect(agent.metadata.allowedTiers).toContain("heavy");
+      expect(agent.metadata.capabilities.primary).toBe("coding");
+      expect(agent.metadata.capabilities.specialization).toContain("code-generation");
     });
 
     it("execute returns a successful result by default", async () => {
