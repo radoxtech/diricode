@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DiriRouter, ProviderPriorities, Registry } from "../index.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../index.js";
+import type { DecisionRequest } from "@diricode/core";
 
 interface ProviderStub extends Provider {
   setNextResponse(response: string): void;
@@ -94,22 +95,13 @@ describe("DiriRouter", () => {
 
       const router = new DiriRouter({ registry });
 
-      const request = {
+      const request: DecisionRequest = {
         requestId: "test-request-id",
         agent: { id: "test-agent", role: "coder" },
         task: { type: "simple" },
         modelDimensions: {
           tier: "low" as const,
-          family: "coding" as const,
-          tags: ["coding"] as (
-            | "coding"
-            | "creative"
-            | "quality"
-            | "research"
-            | "utility"
-            | "planning"
-            | "orchestration"
-          )[],
+          modelAttributes: ["reasoning", "agentic"],
           fallbackType: null,
         },
       };
