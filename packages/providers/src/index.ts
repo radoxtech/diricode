@@ -16,6 +16,14 @@ export { ProviderAlreadyRegisteredError, ProviderNotFoundError, Registry } from 
 
 export type { ClassifiedError, ProviderErrorKind } from "./error-classifier.js";
 
+export { DiriRouter } from "./diri-router.js";
+export type {
+  ChatOptions,
+  ChatResponse,
+  DiriRouterOptions,
+  SelectedModelInfo,
+} from "./diri-router.js";
+
 export { classifyError, deriveRetryable, parseRetryAfter } from "./error-classifier.js";
 
 export type {
