@@ -2,7 +2,7 @@
 
 > Comprehensive implementation roadmap spanning MVP (4 iterations), v2, v3, v4.
 > Generated from: 49 ADRs, MVP spec, and design decisions.
-> Date: 2026-03-21
+> Date: 2026-04-03
 
 ---
 
@@ -46,13 +46,10 @@ graph TD
         Annotations[Tool Annotations]
     end
 
-    subgraph "@diricode/providers"
-        Router[Native TS Router]
-        Picker[LLM Picker — ADR-049]
+    subgraph "@diricode/diri-router"
+        DiriRouter[diri-router — Unified Picker + Router]
         Redactor[Secret Redactor]
-        Failover[Order-based Failover]
-        Backoff[Rate Limit + Exponential Backoff]
-        AISDK[Vercel AI SDK Wrapper]
+        AISDK[Vercel AI SDK Transport]
     end
 
     subgraph "External"
@@ -85,11 +82,9 @@ graph TD
     SQLite --> Hono
     SyncAdapter -.->|optional push| GH
 
-    Router --> Picker
-    Picker --> Redactor
-    Redactor --> Failover
-    Failover --> Backoff
-    Backoff --> AISDK
+    SubAgents --> DiriRouter
+    DiriRouter --> Redactor
+    Redactor --> AISDK
     AISDK --> LLMs
 ```
 
@@ -278,6 +273,7 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 - [mvp/epic-monorepo-setup.md](mvp/epic-monorepo-setup.md) — Turborepo + pnpm + shared config (POC)
 - [mvp/epic-router.md](mvp/epic-router.md) — @diricode/providers (POC)
 - [mvp/epic-server.md](mvp/epic-server.md) — @diricode/server Hono HTTP+SSE (POC)
+- [mvp/epic-diri-router.md](mvp/epic-diri-router.md) — @diricode/diri-router unified routing (POC→MVP-2)
 - [mvp/epic-tools.md](mvp/epic-tools.md) — @diricode/tools (POC → MVP-2)
 - [mvp/epic-memory.md](mvp/epic-memory.md) — @diricode/memory SQLite+FTS5 (MVP-1)
 - [mvp/epic-agents-core.md](mvp/epic-agents-core.md) — Agent infrastructure + dispatcher (POC → MVP-1)
@@ -290,7 +286,6 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 - [mvp/epic-skills.md](mvp/epic-skills.md) — Skills system agentskills.io (MVP-2 → MVP-3)
 - [mvp/epic-observability.md](mvp/epic-observability.md) — EventStream + Agent Tree + Metrics (MVP-2 → MVP-3)
 - [mvp/epic-web-ui.md](mvp/epic-web-ui.md) — Vite + React + shadcn/ui (MVP-3)
-- [mvp/epic-llm-picker.md](mvp/epic-llm-picker.md) — LLM Picker decision engine + dashboard (MVP-2 → v2)
 - [mvp/epic-cli.md](mvp/epic-cli.md) — CLI entrypoint (POC → MVP-1)
 - [mvp/epic-testing-infra.md](mvp/epic-testing-infra.md) — Vitest + mocks + fixtures (POC)
 
@@ -333,4 +328,4 @@ These decisions are foundational and NOT subject to change (from spec Section 10
 | Hooks | ADR-024 | 20 hook types roadmap |
 | Observability | ADR-031 | EventStream + UI components |
 | Multi-Subscription | ADR-042 | Subscription rotation, quality scoring, A/B testing |
-| LLM Picker | ADR-049 | Hybrid ML cascade + policy-driven model selection for swarm agents |
+| diri-router | ADR-055 | Unified model routing (Picker + Router) |

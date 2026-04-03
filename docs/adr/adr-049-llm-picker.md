@@ -1,11 +1,14 @@
-## ADR-049 — LLM Picker
+# ADR-049 — LLM Picker
+
+> ⚠️ **SUPERSEDED by [ADR-055: diri-router Unified Package](./adr-055-diri-router-unified-package.md)**  
+> The LLM Picker decision engine has been merged into the unified `diri-router` package. The 3-tier cascade, scoring algorithm, and contracts are preserved but colocated with the Provider Router.
 
 | Field       | Value                                                                                          |
 |-------------|------------------------------------------------------------------------------------------------|
-| Status      | Accepted                                                                                       |
+| Status      | Superseded by ADR-055                                                                          |
 | Date        | 2026-03-28                                                                                     |
 | Scope       | MVP-2 (core engine + telemetry), v2 (feedback + ML classifiers + Elo integration)              |
-| References  | ADR-004, ADR-005, ADR-006, ADR-025, ADR-042, ADR-044, ADR-046                                  |
+| References  | ADR-004, ADR-005, ADR-006, ADR-025, ADR-042, ADR-044, ADR-046, ADR-055                        |
 
 ### Context
 

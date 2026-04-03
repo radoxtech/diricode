@@ -135,7 +135,7 @@ The server must prioritize reliability, typed payload contracts, and predictable
 ## Must NOT (POC guardrails)
 
 - Must NOT implement Web UI concerns in server package beyond CORS and API contracts.
-- Must NOT couple server routes directly to provider-specific logic (`@diricode/providers` internals).
+- Must NOT couple server routes directly to provider-specific logic (`@diricode/diri-router` internals).
 - Must NOT bypass typed schema validation for external request/event payloads.
 - Must NOT expose stack traces/secrets in error responses (align ADR-028 redaction principles).
 - Must NOT add v2+ features in this epic:

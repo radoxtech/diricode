@@ -1,5 +1,8 @@
 # Epic: Provider Router (@diricode/providers)
 
+> ⚠️ **SUPERSEDED by [epic-diri-router.md](./epic-diri-router.md)**  
+> This epic is preserved for historical context. All Provider Router functionality has been merged into the unified `diri-router` package. See [ADR-055](../adr/adr-055-diri-router-unified-package.md).
+
 ## Summary
 
 Provider Router is the highest-priority implementation epic in MVP bootstrap ("router first").

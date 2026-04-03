@@ -118,6 +118,25 @@ Tags: `orchestration`, `planning`, `coding`, `quality`, `research`, `creative`, 
 
 Each agent has exactly ONE tag.
 
+### Context Window Tiers
+
+Model tier implies context window requirements for model selection:
+
+| Tier | Min Context Window | Typical Use Case |
+|------|-------------------|------------------|
+| **LOW** | 200,000 tokens | Utility tasks: commit messages, naming, issue creation, summarization |
+| **MEDIUM** | 200,000 tokens | Standard coding: refactoring, review, research, file operations |
+| **HEAVY** | 800,000 tokens | Complex tasks: architecture, deep reasoning, large codebase analysis |
+
+**Rationale:**
+- 200k is the practical minimum for modern "small" models (Haiku, GPT-4o-mini, Flash)
+- 800k separates premium models (Claude Opus 200k, Gemini Pro 1M) from standard
+- Thresholds align with real-world task requirements
+
+**Scoring:** Models below tier minimum are heavily penalized; models above receive proportional bonus.
+
+See: [ADR-055 Addendum: Context Window Tiers](./adr-055-addendum-context-tiers.md)
+
 ### Consequences
 
 - **Positive:** Fine-grained cost control. Each agent gets exactly the model tier it needs. Clear categorization simplifies family assignment.
