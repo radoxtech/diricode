@@ -1,32 +1,45 @@
-# ADR-005 — Families: Model-Agent-Skill Grouping
+# ADR-005 — Unified Capability Taxonomy (supersedes family grouping)
 
 | Field       | Value                                         |
 |-------------|-----------------------------------------------|
-| Status      | Accepted                                      |
+| Status      | Amended                                       |
 | Date        | 2026-03-09                                    |
 | Scope       | MVP                                           |
 | References  | analiza-agent-roster.md                       |
 
 ### Context
 
-With 40 agents and multiple model providers, a grouping mechanism is needed to simplify model assignment and skill matching. Families provide this abstraction.
+The original "family" concept tried to classify models, agents, and skills with one shared taxonomy. In practice this produced overlapping semantics across `AgentCategory`, two separate `ModelFamily` definitions, and `ModelTag` lists.
+
+That overlap made routing harder to reason about:
+- agent handoff policy wanted one stable primary domain,
+- picker scoring wanted model-suitability attributes,
+- specialization wanted fine-grained free-form labels,
+- providers remained the real source of model context windows and concrete model IDs.
 
 ### Decision
 
-Introduce a formal **Family** concept:
+Replace the family abstraction with a unified capability model:
 
-```
-Family = { models[], agents[], skills[] }
+```typescript
+type AgentDomain = "coding" | "review" | "research" | "planning" | "devops" | "utility";
+type ModelAttribute = "reasoning" | "speed" | "agentic" | "creative" | "ui-ux" | "bulk" | "quality";
+
+interface AgentCapabilities {
+  primary: AgentDomain;
+  specialization: readonly string[];
+  modelAttributes: readonly ModelAttribute[];
+}
 ```
 
 Rules:
-- Models are assigned to families (e.g., coding, reasoning, creative).
-- Agents belong to families.
-- Skills belong to families.
-- Agent-skill matching happens by family.
-- **Family Packs** are named profiles mapping each agent → model + fallbacks (simplifies config for non-technical users).
+- Agents expose one `primary` domain for routing, handoff filtering, and high-level policy.
+- Fine-grained capability matching uses `specialization` strings, not nested enum taxonomies.
+- Picker scoring consumes `modelAttributes`, not families/tags.
+- `ModelHints.families` is removed; provider metadata is the source of concrete model details such as context window.
+- No compatibility aliases or deprecated wrappers are kept in code.
 
 ### Consequences
 
-- **Positive:** Non-technical users can pick a "Family Pack" instead of configuring 40 individual agent-model mappings. Skill-agent matching is automatic within a family.
-- **Negative:** Family boundaries must be well-defined. An agent that spans multiple domains (e.g., `creative-thinker` doing both coding and planning) needs clear family assignment rules.
+- **Positive:** One runtime taxonomy replaces four overlapping ones. Routing, registry search, picker scoring, and handoff policy now speak the same structural language.
+- **Negative:** Historical ADR references to families are now legacy and must be interpreted through `primary` / `specialization` / `modelAttributes`.

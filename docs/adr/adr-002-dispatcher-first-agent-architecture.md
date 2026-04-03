@@ -13,7 +13,7 @@ DiriCode needs a multi-agent orchestration model. The dispatcher pattern (thin o
 
 ### Decision
 
-**Dispatcher-first architecture** with specialized agents organized into families.
+**Dispatcher-first architecture** with specialized agents organized by primary domain and capability metadata.
 
 Core principles:
 - Dispatcher is the orchestrating agent with minimal own context — it routes, delegates, and monitors.

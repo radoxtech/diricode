@@ -11,7 +11,7 @@
 | [002](adr-002-dispatcher-first-agent-architecture.md) | Dispatcher-First Agent Architecture | MVP | Architecture |
 | [003](adr-003-unlimited-nesting-loop-detector.md) | Unlimited Nesting with Loop Detector | MVP | Architecture |
 | [004](adr-004-agent-roster-3-tiers.md) | 40-Agent Roster with 3 Tiers | MVP | Agent System |
-| [005](adr-005-families-model-agent-skill-grouping.md) | Families: Model-Agent-Skill Grouping | MVP | Agent System |
+| [005](adr-005-families-model-agent-skill-grouping.md) | Unified Capability Taxonomy (supersedes family grouping) | MVP | Agent System |
 | [006](adr-006-agent-config-4-fallback-types.md) | AgentConfig with 4 Fallback Types | MVP | Agent System |
 | [007](adr-007-hybrid-agent-definition-agentskills.md) | Hybrid Agent Definition + agentskills.io | MVP | Agent System |
 | [008](adr-008-skill-system-agentskills-io.md) | Skill System (agentskills.io SKILL.md) | MVP | Agent System |
