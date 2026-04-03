@@ -37,17 +37,12 @@ export function createPlannerQuickAgent(_config: PlannerQuickConfig): Agent {
       "Fast operational plans for straightforward tasks. Uses lightweight repo read/search " +
       "and context readers to produce a compact ordered plan with success criteria. " +
       "Designed for medium-complexity tasks that don't require deep reasoning.",
-    tier: "medium",
-    category: "strategy",
-    capabilities: [
-      "repository-mapping",
-      "task-decomposition",
-      "lightweight-search",
-      "context-reading",
-      "plan-generation",
-      "success-criteria-definition",
-    ],
-    tags: ["planning", "quick", "operational-plan", "strategy"],
+    allowedTiers: ["medium"],
+    capabilities: {
+      primary: "planning",
+      specialization: ["task-decomposition", "operational-plan"],
+      modelAttributes: ["reasoning", "speed"],
+    },
   };
 
   return {
