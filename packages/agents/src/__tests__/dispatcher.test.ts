@@ -9,10 +9,12 @@ function makeAgent(name: string, keywords: string[] = []): Agent {
     metadata: {
       name,
       description: `${name} agent ${keywords.join(" ")}`,
-      tier: "medium",
-      category: "code",
-      capabilities: keywords,
-      tags: [],
+      allowedTiers: ["medium"],
+      capabilities: {
+        primary: "coding",
+        specialization: keywords,
+        modelAttributes: ["reasoning"],
+      },
     },
     execute: (_input: string, _context: AgentContext): Promise<AgentResult> =>
       Promise.resolve({ success: true, output: `${name}:done`, toolCalls: 2, tokensUsed: 100 }),
@@ -41,13 +43,13 @@ describe("createDispatcher", () => {
     const dispatcher = createDispatcher({ registry, maxDelegationDepth: 5 });
 
     expect(dispatcher.metadata.name).toBe("dispatcher");
-    expect(dispatcher.metadata.tier).toBe("heavy");
-    expect(dispatcher.metadata.category).toBe("command");
-    expect(dispatcher.metadata.capabilities).toContain("intent-classification");
-    expect(dispatcher.metadata.capabilities).toContain("task-routing");
-    expect(dispatcher.metadata.capabilities).toContain("agent-delegation");
-    expect(dispatcher.metadata.capabilities).toContain("progress-monitoring");
-    expect(dispatcher.metadata.tags).toContain("orchestration");
+    expect(dispatcher.metadata.allowedTiers).toContain("heavy");
+    expect(dispatcher.metadata.capabilities.primary).toBe("coding");
+    expect(dispatcher.metadata.capabilities.specialization).toContain("orchestration");
+    expect(dispatcher.metadata.capabilities.specialization).toContain("routing");
+    expect(dispatcher.metadata.capabilities.specialization).toContain("delegation");
+    expect(dispatcher.metadata.capabilities.modelAttributes).toContain("reasoning");
+    expect(dispatcher.metadata.capabilities.modelAttributes).toContain("agentic");
   });
 
   describe("execute", () => {
@@ -77,7 +79,7 @@ describe("createDispatcher", () => {
         "dispatcher.intent-classified",
         expect.objectContaining({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          intent: expect.objectContaining({ category: expect.any(String) }),
+          intent: expect.objectContaining({ primary: expect.any(String) }),
         }),
       );
     });
@@ -145,10 +147,12 @@ describe("createDispatcher", () => {
         metadata: {
           name: "coder",
           description: "write code",
-          tier: "medium",
-          category: "code",
-          capabilities: ["write"],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: ["write"],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: (_input: string, childCtx: AgentContext): Promise<AgentResult> => {
           capturedContext = childCtx;
@@ -221,18 +225,18 @@ describe("createDispatcher", () => {
 
   describe("intent classification", () => {
     const keywordCases: [string, string][] = [
-      ["write a function", "code"],
-      ["implement the feature", "code"],
-      ["create a new module", "code"],
-      ["add error handling", "code"],
-      ["build the project", "code"],
-      ["review my PR", "quality"],
-      ["check for bugs", "quality"],
-      ["verify the output", "quality"],
-      ["test the logic", "quality"],
-      ["plan the architecture", "strategy"],
-      ["design the system", "strategy"],
-      ["architect the solution", "strategy"],
+      ["write a function", "coding"],
+      ["implement the feature", "coding"],
+      ["create a new module", "coding"],
+      ["add error handling", "coding"],
+      ["build the project", "coding"],
+      ["review my PR", "review"],
+      ["check for bugs", "review"],
+      ["verify the output", "review"],
+      ["test the logic", "review"],
+      ["plan the architecture", "planning"],
+      ["design the system", "planning"],
+      ["architect the solution", "planning"],
       ["find the bug", "research"],
       ["search for examples", "research"],
       ["explore the codebase", "research"],
@@ -250,10 +254,12 @@ describe("createDispatcher", () => {
           metadata: {
             name: "target",
             description: input,
-            tier: "medium",
-            category: expectedCategory as Agent["metadata"]["category"],
-            capabilities: input.split(" "),
-            tags: [],
+            allowedTiers: ["medium"],
+            capabilities: {
+              primary: expectedCategory as Agent["metadata"]["capabilities"]["primary"],
+              specialization: input.split(" "),
+              modelAttributes: ["reasoning"],
+            },
           },
           execute: () =>
             Promise.resolve({ success: true, output: "done", toolCalls: 0, tokensUsed: 0 }),
@@ -267,12 +273,12 @@ describe("createDispatcher", () => {
 
         const classifiedCall = findEmitCall(emit, "dispatcher.intent-classified");
         expect(classifiedCall).toBeDefined();
-        const payload = classifiedCall?.[1] as { intent: { category: string } } | undefined;
-        expect(payload?.intent.category).toBe(expectedCategory);
+        const payload = classifiedCall?.[1] as { intent: { primary: string } } | undefined;
+        expect(payload?.intent.primary).toBe(expectedCategory);
       });
     }
 
-    it("defaults to 'code' category for unrecognized input", async () => {
+    it("defaults to 'coding' domain for unrecognized input", async () => {
       const registry = new AgentRegistry();
       registry.register(makeAgent("coder", ["xyzrandom", "stuff"]));
       const dispatcher = createDispatcher({ registry, maxDelegationDepth: 5 });
@@ -286,8 +292,8 @@ describe("createDispatcher", () => {
 
       const classifiedCall = findEmitCall(emit, "dispatcher.intent-classified");
       if (classifiedCall) {
-        const payload = classifiedCall[1] as { intent: { category: string } };
-        expect(payload.intent.category).toBe("code");
+        const payload = classifiedCall[1] as { intent: { primary: string } };
+        expect(payload.intent.primary).toBe("coding");
       }
     });
   });

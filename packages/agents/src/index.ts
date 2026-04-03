@@ -53,11 +53,14 @@ export {
 } from "@diricode/core";
 export type {
   Agent,
-  AgentCategory,
+  AgentDomain,
+  AgentCapabilities,
   AgentContext,
   AgentMetadata,
   AgentResult,
   AgentTier,
+  ModelAttribute,
+  SpeedPreference,
   ContextHandoffEnvelope,
   ContextInheritanceMode,
   ContextInheritanceRules,

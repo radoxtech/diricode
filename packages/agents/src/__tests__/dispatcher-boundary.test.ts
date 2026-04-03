@@ -62,10 +62,12 @@ describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
       metadata: {
         name: "code_agent",
         description: "Handles code tasks",
-        tier: "heavy",
-        category: "code",
-        capabilities: [],
-        tags: [],
+        allowedTiers: ["heavy"],
+        capabilities: {
+          primary: "coding",
+          specialization: [],
+          modelAttributes: ["reasoning", "agentic"],
+        },
       },
       execute: () => {
         return Promise.resolve({ success: true, output: "done", toolCalls: 0, tokensUsed: 0 });

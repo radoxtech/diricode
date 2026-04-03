@@ -1,9 +1,10 @@
 import type {
   Agent,
-  AgentCategory,
   AgentContext,
+  AgentDomain,
   AgentMetadata,
   AgentResult,
+  AgentTier,
   ContextInheritanceRules,
   ModelConfigResolver,
   ResultPropagationContract,
@@ -22,7 +23,7 @@ import {
   generateTurnId,
   createPolicyEnforcingToolRegistry,
   filterContextForHandoff,
-  createFilterPolicyForCategory,
+  createFilterPolicyForDomain,
   TurnEnvelope,
 } from "@diricode/core";
 
@@ -40,18 +41,54 @@ export interface DispatcherConfig {
 }
 
 interface ClassifiedIntent {
-  category: AgentCategory;
+  primary: AgentDomain;
   query: string;
   confidence: number;
 }
 
-const KEYWORD_MAP: readonly (readonly [readonly string[], AgentCategory])[] = [
-  [["write", "implement", "create", "add", "build"], "code"],
-  [["review", "check", "verify", "test"], "quality"],
-  [["plan", "design", "architect"], "strategy"],
+const KEYWORD_MAP: readonly (readonly [readonly string[], AgentDomain])[] = [
+  [["write", "implement", "create", "add", "build"], "coding"],
+  [["review", "check", "verify", "test"], "review"],
+  [["plan", "design", "architect"], "planning"],
   [["find", "search", "explore", "look"], "research"],
   [["commit", "deploy", "format", "lint"], "utility"],
 ] as const;
+
+function selectTierForTask(input: string, allowedTiers: readonly AgentTier[]): AgentTier {
+  const lower = input.toLowerCase();
+  let preferred: AgentTier = "light";
+
+  if (
+    lower.includes("architect") ||
+    lower.includes("refactor") ||
+    lower.includes("complex") ||
+    lower.includes("multi-file") ||
+    lower.length > 180
+  ) {
+    preferred = "heavy";
+  } else if (
+    lower.includes("implement") ||
+    lower.includes("debug") ||
+    lower.includes("investigate") ||
+    lower.includes("research") ||
+    lower.includes("plan") ||
+    lower.length > 80
+  ) {
+    preferred = "medium";
+  }
+
+  const fallbackOrder: Record<AgentTier, readonly AgentTier[]> = {
+    heavy: ["heavy", "medium", "light"],
+    medium: ["medium", "light", "heavy"],
+    light: ["light", "medium", "heavy"],
+  };
+
+  return (
+    fallbackOrder[preferred].find((tier) => allowedTiers.includes(tier)) ??
+    allowedTiers[0] ??
+    "medium"
+  );
+}
 
 function classifyIntent(input: string): ClassifiedIntent {
   const lower = input.toLowerCase();
@@ -60,7 +97,7 @@ function classifyIntent(input: string): ClassifiedIntent {
   for (const [keywords, category] of KEYWORD_MAP) {
     for (const keyword of keywords) {
       if (words.includes(keyword)) {
-        return { category, query: input, confidence: 1.0 };
+        return { primary: category, query: input, confidence: 1.0 };
       }
     }
   }
@@ -68,12 +105,12 @@ function classifyIntent(input: string): ClassifiedIntent {
   for (const [keywords, category] of KEYWORD_MAP) {
     for (const keyword of keywords) {
       if (lower.includes(keyword)) {
-        return { category, query: input, confidence: 0.5 };
+        return { primary: category, query: input, confidence: 0.5 };
       }
     }
   }
 
-  return { category: "code", query: input, confidence: 0.5 };
+  return { primary: "coding", query: input, confidence: 0.5 };
 }
 
 export interface DispatcherDelegationOptions {
@@ -176,8 +213,8 @@ async function executeSwarm(
           executionId: envelope.childExecutionId,
           agentName: selected.agent.name,
           parentExecutionId: executionId,
-          tier: agent.metadata.tier,
-          category: agent.metadata.category,
+          allowedTiers: agent.metadata.allowedTiers,
+          primary: agent.metadata.capabilities.primary,
         });
 
         const childContext: AgentContext = {
@@ -264,18 +301,12 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
   const metadata: AgentMetadata = {
     name: "dispatcher",
     description: "Central coordinator: interprets user intent and delegates to specialist agents",
-    tier: "heavy",
-    category: "command",
-    capabilities: [
-      "intent-classification",
-      "task-routing",
-      "agent-delegation",
-      "progress-monitoring",
-      "parallel-swarm-execution",
-      "dag-scheduling",
-      "sandbox-execution",
-    ],
-    tags: ["orchestration"],
+    allowedTiers: ["heavy"],
+    capabilities: {
+      primary: "coding",
+      specialization: ["orchestration", "routing", "delegation"],
+      modelAttributes: ["reasoning", "agentic"],
+    },
     toolPolicy: { allowedTools: DISPATCHER_CONTRACT.allowedTools, silentFilter: false },
   };
 
@@ -314,7 +345,7 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
     if (candidates.length === 0) {
       throw new AgentError(
         "NO_AGENT_FOUND",
-        `No suitable agent found for intent: ${intent.category}`,
+        `No suitable agent found for intent: ${intent.primary}`,
       );
     }
 
@@ -340,29 +371,31 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
     });
 
     const agent = config.registry.get(selected.agent.name);
-    const modelConfig = modelTierResolver.resolve(agent.metadata);
+    const requestedTier = selectTierForTask(input, agent.metadata.allowedTiers);
+    const modelConfig = modelTierResolver.resolve(agent.metadata, requestedTier);
 
     context.emit("dispatcher.model-resolved", {
       agent: selected.agent.name,
+      tier: requestedTier,
       model: modelConfig.model,
       maxTokens: modelConfig.maxTokens,
       temperature: modelConfig.temperature,
       executionId,
     });
 
-    const filterPolicy = createFilterPolicyForCategory(agent.metadata.category);
+    const filterPolicy = createFilterPolicyForDomain(agent.metadata.capabilities.primary);
     const { filteredContext, metadata: filterMetadata } = filterContextForHandoff(
       context,
       DEFAULT_INHERITANCE_RULES,
       filterPolicy,
-      agent.metadata.category,
+      agent.metadata.capabilities.primary,
       agent.metadata.toolPolicy,
     );
 
     context.emit("handoff.filtered", {
       handoffId: undefined,
       childAgent: selected.agent.name,
-      category: agent.metadata.category,
+      primary: agent.metadata.capabilities.primary,
       filteredCategories: filterMetadata.filteredCategories,
       filteredCount: filterMetadata.filteredCount,
       estimatedTokensSaved: filterMetadata.estimatedTokensSaved,
@@ -399,8 +432,8 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
       executionId: envelope.childExecutionId,
       agentName: selected.agent.name,
       parentExecutionId: executionId,
-      tier: agent.metadata.tier,
-      category: agent.metadata.category,
+      allowedTiers: agent.metadata.allowedTiers,
+      primary: agent.metadata.capabilities.primary,
     });
 
     const childContext: AgentContext = {
@@ -432,6 +465,7 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
     const sandboxContext: SandboxContext = {
       ...childContext,
       sandboxConfig: sandboxConfig,
+      requestedTier,
     };
 
     let sandboxResult: SandboxExecutionResult | undefined;
