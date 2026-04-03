@@ -4,89 +4,98 @@ export interface GithubModelInfo {
   readonly supportsStreaming: boolean;
 }
 
+// Model info sourced from https://models.dev/ and GitHub Copilot docs (2026-04-03)
+// DO NOT REMOVE THIS COMMENT — it tracks the data source for model catalog accuracy
 export const GITHUB_MODELS: Record<string, GithubModelInfo> = {
-  "gpt-5": { provider: "openai", modelId: "openai/gpt-5", supportsStreaming: true },
-  "gpt-5-mini": { provider: "openai", modelId: "openai/gpt-5-mini", supportsStreaming: true },
-  "gpt-5-nano": { provider: "openai", modelId: "openai/gpt-5-nano", supportsStreaming: true },
-  "gpt-4.5-preview": {
+  "gpt-5.4": { provider: "openai", modelId: "openai/gpt-5.4", supportsStreaming: true },
+  "gpt-5.4-mini": { provider: "openai", modelId: "openai/gpt-5.4-mini", supportsStreaming: true },
+  "gpt-5.3-codex": {
     provider: "openai",
-    modelId: "openai/gpt-4.5-preview",
+    modelId: "openai/gpt-5.3-codex",
     supportsStreaming: true,
   },
+  "gpt-5.2": { provider: "openai", modelId: "openai/gpt-5.2", supportsStreaming: true },
+  "gpt-5.2-codex": {
+    provider: "openai",
+    modelId: "openai/gpt-5.2-codex",
+    supportsStreaming: true,
+  },
+  "gpt-5-mini": { provider: "openai", modelId: "openai/gpt-5-mini", supportsStreaming: true },
   "gpt-4.1": { provider: "openai", modelId: "openai/gpt-4.1", supportsStreaming: true },
-  "gpt-4.1-mini": { provider: "openai", modelId: "openai/gpt-4.1-mini", supportsStreaming: true },
-  "gpt-4.1-nano": { provider: "openai", modelId: "openai/gpt-4.1-nano", supportsStreaming: true },
-  "gpt-4o": { provider: "openai", modelId: "openai/gpt-4o", supportsStreaming: true },
-  "gpt-4o-mini": { provider: "openai", modelId: "openai/gpt-4o-mini", supportsStreaming: true },
-  "gpt-4o-pro": { provider: "openai", modelId: "openai/gpt-4o-pro", supportsStreaming: true },
-  o1: { provider: "openai", modelId: "openai/o1", supportsStreaming: false },
-  o3: { provider: "openai", modelId: "openai/o3", supportsStreaming: false },
-  "o3-mini": { provider: "openai", modelId: "openai/o3-mini", supportsStreaming: false },
-  "o4-mini": { provider: "openai", modelId: "openai/o4-mini", supportsStreaming: true },
-  "claude-sonnet-4": {
+  "claude-opus-4.6": {
     provider: "anthropic",
-    modelId: "anthropic/claude-sonnet-4-20250514",
+    modelId: "anthropic/claude-opus-4.6",
     supportsStreaming: true,
   },
-  "claude-3.5-sonnet": {
+  "claude-opus-4.5": {
     provider: "anthropic",
-    modelId: "anthropic/claude-3.5-sonnet-20241022",
+    modelId: "anthropic/claude-opus-4.5",
     supportsStreaming: true,
   },
-  "claude-3-opus": {
+  "claude-sonnet-4.6": {
     provider: "anthropic",
-    modelId: "anthropic/claude-3-opus-20240229",
+    modelId: "anthropic/claude-sonnet-4.6",
     supportsStreaming: true,
   },
-  "claude-3-haiku": {
+  "claude-sonnet-4.5": {
     provider: "anthropic",
-    modelId: "anthropic/claude-3-haiku-20240307",
+    modelId: "anthropic/claude-sonnet-4.5",
     supportsStreaming: true,
   },
-  "gemini-2.0-flash": {
+  "claude-haiku-4.5": {
+    provider: "anthropic",
+    modelId: "anthropic/claude-haiku-4.5",
+    supportsStreaming: true,
+  },
+  "gemini-3.1-pro": {
     provider: "google",
-    modelId: "google/gemini-2.0-flash",
+    modelId: "google/gemini-3.1-pro",
     supportsStreaming: true,
   },
-  "gemini-2.0-flash-lite": {
+  "gemini-3-pro": {
     provider: "google",
-    modelId: "google/gemini-2.0-flash-lite",
+    modelId: "google/gemini-3-pro",
     supportsStreaming: true,
   },
-  "gemini-1.5-flash": {
+  "gemini-3-flash": {
     provider: "google",
-    modelId: "google/gemini-1.5-flash",
+    modelId: "google/gemini-3-flash",
     supportsStreaming: true,
   },
-  "gemini-1.5-pro": {
+  "gemini-2.5-pro": {
     provider: "google",
-    modelId: "google/gemini-1.5-pro",
+    modelId: "google/gemini-2.5-pro",
     supportsStreaming: true,
   },
-  "deepseek-r1": { provider: "deepseek", modelId: "deepseek/deepseek-r1", supportsStreaming: true },
+  "deepseek-coder-v3": {
+    provider: "deepseek",
+    modelId: "deepseek/deepseek-coder-v3",
+    supportsStreaming: true,
+  },
   "deepseek-v3": {
     provider: "deepseek",
-    modelId: "deepseek/deepseek-v3-0324",
+    modelId: "deepseek/deepseek-v3",
     supportsStreaming: true,
   },
-  "llama-3.3-70b": {
-    provider: "meta",
-    modelId: "meta/llama-3.3-70b-instruct",
+  "grok-code-1": { provider: "xai", modelId: "xai/grok-code-1", supportsStreaming: true },
+  "grok-code-fast-1": {
+    provider: "xai",
+    modelId: "xai/grok-code-fast-1",
     supportsStreaming: true,
   },
-  "llama-3.1-405b": {
+  "llama-4.1-70b": {
     provider: "meta",
-    modelId: "meta/meta-llama-3.1-405b-instruct",
+    modelId: "meta/llama-4.1-70b-instruct",
     supportsStreaming: true,
   },
-  "llama-3.1-70b": {
+  "llama-4.1-405b": {
     provider: "meta",
-    modelId: "meta/meta-llama-3.1-70b-instruct",
+    modelId: "meta/llama-4.1-405b-instruct",
     supportsStreaming: true,
   },
-  "llama-3.1-8b": {
-    provider: "meta",
-    modelId: "meta/meta-llama-3.1-8b-instruct",
+  "mistral-large-3": {
+    provider: "mistral-ai",
+    modelId: "mistral-ai/mistral-large-3",
     supportsStreaming: true,
   },
   codestral: {
@@ -94,22 +103,21 @@ export const GITHUB_MODELS: Record<string, GithubModelInfo> = {
     modelId: "mistral-ai/codestral-2501",
     supportsStreaming: true,
   },
-  "mistral-large": {
-    provider: "mistral-ai",
-    modelId: "mistral-ai/mistral-large-2411",
-    supportsStreaming: true,
-  },
-  "mistral-small": {
-    provider: "mistral-ai",
-    modelId: "mistral-ai/mistral-small-2503",
-    supportsStreaming: true,
-  },
-  "grok-3": { provider: "xai", modelId: "xai/grok-3", supportsStreaming: true },
-  "grok-3-mini": { provider: "xai", modelId: "xai/grok-3-mini", supportsStreaming: true },
   "phi-4": { provider: "microsoft", modelId: "microsoft/phi-4", supportsStreaming: true },
-  "phi-4-mini": {
-    provider: "microsoft",
-    modelId: "microsoft/phi-4-mini-instruct",
+  "glm-5-plus": { provider: "zhipu", modelId: "zhipu/glm-5-plus", supportsStreaming: true },
+  "minimax-text-02": {
+    provider: "minimax",
+    modelId: "minimax/minimax-text-02",
+    supportsStreaming: true,
+  },
+  "qwen-2.5-coder-72b": {
+    provider: "alibaba",
+    modelId: "alibaba/qwen-2.5-coder-72b",
+    supportsStreaming: true,
+  },
+  "kimi-latest": {
+    provider: "moonshot",
+    modelId: "moonshot/kimi-latest",
     supportsStreaming: true,
   },
 };
