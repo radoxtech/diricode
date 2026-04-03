@@ -13,9 +13,9 @@ The agent roster was designed through analysis of 8 reference tools (Aider, Clin
 
 ### Decision
 
-**40 agents** organized into **6 categories** and **3 model tiers**.
+**40 agents** organized into **6 primary domains** and **3 model tiers**.
 
-#### Categories and Agents
+#### Primary Domains and Agents
 
 **Command & Control (2)**
 
@@ -112,11 +112,32 @@ Phase 1 ships 8 agents — the minimum viable set for the Interview → Plan →
 
 The full 40-agent roster remains the vision. Additional agents are added as the pipeline matures and new capabilities (swarm coordination, A/B testing) require them.
 
-#### Tags (Individual, Not Combined)
+#### Runtime Capability Metadata (2026-04-03)
 
-Tags: `orchestration`, `planning`, `coding`, `quality`, `research`, `creative`, `utility`.
+The roster remains valid, but runtime metadata no longer uses `AgentCategory`, one-off tags, or model families.
 
-Each agent has exactly ONE tag.
+Implemented runtime shape:
+
+```typescript
+interface AgentCapabilities {
+  primary: "coding" | "review" | "research" | "planning" | "devops" | "utility";
+  specialization: readonly string[];
+  modelAttributes: readonly (
+    | "reasoning"
+    | "speed"
+    | "agentic"
+    | "creative"
+    | "ui-ux"
+    | "bulk"
+    | "quality"
+  )[];
+}
+```
+
+- `primary` replaces `AgentCategory` for routing and handoff policy.
+- `specialization` stays free-form for subdomain matching (`backend`, `frontend`, `nodejs`, `python`, `react`, `angular`, etc.).
+- `modelAttributes` are consumed by the picker for scoring.
+- Agents declare `allowedTiers`; the orchestrator selects the effective tier per task.
 
 ### Context Window Tiers
 
@@ -139,5 +160,5 @@ See: [ADR-055 Addendum: Context Window Tiers](./adr-055-addendum-context-tiers.m
 
 ### Consequences
 
-- **Positive:** Fine-grained cost control. Each agent gets exactly the model tier it needs. Clear categorization simplifies family assignment.
-- **Negative:** 40 agents require careful prompt engineering. Model assignment per agent adds configuration complexity (mitigated by Family Packs — ADR-005).
+- **Positive:** Fine-grained cost control. Each agent gets the tier it needs at runtime, while capability metadata stays consistent across routing and picker layers.
+- **Negative:** 40 agents require careful prompt engineering. Keeping specialization strings useful without recreating overlapping taxonomies requires discipline.

@@ -26,7 +26,7 @@ import { createHandoffEnvelope } from "./protocol.js";
 import {
   DEFAULT_INHERITANCE_RULES,
   createPolicyEnforcingToolRegistry,
-  createFilterPolicyForCategory,
+  createFilterPolicyForDomain,
   filterContextForHandoff,
 } from "@diricode/core";
 
@@ -48,33 +48,6 @@ export function createSequentialTaskExecutor(options: SequentialExecutorOptions)
 
   function emit(context: AgentContext, event: unknown): void {
     context.emit((event as { type: string }).type, event);
-  }
-
-  function classifyIntent(input: string): { category: string; confidence: number } {
-    const lower = input.toLowerCase();
-    const words = lower.split(/\s+/);
-    const KEYWORD_MAP: readonly (readonly [readonly string[], string])[] = [
-      [["write", "implement", "create", "add", "build"], "code"],
-      [["review", "check", "verify", "test"], "quality"],
-      [["plan", "design", "architect"], "strategy"],
-      [["find", "search", "explore", "look"], "research"],
-      [["commit", "deploy", "format", "lint"], "utility"],
-    ];
-    for (const [keywords, category] of KEYWORD_MAP) {
-      for (const keyword of keywords) {
-        if (words.includes(keyword)) {
-          return { category, confidence: 1.0 };
-        }
-      }
-    }
-    for (const [keywords, category] of KEYWORD_MAP) {
-      for (const keyword of keywords) {
-        if (lower.includes(keyword)) {
-          return { category, confidence: 0.5 };
-        }
-      }
-    }
-    return { category: "code", confidence: 0.5 };
   }
 
   async function executeTask(
@@ -100,7 +73,6 @@ export function createSequentialTaskExecutor(options: SequentialExecutorOptions)
       ),
     );
 
-    const _intent = classifyIntent(task.description);
     const candidates = options.registry.search(task.description);
 
     if (candidates.length === 0) {
@@ -111,20 +83,12 @@ export function createSequentialTaskExecutor(options: SequentialExecutorOptions)
     const selected = candidates[0]!;
     const agent = options.registry.get(selected.agent.name);
 
-    const filterPolicy = createFilterPolicyForCategory(
-      agent.metadata.category as
-        | "code"
-        | "quality"
-        | "strategy"
-        | "research"
-        | "utility"
-        | "command",
-    );
+    const filterPolicy = createFilterPolicyForDomain(agent.metadata.capabilities.primary);
     const { filteredContext } = filterContextForHandoff(
       context,
       DEFAULT_INHERITANCE_RULES,
       filterPolicy,
-      agent.metadata.category,
+      agent.metadata.capabilities.primary,
       agent.metadata.toolPolicy,
     );
 

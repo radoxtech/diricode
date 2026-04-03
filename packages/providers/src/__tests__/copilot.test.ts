@@ -67,8 +67,8 @@ describe("CopilotProvider", () => {
 
     it("isKnownModel returns true for known models", () => {
       expect(isKnownModel("gpt-5-mini")).toBe(true);
-      expect(isKnownModel("claude-3.5-sonnet")).toBe(true);
-      expect(isKnownModel("grok-3")).toBe(true);
+      expect(isKnownModel("claude-sonnet-4.6")).toBe(true);
+      expect(isKnownModel("grok-code-1")).toBe(true);
     });
 
     it("isKnownModel returns false for unknown models", () => {

@@ -1,5 +1,6 @@
 import type {
   AgentMetadata,
+  AgentTier,
   BuiltPrompt,
   PromptBudget,
   ContextInjection,
@@ -54,6 +55,31 @@ export class PromptBuilder {
     this.budget = config.budget ?? DEFAULT_BUDGET;
   }
 
+  private getEffectiveTier(): AgentTier {
+    if (this.modelHints?.tier !== undefined) {
+      return this.modelHints.tier;
+    }
+
+    const priority: readonly AgentTier[] = ["heavy", "medium", "light"];
+    return (
+      priority.find((tier) => this.config.metadata.allowedTiers.includes(tier)) ??
+      this.config.metadata.allowedTiers[0] ??
+      "medium"
+    );
+  }
+
+  private getRenderedCapabilities(): readonly string[] {
+    if (this.capabilities.length > 0) {
+      return this.capabilities;
+    }
+
+    return [
+      this.config.metadata.capabilities.primary,
+      ...this.config.metadata.capabilities.specialization,
+      ...this.config.metadata.capabilities.modelAttributes,
+    ];
+  }
+
   injectRepoMap(repoMap: RepoMap): this {
     this.repoMap = repoMap;
     return this;
@@ -103,10 +129,11 @@ export class PromptBuilder {
     let systemTokenEstimate: number;
 
     if (useCache && this.promptCache) {
+      const effectiveTier = this.getEffectiveTier();
       const cached = this.promptCache.get(
         this.config.metadata.name,
         this.config.workspaceRoot ?? "",
-        this.config.metadata.tier,
+        effectiveTier,
       );
 
       if (cached) {
@@ -119,7 +146,7 @@ export class PromptBuilder {
         this.promptCache.set(
           this.config.metadata.name,
           this.config.workspaceRoot ?? "",
-          this.config.metadata.tier,
+          effectiveTier,
           { systemPrompt, tokenEstimate: systemTokenEstimate },
         );
       }
@@ -161,7 +188,7 @@ export class PromptBuilder {
     const vars: Record<string, string> = {
       agentName: this.config.metadata.name || "",
       agentDescription: this.config.metadata.description || "",
-      capabilities: this.capabilities.join(", "),
+      capabilities: this.getRenderedCapabilities().join(", "),
       tools: this.tools.map((t) => t.name).join(", "),
       workspaceRoot: this.config.workspaceRoot ?? "",
       ...this.customVars,

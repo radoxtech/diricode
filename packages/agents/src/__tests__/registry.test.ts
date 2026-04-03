@@ -1,21 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
 import { AgentAlreadyRegisteredError, AgentNotFoundError, AgentRegistry } from "../index.js";
-import type { Agent, AgentContext, AgentResult, AgentTier } from "../index.js";
+import type {
+  Agent,
+  AgentContext,
+  AgentDomain,
+  AgentResult,
+  AgentTier,
+  ModelAttribute,
+} from "../index.js";
 
 function makeAgent(
   name: string,
-  category: Agent["metadata"]["category"] = "code",
-  tier: AgentTier = "medium",
-  tags: string[] = ["test"],
+  primary: AgentDomain = "coding",
+  allowedTiers: readonly AgentTier[] = ["medium"],
+  modelAttributes: readonly ModelAttribute[] = ["reasoning"],
 ): Agent {
   return {
     metadata: {
       name,
       description: `${name} agent`,
-      tier,
-      category,
-      capabilities: [name, "test"],
-      tags,
+      allowedTiers,
+      capabilities: {
+        primary,
+        specialization: [name, "test"],
+        modelAttributes,
+      },
     },
     execute: (_input: string, _context: AgentContext): Promise<AgentResult> =>
       Promise.resolve({ success: true, output: `${name}:done`, toolCalls: 0, tokensUsed: 0 }),
@@ -55,15 +64,16 @@ describe("AgentRegistry", () => {
       it("emits agent.registered on successful registration", () => {
         const emit = vi.fn();
         const reg = new AgentRegistry({ emit });
-        const agent = makeAgent("test-agent", "code", "heavy", ["ai", "code"]);
+        const agent = makeAgent("test-agent", "coding", ["heavy"], ["agentic", "reasoning"]);
 
         reg.register(agent);
 
         expect(emit).toHaveBeenCalledWith("agent.registered", {
           agent: "test-agent",
-          tier: "heavy",
-          category: "code",
-          tags: ["ai", "code"],
+          allowedTiers: ["heavy"],
+          primary: "coding",
+          specialization: ["test-agent", "test"],
+          modelAttributes: ["agentic", "reasoning"],
         });
       });
 
@@ -80,7 +90,7 @@ describe("AgentRegistry", () => {
           "agent.rejected",
           expect.objectContaining({
             agent: "duplicate-agent",
-            tier: "medium",
+            allowedTiers: ["medium"],
             reason: "already_registered",
           }),
         );
@@ -127,27 +137,27 @@ describe("AgentRegistry", () => {
       expect(reg.list()).toEqual([]);
     });
 
-    it("returns metadata for all registered agents when no category filter", () => {
+    it("returns metadata for all registered agents when no domain filter", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("coder", "code"));
-      reg.register(makeAgent("reviewer", "quality"));
+      reg.register(makeAgent("coder", "coding"));
+      reg.register(makeAgent("reviewer", "review"));
       expect(reg.list()).toHaveLength(2);
     });
 
-    it("filters by category", () => {
+    it("filters by domain", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("coder", "code"));
-      reg.register(makeAgent("reviewer", "quality"));
-      reg.register(makeAgent("tester", "quality"));
-      const quality = reg.list("quality");
-      expect(quality).toHaveLength(2);
-      expect(quality.every((m) => m.category === "quality")).toBe(true);
+      reg.register(makeAgent("coder", "coding"));
+      reg.register(makeAgent("reviewer", "review"));
+      reg.register(makeAgent("tester", "review"));
+      const review = reg.list("review");
+      expect(review).toHaveLength(2);
+      expect(review.every((m) => m.capabilities.primary === "review")).toBe(true);
     });
 
-    it("returns empty array when no agents match category", () => {
+    it("returns empty array when no agents match domain", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("coder", "code"));
-      expect(reg.list("strategy")).toEqual([]);
+      reg.register(makeAgent("coder", "coding"));
+      expect(reg.list("planning")).toEqual([]);
     });
 
     it("returns metadata only, not full agent objects", () => {
@@ -161,22 +171,22 @@ describe("AgentRegistry", () => {
 
     it("filters by tier constraint", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("light", "code", "light"));
-      reg.register(makeAgent("medium", "code", "medium"));
-      reg.register(makeAgent("heavy", "code", "heavy"));
+      reg.register(makeAgent("light", "coding", ["light"]));
+      reg.register(makeAgent("medium", "coding", ["medium"]));
+      reg.register(makeAgent("heavy", "coding", ["heavy"]));
 
       const maxMedium = reg.list(undefined, { type: "max", value: "medium" });
       expect(maxMedium).toHaveLength(2);
-      expect(maxMedium.map((m) => m.tier).sort()).toEqual(["light", "medium"]);
+      expect(maxMedium.map((m) => m.allowedTiers[0]).sort()).toEqual(["light", "medium"]);
     });
 
-    it("combines category and tier filters", () => {
+    it("combines domain and tier filters", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("heavy-code", "code", "heavy"));
-      reg.register(makeAgent("medium-code", "code", "medium"));
-      reg.register(makeAgent("medium-quality", "quality", "medium"));
+      reg.register(makeAgent("heavy-code", "coding", ["heavy"]));
+      reg.register(makeAgent("medium-code", "coding", ["medium"]));
+      reg.register(makeAgent("medium-review", "review", ["medium"]));
 
-      const result = reg.list("code", { type: "max", value: "medium" });
+      const result = reg.list("coding", { type: "max", value: "medium" });
       expect(result).toHaveLength(1);
       expect(result[0]?.name).toBe("medium-code");
     });
@@ -185,57 +195,57 @@ describe("AgentRegistry", () => {
       const reg = new AgentRegistry({
         defaultTierConstraint: { type: "max", value: "medium" },
       });
-      reg.register(makeAgent("light", "code", "light"));
-      reg.register(makeAgent("medium", "code", "medium"));
-      reg.register(makeAgent("heavy", "code", "heavy"));
+      reg.register(makeAgent("light", "coding", ["light"]));
+      reg.register(makeAgent("medium", "coding", ["medium"]));
+      reg.register(makeAgent("heavy", "coding", ["heavy"]));
 
       const result = reg.list();
       expect(result).toHaveLength(2);
     });
   });
 
-  describe("listByTag", () => {
+  describe("listByModelAttribute", () => {
     it("returns empty array when no agents registered", () => {
       const reg = new AgentRegistry();
-      expect(reg.listByTag("ai")).toEqual([]);
+      expect(reg.listByModelAttribute("agentic")).toEqual([]);
     });
 
-    it("returns agents with matching tag", () => {
+    it("returns agents with matching model attribute", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("agent1", "code", "medium", ["ai", "code"]));
-      reg.register(makeAgent("agent2", "code", "medium", ["code"]));
-      reg.register(makeAgent("agent3", "code", "medium", ["ai", "research"]));
+      reg.register(makeAgent("agent1", "coding", ["medium"], ["agentic"]));
+      reg.register(makeAgent("agent2", "coding", ["medium"], ["reasoning"]));
+      reg.register(makeAgent("agent3", "coding", ["medium"], ["agentic", "quality"]));
 
-      const aiAgents = reg.listByTag("ai");
-      expect(aiAgents).toHaveLength(2);
-      expect(aiAgents.map((m) => m.name).sort()).toEqual(["agent1", "agent3"]);
+      const agenticAgents = reg.listByModelAttribute("agentic");
+      expect(agenticAgents).toHaveLength(2);
+      expect(agenticAgents.map((m) => m.name).sort()).toEqual(["agent1", "agent3"]);
     });
 
-    it("returns empty array when no agents match tag", () => {
+    it("returns empty array when no agents match model attribute", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("agent1", "code", "medium", ["code"]));
-      expect(reg.listByTag("ai")).toEqual([]);
+      reg.register(makeAgent("agent1", "coding", ["medium"], ["reasoning"]));
+      expect(reg.listByModelAttribute("agentic")).toEqual([]);
     });
 
     it("filters by tier constraint", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("light-ai", "code", "light", ["ai"]));
-      reg.register(makeAgent("medium-ai", "code", "medium", ["ai"]));
-      reg.register(makeAgent("heavy-ai", "code", "heavy", ["ai"]));
+      reg.register(makeAgent("light-ai", "coding", ["light"], ["agentic"]));
+      reg.register(makeAgent("medium-ai", "coding", ["medium"], ["agentic"]));
+      reg.register(makeAgent("heavy-ai", "coding", ["heavy"], ["agentic"]));
 
-      const result = reg.listByTag("ai", { type: "max", value: "medium" });
+      const result = reg.listByModelAttribute("agentic", { type: "max", value: "medium" });
       expect(result).toHaveLength(2);
-      expect(result.map((m) => m.tier).sort()).toEqual(["light", "medium"]);
+      expect(result.map((m) => m.allowedTiers[0]).sort()).toEqual(["light", "medium"]);
     });
 
     it("uses default tier constraint when provided", () => {
       const reg = new AgentRegistry({
         defaultTierConstraint: { type: "exact", value: "light" },
       });
-      reg.register(makeAgent("light-ai", "code", "light", ["ai"]));
-      reg.register(makeAgent("medium-ai", "code", "medium", ["ai"]));
+      reg.register(makeAgent("light-ai", "coding", ["light"], ["agentic"]));
+      reg.register(makeAgent("medium-ai", "coding", ["medium"], ["agentic"]));
 
-      const result = reg.listByTag("ai");
+      const result = reg.listByModelAttribute("agentic");
       expect(result).toHaveLength(1);
       expect(result[0]?.name).toBe("light-ai");
     });
@@ -249,28 +259,28 @@ describe("AgentRegistry", () => {
 
     it("returns agents matching exact tier", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("heavy1", "code", "heavy"));
-      reg.register(makeAgent("heavy2", "quality", "heavy"));
-      reg.register(makeAgent("medium1", "code", "medium"));
+      reg.register(makeAgent("heavy1", "coding", ["heavy"]));
+      reg.register(makeAgent("heavy2", "review", ["heavy"]));
+      reg.register(makeAgent("medium1", "coding", ["medium"]));
 
       const heavyAgents = reg.listByTier("heavy");
       expect(heavyAgents).toHaveLength(2);
-      expect(heavyAgents.every((m) => m.tier === "heavy")).toBe(true);
+      expect(heavyAgents.every((m) => m.allowedTiers.includes("heavy"))).toBe(true);
     });
 
     it("returns empty array when no agents match tier", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("medium1", "code", "medium"));
+      reg.register(makeAgent("medium1", "coding", ["medium"]));
       expect(reg.listByTier("heavy")).toEqual([]);
     });
 
     it("returns metadata only, not full agent objects", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("heavy1", "code", "heavy"));
+      reg.register(makeAgent("heavy1", "coding", ["heavy"]));
       const [item] = reg.listByTier("heavy");
       expect(item).toBeDefined();
       expect(item).not.toHaveProperty("execute");
-      expect(item).toHaveProperty("tier", "heavy");
+      expect(item?.allowedTiers).toContain("heavy");
     });
   });
 
@@ -309,10 +319,12 @@ describe("AgentRegistry", () => {
         metadata: {
           name: "specialist",
           description: "does things",
-          tier: "light",
-          category: "utility",
-          capabilities: ["formatting", "linting"],
-          tags: [],
+          allowedTiers: ["light"],
+          capabilities: {
+            primary: "utility",
+            specialization: ["formatting", "linting"],
+            modelAttributes: ["speed"],
+          },
         },
         execute: () => Promise.resolve({ success: true, output: "", toolCalls: 0, tokensUsed: 0 }),
       };
@@ -328,14 +340,16 @@ describe("AgentRegistry", () => {
         metadata: {
           name: "code-master",
           description: "code code code",
-          tier: "heavy",
-          category: "code",
-          capabilities: ["code", "write", "implement"],
-          tags: ["code"],
+          allowedTiers: ["heavy"],
+          capabilities: {
+            primary: "coding",
+            specialization: ["code", "write", "implement"],
+            modelAttributes: ["reasoning", "agentic"],
+          },
         },
         execute: () => Promise.resolve({ success: true, output: "", toolCalls: 0, tokensUsed: 0 }),
       };
-      const lowMatch = makeAgent("other-agent", "quality");
+      const lowMatch = makeAgent("other-agent", "review");
       reg.register(highMatch);
       reg.register(lowMatch);
       const results = reg.search("code write implement");
@@ -351,20 +365,20 @@ describe("AgentRegistry", () => {
 
     it("filters by tier constraint", () => {
       const reg = new AgentRegistry();
-      reg.register(makeAgent("heavy-code", "code", "heavy"));
-      reg.register(makeAgent("medium-code", "code", "medium"));
+      reg.register(makeAgent("heavy-code", "coding", ["heavy"]));
+      reg.register(makeAgent("medium-code", "coding", ["medium"]));
 
       const results = reg.search("code", { type: "max", value: "medium" });
       expect(results).toHaveLength(1);
-      expect(results[0]?.agent.tier).toBe("medium");
+      expect(results[0]?.agent.allowedTiers).toContain("medium");
     });
 
     it("uses default tier constraint when provided", () => {
       const reg = new AgentRegistry({
         defaultTierConstraint: { type: "exact", value: "light" },
       });
-      reg.register(makeAgent("light-code", "code", "light"));
-      reg.register(makeAgent("heavy-code", "code", "heavy"));
+      reg.register(makeAgent("light-code", "coding", ["light"]));
+      reg.register(makeAgent("heavy-code", "coding", ["heavy"]));
 
       const results = reg.search("code");
       expect(results).toHaveLength(1);

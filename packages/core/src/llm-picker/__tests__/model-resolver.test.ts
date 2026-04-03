@@ -9,8 +9,7 @@ import {
   FallbackTypeSchema,
   ModelCandidateSchema,
   ModelDimensionsSchema,
-  ModelFamilySchema,
-  ModelTagSchema,
+  ModelAttributeSchema,
   ModelTierSchema,
   RouterClassificationSchema,
   SelectedModelSchema,
@@ -33,8 +32,7 @@ import type {
   CascadeTier,
   DecisionRequest,
   FallbackType,
-  ModelFamily,
-  ModelTag,
+  ModelAttribute,
   ModelTier,
 } from "../types.js";
 const validRequest = (): DecisionRequest => ({
@@ -43,8 +41,7 @@ const validRequest = (): DecisionRequest => ({
   task: { type: "implement-feature", description: "Add dark mode" },
   modelDimensions: {
     tier: "heavy",
-    family: "coding",
-    tags: ["coding"],
+    modelAttributes: ["reasoning", "agentic"],
     fallbackType: null,
   },
 });
@@ -108,51 +105,29 @@ describe("ModelTierSchema", () => {
   });
 });
 
-describe("ModelFamilySchema", () => {
-  it("accepts all valid families", () => {
-    const families: ModelFamily[] = ["coding", "reasoning", "creative"];
-    for (const f of families) {
-      expect(ModelFamilySchema.parse(f)).toBe(f);
+describe("ModelAttributeSchema", () => {
+  it("accepts all valid model attributes", () => {
+    const modelAttributes: ModelAttribute[] = [
+      "reasoning",
+      "speed",
+      "agentic",
+      "creative",
+      "ui-ux",
+      "bulk",
+      "quality",
+    ];
+    for (const attribute of modelAttributes) {
+      expect(ModelAttributeSchema.parse(attribute)).toBe(attribute);
     }
   });
 
-  it("rejects invalid family", () => {
-    expect(() => ModelFamilySchema.parse("ui-ux")).toThrow();
-    expect(() => ModelFamilySchema.parse("")).toThrow();
+  it("rejects invalid model attribute", () => {
+    expect(() => ModelAttributeSchema.parse("coding")).toThrow();
+    expect(() => ModelAttributeSchema.parse("")).toThrow();
   });
 
   it("covers exhaustive union", () => {
-    const allFamilies = ModelFamilySchema.options;
-    expect(allFamilies).toHaveLength(3);
-    expect(allFamilies).toContain("coding");
-    expect(allFamilies).toContain("reasoning");
-    expect(allFamilies).toContain("creative");
-  });
-});
-
-describe("ModelTagSchema", () => {
-  it("accepts all valid tags", () => {
-    const tags: ModelTag[] = [
-      "orchestration",
-      "planning",
-      "coding",
-      "quality",
-      "research",
-      "creative",
-      "utility",
-    ];
-    for (const tag of tags) {
-      expect(ModelTagSchema.parse(tag)).toBe(tag);
-    }
-  });
-
-  it("rejects invalid tag", () => {
-    expect(() => ModelTagSchema.parse("unknown")).toThrow();
-    expect(() => ModelTagSchema.parse("")).toThrow();
-  });
-
-  it("covers exhaustive union of 7 tags", () => {
-    expect(ModelTagSchema.options).toHaveLength(7);
+    expect(ModelAttributeSchema.options).toHaveLength(7);
   });
 });
 
@@ -178,21 +153,18 @@ describe("ModelDimensionsSchema", () => {
   it("parses valid dimensions", () => {
     const result = ModelDimensionsSchema.parse({
       tier: "medium",
-      family: "reasoning",
-      tags: ["planning"],
+      modelAttributes: ["reasoning"],
       fallbackType: null,
     });
     expect(result.tier).toBe("medium");
-    expect(result.family).toBe("reasoning");
-    expect(result.tags).toEqual(["planning"]);
+    expect(result.modelAttributes).toEqual(["reasoning"]);
     expect(result.fallbackType).toBeNull();
   });
 
   it("parses dimensions with fallback type", () => {
     const result = ModelDimensionsSchema.parse({
       tier: "heavy",
-      family: "coding",
-      tags: ["coding", "quality"],
+      modelAttributes: ["reasoning", "quality"],
       fallbackType: "largeContext",
     });
     expect(result.fallbackType).toBe("largeContext");
@@ -200,15 +172,16 @@ describe("ModelDimensionsSchema", () => {
 
   it("rejects missing required fields", () => {
     expect(() => ModelDimensionsSchema.parse({ tier: "heavy" })).toThrow();
-    expect(() => ModelDimensionsSchema.parse({ tier: "heavy", family: "coding" })).toThrow();
+    expect(() =>
+      ModelDimensionsSchema.parse({ tier: "heavy", modelAttributes: ["reasoning"] }),
+    ).toThrow();
   });
 
   it("rejects invalid tier in dimensions", () => {
     expect(() =>
       ModelDimensionsSchema.parse({
         tier: "ultra",
-        family: "coding",
-        tags: ["coding"],
+        modelAttributes: ["reasoning"],
         fallbackType: null,
       }),
     ).toThrow();
@@ -718,8 +691,7 @@ describe("CascadeModelResolver", () => {
       task: { type: "complex-architecture" },
       modelDimensions: {
         tier,
-        family: "coding",
-        tags: ["coding"],
+        modelAttributes: ["reasoning", "agentic"],
         fallbackType: null,
       },
     });
@@ -838,6 +810,13 @@ describe("CascadeModelResolver", () => {
       const resolver = new CascadeModelResolver(undefined, {
         defaultProvider: "openai",
         defaultModel: "gpt-4o",
+        candidatePool: [
+          {
+            provider: "openai",
+            model: "gpt-4o",
+            pricingTier: "standard",
+          },
+        ],
       });
       const response = await resolver.resolve(validRequest());
       expect(response.selected?.provider).toBe("openai");
@@ -913,14 +892,9 @@ describe("Type inference from schemas", () => {
     expect(ModelTierSchema.parse(tier)).toBe("heavy");
   });
 
-  it("ModelFamily type is inferred correctly", () => {
-    const family: ModelFamily = "coding";
-    expect(ModelFamilySchema.parse(family)).toBe("coding");
-  });
-
-  it("ModelTag type is inferred correctly", () => {
-    const tag: ModelTag = "orchestration";
-    expect(ModelTagSchema.parse(tag)).toBe("orchestration");
+  it("ModelAttribute type is inferred correctly", () => {
+    const modelAttribute: ModelAttribute = "reasoning";
+    expect(ModelAttributeSchema.parse(modelAttribute)).toBe("reasoning");
   });
 
   it("FallbackType type is inferred correctly", () => {

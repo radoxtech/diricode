@@ -63,15 +63,20 @@ function createMockRepository(): BackgroundTaskRepository {
   } as unknown as BackgroundTaskRepository;
 }
 
-function createMockAgent(name: string, tier: AgentMetadata["tier"] = "heavy"): Agent {
+function createMockAgent(
+  name: string,
+  allowedTiers: AgentMetadata["allowedTiers"] = ["heavy"],
+): Agent {
   return {
     metadata: {
       name,
       description: `${name} agent`,
-      tier,
-      category: "code",
-      capabilities: [],
-      tags: [],
+      allowedTiers,
+      capabilities: {
+        primary: "coding",
+        specialization: [],
+        modelAttributes: ["reasoning", "agentic"],
+      },
       toolPolicy: { allowedTools: ["read", "write"] },
     },
     execute: vi.fn().mockResolvedValue({
@@ -96,7 +101,6 @@ function createMockRegistry(agents: Agent[] = []): AgentRegistry {
       return agent;
     }),
     search: vi.fn(() => []),
-    getAll: vi.fn(() => Array.from(agentMap.values())),
   } as unknown as AgentRegistry;
 }
 
@@ -130,7 +134,7 @@ describe("BackgroundTaskManager", () => {
 
   describe("startJob", () => {
     it("creates a background task for HEAVY tier agents", () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
 
@@ -161,7 +165,7 @@ describe("BackgroundTaskManager", () => {
     });
 
     it("emits background_task.created event", () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
 
@@ -186,7 +190,7 @@ describe("BackgroundTaskManager", () => {
     });
 
     it("throws error for non-HEAVY tier agents", () => {
-      const mediumAgent = createMockAgent("quick-fix", "medium");
+      const mediumAgent = createMockAgent("quick-fix", ["medium"]);
       registry = createMockRegistry([mediumAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
 
@@ -201,7 +205,7 @@ describe("BackgroundTaskManager", () => {
           "parent-exec-123",
           "dispatcher",
         ),
-      ).toThrow("Background tasks only supported for HEAVY tier agents");
+      ).toThrow("Background tasks only supported for HEAVY-capable agents");
     });
 
     it("throws error when agent not found", () => {
@@ -220,7 +224,7 @@ describe("BackgroundTaskManager", () => {
     });
 
     it("stores tool allowlist from agent policy", () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
 
@@ -248,7 +252,7 @@ describe("BackgroundTaskManager", () => {
 
   describe("checkStatus", () => {
     it("returns current status of a task", () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
 
@@ -277,7 +281,7 @@ describe("BackgroundTaskManager", () => {
 
   describe("getResult", () => {
     it("returns result for completed task", async () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
 
@@ -302,7 +306,7 @@ describe("BackgroundTaskManager", () => {
     });
 
     it("throws error for incomplete task", () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       (heavyAgent.execute as MockFn).mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 1000)),
       );
@@ -326,7 +330,7 @@ describe("BackgroundTaskManager", () => {
 
   describe("cancelJob", () => {
     it("cancels a pending task", () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       (heavyAgent.execute as MockFn).mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 5000)),
       );
@@ -358,7 +362,7 @@ describe("BackgroundTaskManager", () => {
 
   describe("parent/child relationship", () => {
     it("tracks parent execution ID", () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
 
@@ -379,7 +383,7 @@ describe("BackgroundTaskManager", () => {
     });
 
     it("emits status transition events", () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
 
@@ -400,7 +404,7 @@ describe("BackgroundTaskManager", () => {
 
   describe("tool allowlist enforcement", () => {
     it("preserves tool policy from agent metadata", () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       (
         heavyAgent as { metadata: { toolPolicy?: { allowedTools: string[] } } }
       ).metadata.toolPolicy = {
@@ -432,7 +436,7 @@ describe("BackgroundTaskManager", () => {
 
   describe("waitForCompletion", () => {
     it("returns result when task completes", async () => {
-      const heavyAgent = createMockAgent("code-writer", "heavy");
+      const heavyAgent = createMockAgent("code-writer", ["heavy"]);
       registry = createMockRegistry([heavyAgent]);
       manager = new BackgroundTaskManager({ registry, repository });
 

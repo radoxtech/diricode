@@ -103,10 +103,10 @@ export class BackgroundTaskManager {
   ): StartBackgroundTaskResponse {
     const agent = this.#registry.get(request.agentName);
 
-    if (agent.metadata.tier !== "heavy") {
+    if (!agent.metadata.allowedTiers.includes("heavy")) {
       throw new AgentError(
         "INVALID_TIER",
-        `Background tasks only supported for HEAVY tier agents. ${request.agentName} is ${agent.metadata.tier}`,
+        `Background tasks only supported for HEAVY-capable agents. ${request.agentName} allows ${agent.metadata.allowedTiers.join(", ")}`,
       );
     }
 
@@ -123,7 +123,7 @@ export class BackgroundTaskManager {
       parentExecutionId,
       parentAgentName,
       childAgentName: request.agentName,
-      agentTier: agent.metadata.tier,
+      agentTier: "heavy",
       status: "pending",
       taskPayload: request.task,
       contextSnapshot: request.context,
@@ -334,6 +334,7 @@ export class BackgroundTaskManager {
     const sandboxContext: SandboxContext = {
       ...childContext,
       sandboxConfig: this.#sandboxConfig,
+      requestedTier: "heavy",
     };
 
     try {

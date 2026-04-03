@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
-// Model Dimensions — ADR-004/005/006
+// Model Dimensions — ADR-004/005/006 (updated: unified AgentCapabilities)
 // ---------------------------------------------------------------------------
 
 /**
@@ -12,47 +12,36 @@ export const ModelTierSchema = z.enum(["heavy", "medium", "low"]);
 export type ModelTier = z.infer<typeof ModelTierSchema>;
 
 /**
- * Model family classification.
- * @see ADR-005
+ * Model-level attribute tags used by the Picker to score candidates.
+ * Replaces the old ModelFamily (llm-picker) and ModelTag with a single list.
+ * @see ADR-005 (updated), agents/types.ts ModelAttribute
  */
-export const ModelFamilySchema = z.enum(["coding", "reasoning", "creative"]);
-export type ModelFamily = z.infer<typeof ModelFamilySchema>;
-
-/**
- * Agent tags — exactly one tag per agent.
- * @see ADR-004
- */
-export const ModelTagSchema = z.enum([
-  "orchestration",
-  "planning",
-  "coding",
-  "quality",
-  "research",
+export const ModelAttributeSchema = z.enum([
+  "reasoning",
+  "speed",
+  "agentic",
   "creative",
-  "utility",
+  "ui-ux",
+  "bulk",
+  "quality",
 ]);
-export type ModelTag = z.infer<typeof ModelTagSchema>;
+export type ModelAttribute = z.infer<typeof ModelAttributeSchema>;
 
 /**
  * Fallback type describing why a fallback model is needed.
  * @see ADR-006
  */
-export const FallbackTypeSchema = z.enum([
-  "largeContext",
-  "largeOutput",
-  "error",
-  "strong",
-]);
+export const FallbackTypeSchema = z.enum(["largeContext", "largeOutput", "error", "strong"]);
 export type FallbackType = z.infer<typeof FallbackTypeSchema>;
 
 /**
  * Container for all model selection dimensions.
+ * Updated: `family`+`tags` replaced by `modelAttributes`.
  */
 export const ModelDimensionsSchema = z.object({
   tier: ModelTierSchema,
-  family: ModelFamilySchema,
-  /** ADR-004: exactly one tag per agent */
-  tags: z.array(ModelTagSchema),
+  /** Model-level attribute tags forwarded from AgentCapabilities.modelAttributes */
+  modelAttributes: z.array(ModelAttributeSchema),
   /** null means no specific fallback need; otherwise the type of fallback required */
   fallbackType: FallbackTypeSchema.nullable(),
 });

@@ -43,19 +43,12 @@ export function createCodeExplorerAgent(_config: CodeExplorerConfig): Agent {
       "Read-only codebase reconnaissance agent. " +
       "Searches and navigates source files using glob, grep, AST patterns, and LSP symbols. " +
       "Outputs concise findings maps with file-level evidence.",
-    tier: "medium",
-    category: "research",
-    capabilities: [
-      "file-read",
-      "glob",
-      "grep",
-      "ast-grep",
-      "lsp-symbols",
-      "codebase-search",
-      "pattern-discovery",
-      "file-navigation",
-    ],
-    tags: ["exploration", "medium", "research"],
+    allowedTiers: ["medium", "light"],
+    capabilities: {
+      primary: "research",
+      specialization: ["codebase-search", "pattern-discovery", "file-navigation"],
+      modelAttributes: ["speed"],
+    },
   };
 
   return {

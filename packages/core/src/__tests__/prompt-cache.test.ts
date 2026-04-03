@@ -7,10 +7,12 @@ function makeMetadata(overrides?: Partial<AgentMetadata>): AgentMetadata {
   return {
     name: "test-agent",
     description: "A test agent for unit testing",
-    tier: "medium",
-    category: "code",
-    capabilities: ["file-read", "file-write"],
-    tags: ["test"],
+    allowedTiers: ["medium"],
+    capabilities: {
+      primary: "coding",
+      specialization: ["test"],
+      modelAttributes: ["reasoning"],
+    },
     ...overrides,
   };
 }

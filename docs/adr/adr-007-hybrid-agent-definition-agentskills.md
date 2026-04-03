@@ -34,8 +34,9 @@ SKILL.md files should include these fields for optimal discovery:
 - `name`: Agent identifier
 - `description`: What the agent does (used for semantic search)
 - `tier`: LIGHT, MEDIUM, or HEAVY (determines execution mode)
-- `category`: Functional group (e.g., "code", "review", "git")
-- `capabilities`: Keywords for capability-based search
+- `primary`: Functional domain (e.g., `coding`, `review`, `research`)
+- `specialization`: Free-form keywords for capability-based search
+- `modelAttributes`: Picker-facing suitability hints
 
 The discovery registry indexes both TS hardcoded agents and SKILL.md definitions at startup, providing a unified interface for the dispatcher.
 
@@ -45,8 +46,8 @@ The discovery registry indexes both TS hardcoded agents and SKILL.md definitions
 Agent definitions now adopt a three-layer hybrid approach that balances human readability, type safety, and runtime validation:
 
 **YAML** — Human-readable metadata layer
-- Agent capability tags, model preferences, and family declarations
-- Tier assignments (LIGHT, MEDIUM, HEAVY) and functional categories
+- Agent capability metadata, model preferences, and specialization declarations
+- Tier assignments (LIGHT, MEDIUM, HEAVY) and primary domains
 - Discoverable metadata indexed by the agent registry
 - Edited by non-technical stakeholders, reviewed by code
 

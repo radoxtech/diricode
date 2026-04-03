@@ -9,10 +9,12 @@ function makeAgent(overrides?: Partial<Agent>): Agent {
     metadata: {
       name: "test-agent",
       description: "test agent",
-      tier: "medium",
-      category: "code",
-      capabilities: ["test"],
-      tags: [],
+      allowedTiers: ["medium"],
+      capabilities: {
+        primary: "coding",
+        specialization: ["test"],
+        modelAttributes: ["reasoning"],
+      },
     },
     execute: vi.fn<() => Promise<AgentResult>>(),
     ...overrides,
@@ -69,7 +71,7 @@ describe("executeInSandbox", () => {
       });
       const agent = makeAgent({
         execute: executeMock,
-        metadata: { ...makeAgent().metadata, tier: "medium" },
+        metadata: { ...makeAgent().metadata, allowedTiers: ["medium"] },
       });
       const context = makeSandboxContext({ sandboxConfig: config });
 
@@ -241,7 +243,7 @@ describe("executeInSandbox", () => {
         .mockResolvedValueOnce({ success: false, output: "fail2", toolCalls: 1, tokensUsed: 50 })
         .mockResolvedValueOnce({ success: true, output: "success", toolCalls: 2, tokensUsed: 100 });
       const agent = makeAgent({
-        metadata: { ...makeAgent().metadata, tier: "heavy" },
+        metadata: { ...makeAgent().metadata, allowedTiers: ["heavy"] },
         execute: executeMock,
       });
       const config: SandboxConfig = {

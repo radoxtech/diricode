@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
+      "@diricode/core": resolve(__dirname, "../core/src/index.ts"),
+      "@diricode/picker-contracts": resolve(__dirname, "../picker-contracts/src/index.ts"),
       "@napi-rs/keyring": resolve(__dirname, "../../test-support/keyring-shim.ts"),
     },
   },
