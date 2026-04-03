@@ -15,10 +15,12 @@ function makeAgent(name: string, success = true): Agent {
     metadata: {
       name,
       description: `${name} agent`,
-      tier: "medium",
-      category: "code",
-      capabilities: [],
-      tags: [],
+      allowedTiers: ["medium"],
+      capabilities: {
+        primary: "coding",
+        specialization: [],
+        modelAttributes: ["reasoning"],
+      },
     },
     execute: (_input: string, _context: AgentContext): Promise<AgentResult> =>
       Promise.resolve({
@@ -110,10 +112,12 @@ describe("createSequentialTaskExecutor", () => {
         metadata: {
           name: "agent-1",
           description: "first agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: async (_input: string, _ctx: AgentContext) => {
           callOrder.push("agent-1-start");
@@ -126,10 +130,12 @@ describe("createSequentialTaskExecutor", () => {
         metadata: {
           name: "agent-2",
           description: "second agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: async (_input: string, _ctx: AgentContext) => {
           callOrder.push("agent-2-start");
@@ -258,10 +264,12 @@ describe("createSequentialTaskExecutor", () => {
         metadata: {
           name: "success",
           description: "success agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: () =>
           Promise.resolve({ success: true, output: "done", toolCalls: 0, tokensUsed: 0 }),
@@ -270,10 +278,12 @@ describe("createSequentialTaskExecutor", () => {
         metadata: {
           name: "fail",
           description: "fail agent",
-          tier: "medium",
-          category: "code",
-          capabilities: [],
-          tags: [],
+          allowedTiers: ["medium"],
+          capabilities: {
+            primary: "coding",
+            specialization: [],
+            modelAttributes: ["reasoning"],
+          },
         },
         execute: () =>
           Promise.resolve({ success: false, output: "failed", toolCalls: 0, tokensUsed: 0 }),
