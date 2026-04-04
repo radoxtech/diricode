@@ -3,6 +3,7 @@ import { streamSSE } from "hono/streaming";
 import type { DiriRouter } from "../../diri-router.js";
 import type { Registry } from "../../registry.js";
 import { ChatRequestSchema } from "../types.js";
+import { readPlaygroundState } from "../model-state.js";
 
 const PROVIDER_ENV_VARS: Readonly<Record<string, string>> = {
   gemini: "GEMINI_API_KEY",
@@ -67,6 +68,17 @@ export function createChatRouter(
             (selected
               ? resolvedProvider.defaultModel.modelId
               : diriRouter.getModelConfig(undefined).modelId);
+
+          const { disabledModels } = readPlaygroundState();
+          if (disabledModels.includes(resolvedModel)) {
+            await stream.writeSSE({
+              event: "error",
+              data: JSON.stringify({
+                error: `Model '${resolvedModel}' is disabled. Enable it in the playground settings.`,
+              }),
+            });
+            return;
+          }
 
           await stream.writeSSE({
             id: crypto.randomUUID(),
