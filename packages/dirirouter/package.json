@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist",
-    "playground": "bun run src/playground/server.ts"
+    "playground": "bun run src/playground/cli.ts"
   },
   "dependencies": {
     "@diricode/core": "workspace:*",

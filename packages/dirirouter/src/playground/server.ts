@@ -8,6 +8,7 @@ import { getStatus } from "./routes/status.js";
 import { getModels } from "./routes/models.js";
 import { pickRoute } from "./routes/pick.js";
 import { createChatRouter } from "./routes/chat.js";
+import { renderPlayground } from "./html.js";
 
 export function createApp(bootstrap: BootstrapResult): Hono {
   const app = new Hono();
@@ -21,7 +22,7 @@ export function createApp(bootstrap: BootstrapResult): Hono {
   app.use("*", logger());
 
   app.get("/health", (c) => c.json({ status: "ok" }));
-  app.get("/", (c) => c.text("DiriRouter Playground — loading..."));
+  app.get("/", (c) => c.html(renderPlayground()));
 
   app.get("/api/status", getStatus);
   app.get("/api/models", getModels);
