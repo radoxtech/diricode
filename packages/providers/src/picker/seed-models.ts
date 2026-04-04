@@ -1,4 +1,4 @@
-import type { ModelCard, PickerSubscription } from "@diricode/picker-contracts";
+import type { ModelCard, PickerSubscription } from "@diricode/diri-router/contracts";
 import type { ModelCardRegistry } from "./model-card-registry.js";
 import type { SubscriptionRegistry } from "./subscription-registry.js";
 

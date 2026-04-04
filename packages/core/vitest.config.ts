@@ -1,13 +1,8 @@
 import { defineConfig } from "vitest/config";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  resolve: {
-    preserveSymlinks: true,
-  },
+  plugins: [tsconfigPaths()],
   test: {
     pool: "forks",
     environment: "node",
