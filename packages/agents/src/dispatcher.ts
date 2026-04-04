@@ -26,7 +26,7 @@ import {
   createFilterPolicyForDomain,
   TurnEnvelope,
 } from "@diricode/core";
-import type { DecisionRequest, ModelAttribute, ModelTier } from "@diricode/core/llm-picker";
+import type { DecisionRequest, ModelAttribute, ModelTier } from "@diricode/providers";
 import type { DiriRouter } from "@diricode/providers";
 
 import type { AgentRegistry } from "./registry.js";
