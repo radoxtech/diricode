@@ -1,0 +1,36 @@
+{
+  "swarmId": "swarm-mnjvk5zy",
+  "objective": "Test project",
+  "strategy": "testing",
+  "status": "stopped",
+  "agents": 6,
+  "agentPlan": [
+    {
+      "role": "Test Lead",
+      "type": "tester",
+      "count": 1,
+      "purpose": "Test strategy"
+    },
+    {
+      "role": "Unit Tester",
+      "type": "tester",
+      "count": 2,
+      "purpose": "Unit tests"
+    },
+    {
+      "role": "Integration Tester",
+      "type": "tester",
+      "count": 2,
+      "purpose": "Integration tests"
+    },
+    {
+      "role": "QA Reviewer",
+      "type": "reviewer",
+      "count": 1,
+      "purpose": "Quality review"
+    }
+  ],
+  "startedAt": "2026-04-04T05:11:10.174Z",
+  "parallel": true,
+  "stoppedAt": "2026-04-04T05:11:10.184Z"
+}

@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "patterns": {
+    "architect:architect+architecture+database+design+schema": {
+      "keywords": [
+        "architect",
+        "design",
+        "schema",
+        "database",
+        "architecture"
+      ],
+      "agent": "architect",
+      "confidence": 0.55,
+      "successCount": 1,
+      "failureCount": 0,
+      "lastUsed": 1775279470330,
+      "createdAt": 1775279470330
+    }
+  },
+  "stats": {
+    "trajectoriesProcessed": 1,
+    "successfulRoutings": 1,
+    "failedRoutings": 0,
+    "lastUpdate": 1775279470330
+  },
+  "metadata": {
+    "createdAt": "2026-04-04T05:11:10.330Z",
+    "savedAt": "2026-04-04T05:11:10.330Z"
+  }
+}
