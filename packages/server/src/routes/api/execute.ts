@@ -20,6 +20,7 @@ import {
   diagnosticsTool,
 } from "@diricode/tools";
 import type { Tool } from "@diricode/core";
+import { CopilotProvider, DiriRouter, Registry, ProviderPriorities } from "@diricode/providers";
 import type { ApiEnvelope } from "../../middleware/error.js";
 import { createEventBusEmitBridge } from "../../sse/emit-bridge.js";
 
@@ -47,9 +48,14 @@ registry.register(createCodeWriterAgent({ tools: ALL_TOOLS }));
 registry.register(createPlannerQuickAgent({ tools: ALL_TOOLS }));
 registry.register(createCodeExplorerAgent({ tools: ALL_TOOLS }));
 
+const providerRegistry = new Registry();
+providerRegistry.register(new CopilotProvider(), ProviderPriorities.COPILOT);
+const diriRouter = new DiriRouter({ registry: providerRegistry });
+
 const dispatcher = createDispatcher({
   registry,
   maxDelegationDepth: 3,
+  diriRouter,
 });
 
 interface ExecuteBody {
