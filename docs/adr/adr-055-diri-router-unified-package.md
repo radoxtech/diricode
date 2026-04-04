@@ -1,12 +1,12 @@
 # ADR-055 — diri-router Unified Package
 
-| Field       | Value                                                                                          |
-|-------------|------------------------------------------------------------------------------------------------|
-| Status      | Accepted                                                                                       |
-| Date        | 2026-04-03                                                                                     |
-| Scope       | MVP-1 (POC integration), MVP-2 (full package)                                                  |
-| Supersedes  | ADR-025, ADR-049                                                                               |
-| References  | ADR-004, ADR-042, ADR-044, ADR-054                                                             |
+| Field      | Value                                         |
+| ---------- | --------------------------------------------- |
+| Status     | Accepted                                      |
+| Date       | 2026-04-03                                    |
+| Scope      | MVP-1 (POC integration), MVP-2 (full package) |
+| Supersedes | ADR-025, ADR-049                              |
+| References | ADR-004, ADR-042, ADR-044, ADR-054            |
 
 ---
 
@@ -16,7 +16,7 @@ The LLM routing architecture in DiriCode has evolved organically across multiple
 
 - **`@diricode/providers`**: Provider adapters, `ProviderRouter`, retry/fallback, streaming (ADR-025)
 - **`@diricode/core`**: LLM Picker — `CascadeModelResolver`, heuristics, scoring (ADR-049)
-- **`@diricode/picker-contracts`**: Shared Zod schemas between providers and picker
+- **`@diricode/diri-router/contracts`**: Shared Zod schemas between providers and picker (absorbed from picker-contracts)
 - **`ModelConfigResolver`**: Dispatcher's hardcoded tier → model mapping (legacy)
 
 This fragmentation creates several problems:
@@ -138,18 +138,18 @@ export interface DiriRouter {
    * Returns DecisionResponse with selected provider/model.
    */
   pick(request: DecisionRequest): Promise<DecisionResponse>;
-  
+
   /**
    * Execute chat completion with selected model.
    * Handles retry, fallback, streaming internally.
    */
   chat(options: ChatOptions): Promise<ChatResponse>;
-  
+
   /**
    * Stream chat completion.
    */
   stream(options: ChatOptions): AsyncIterable<StreamChunk>;
-  
+
   /**
    * Submit feedback for a previous decision.
    * Used for Elo scoring and policy tuning.
@@ -195,11 +195,11 @@ The current implementation keeps cost, latency, and context-window constraints i
 
 Model tier implies context window requirements:
 
-| Tier | Context Window | Use Case |
-|------|---------------|----------|
-| **LOW** | 200k+ | Utility tasks, simple generation, commit messages |
-| **MEDIUM** | 200k-800k | Standard coding, review, research |
-| **HEAVY** | 800k+ | Complex reasoning, architecture, large codebase analysis |
+| Tier       | Context Window | Use Case                                                 |
+| ---------- | -------------- | -------------------------------------------------------- |
+| **LOW**    | 200k+          | Utility tasks, simple generation, commit messages        |
+| **MEDIUM** | 200k-800k      | Standard coding, review, research                        |
+| **HEAVY**  | 800k+          | Complex reasoning, architecture, large codebase analysis |
 
 **Scoring logic**: Models below tier threshold get heavy penalty; models above get bonus proportional to fit.
 
@@ -302,21 +302,18 @@ LLM API
 
 ```typescript
 const TIER_MIN_CONTEXT = {
-  "low": 200_000,
-  "medium": 200_000,
-  "heavy": 800_000
+  low: 200_000,
+  medium: 200_000,
+  heavy: 800_000,
 };
 
-function scoreContextWindow(
-  contextWindow: number,
-  tier: "low" | "medium" | "heavy"
-): number {
+function scoreContextWindow(contextWindow: number, tier: "low" | "medium" | "heavy"): number {
   const minRequired = TIER_MIN_CONTEXT[tier];
-  
+
   if (contextWindow < minRequired) {
     return -50; // Heavy penalty — model doesn't meet requirements
   }
-  
+
   // Bonus for exceeding requirements (up to 20 points)
   const excess = contextWindow - minRequired;
   const bonus = Math.min(20, Math.floor(excess / 100_000));
