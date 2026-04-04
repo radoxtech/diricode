@@ -45,8 +45,12 @@ export function createChatRouter(
     }
 
     const abort = new AbortController();
-    c.req.raw.signal.addEventListener("abort", () => abort.abort());
-    const timeoutHandle = setTimeout(() => abort.abort(new Error("Request timed out")), timeoutMs);
+    c.req.raw.signal.addEventListener("abort", () => {
+      abort.abort();
+    });
+    const timeoutHandle = setTimeout(() => {
+      abort.abort(new Error("Request timed out"));
+    }, timeoutMs);
 
     return streamSSE(
       c,
@@ -104,11 +108,14 @@ export function createChatRouter(
           }
         } catch (err) {
           const isTimeout = err instanceof Error && err.message === "Request timed out";
-          const message = isTimeout
-            ? "Request timed out"
-            : err instanceof Error
-              ? err.message
-              : "Unknown streaming error";
+          let message: string;
+          if (isTimeout) {
+            message = "Request timed out";
+          } else if (err instanceof Error) {
+            message = err.message;
+          } else {
+            message = "Unknown streaming error";
+          }
 
           await stream.writeSSE({
             event: "error",
