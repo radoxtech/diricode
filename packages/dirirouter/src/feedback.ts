@@ -1,4 +1,4 @@
-import type { FeedbackCollector, FeedbackSubmission } from "@diricode/providers";
+import type { FeedbackCollector, FeedbackSubmission } from "@diricode/dirirouter";
 
 const logFeedback = (data: unknown): void => {
   // eslint-disable-next-line no-console -- POC log-only implementation; v2 will use Elo scoring

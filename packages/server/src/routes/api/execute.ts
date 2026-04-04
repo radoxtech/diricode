@@ -20,7 +20,7 @@ import {
   diagnosticsTool,
 } from "@diricode/tools";
 import type { Tool } from "@diricode/core";
-import { CopilotProvider, DiriRouter, Registry, ProviderPriorities } from "@diricode/providers";
+import { CopilotProvider, DiriRouter, Registry, ProviderPriorities } from "@diricode/dirirouter";
 import type { ApiEnvelope } from "../../middleware/error.js";
 import { createEventBusEmitBridge } from "../../sse/emit-bridge.js";
 

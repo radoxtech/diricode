@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DiriRouter, ProviderPriorities, Registry } from "../index.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../index.js";
-import type { DecisionRequest } from "@diricode/providers";
+import type { DecisionRequest } from "@diricode/dirirouter";
 
 interface ProviderStub extends Provider {
   setNextResponse(response: string): void;

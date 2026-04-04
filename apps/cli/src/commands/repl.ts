@@ -1,6 +1,6 @@
 import { createInterface, type Interface } from "node:readline/promises";
 import type { DiriCodeConfig } from "@diricode/core";
-import { hasGithubAuth } from "@diricode/providers";
+import { hasGithubAuth } from "@diricode/dirirouter";
 import { runLogin } from "./login.js";
 import { runLogout } from "./logout.js";
 import { runWhoami } from "./whoami.js";

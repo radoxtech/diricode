@@ -1,5 +1,5 @@
-import type { DecisionRequest, DecisionResponse } from "@diricode/providers";
-import { CascadeModelResolver } from "@diricode/providers";
+import type { DecisionRequest, DecisionResponse } from "@diricode/dirirouter";
+import { CascadeModelResolver } from "@diricode/dirirouter";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "./types.js";
 import { ProviderRouter } from "./router.js";
 import type { Registry } from "./registry.js";

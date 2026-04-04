@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockKeychainDelete = vi.hoisted(() => vi.fn<() => boolean>());
 
-vi.mock("@diricode/providers", () => {
+vi.mock("@diricode/dirirouter", () => {
   class MockKeychain {
     delete = mockKeychainDelete;
   }
@@ -46,7 +46,7 @@ describe("runLogout()", () => {
   });
 
   it("handles KeychainUnavailableError gracefully", async () => {
-    const { KeychainUnavailableError } = await import("@diricode/providers");
+    const { KeychainUnavailableError } = await import("@diricode/dirirouter");
     mockKeychainDelete.mockImplementation(() => {
       throw new KeychainUnavailableError("unavailable");
     });

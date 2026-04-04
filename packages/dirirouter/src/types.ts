@@ -1,5 +1,5 @@
 /**
- * Provider interface and related types for @diricode/providers.
+ * Provider interface and related types for @diricode/dirirouter.
  *
  * Providers wrap AI model APIs (Copilot, Kimi, etc.) and expose a
  * uniform streaming/generation interface to the rest of DiriCode.

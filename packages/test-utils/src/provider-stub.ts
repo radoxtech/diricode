@@ -1,4 +1,4 @@
-import type { Provider, GenerateOptions, ModelConfig, StreamChunk } from "@diricode/providers";
+import type { Provider, GenerateOptions, ModelConfig, StreamChunk } from "@diricode/dirirouter";
 
 export interface ProviderStub extends Provider {
   reset(): void;

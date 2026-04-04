@@ -3,7 +3,7 @@ import {
   KEYCHAIN_SERVICE,
   KEYCHAIN_ACCOUNT,
   KeychainUnavailableError,
-} from "@diricode/providers";
+} from "@diricode/dirirouter";
 
 // eslint-disable-next-line @typescript-eslint/require-await -- keychain ops may become async
 export async function runLogout(): Promise<void> {
