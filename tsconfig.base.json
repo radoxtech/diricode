@@ -4,7 +4,6 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "ESNext",
-
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -13,26 +12,21 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false,
     "exactOptionalPropertyTypes": false,
-
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "composite": true,
     "incremental": true,
-
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-
     "skipLibCheck": true,
-
     "paths": {
       "@diricode/core": ["./packages/core/src/index.ts"],
       "@diricode/core/*": ["./packages/core/src/*"],
@@ -52,12 +46,8 @@
       "@diricode/dirirouter/router/*": ["./packages/dirirouter/src/router/*"],
       "@diricode/dirirouter/picker": ["./packages/dirirouter/src/picker/index.ts"],
       "@diricode/dirirouter/picker/*": ["./packages/dirirouter/src/picker/*"],
-      "@diricode/dirirouter/feedback": ["./packages/dirirouter/src/feedback/index.ts"],
-      "@diricode/dirirouter/feedback/*": ["./packages/dirirouter/src/feedback/*"],
-      "@diricode/diri-router": ["./packages/diri-router/src/index.ts"],
-      "@diricode/diri-router/contracts": ["./packages/diri-router/src/contracts/index.ts"],
-      "@diricode/diri-router/contracts/*": ["./packages/diri-router/src/contracts/*"],
-      "@diricode/diri-router/*": ["./packages/diri-router/src/*"],
+      "@diricode/dirirouter/feedback": ["./packages/dirirouter/src/feedback.ts"],
+      "@diricode/dirirouter/feedback/*": ["./packages/dirirouter/src/*"],
       "@diricode/github-mcp": ["./packages/github-mcp/src/index.ts"],
       "@diricode/github-mcp/*": ["./packages/github-mcp/src/*"],
       "@diricode/tools": ["./packages/tools/src/index.ts"],
