@@ -19,7 +19,8 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "playground": "bun run src/playground/server.ts"
   },
   "dependencies": {
     "@diricode/core": "workspace:*",
@@ -29,6 +30,7 @@
     "@google/genai": "^1.0.0",
     "@napi-rs/keyring": "^1.2.0",
     "ai": "^6.0.138",
+    "hono": "^4.12.8",
     "zod": "^3.24.0"
   },
   "devDependencies": {
