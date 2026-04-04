@@ -1,7 +1,7 @@
 import { bootstrapPlayground } from "./bootstrap.js";
 import { createApp } from "./server.js";
 
-async function main() {
+async function main(): Promise<void> {
   // 1. Parse CLI args
   const port = parseInt(process.argv.find((a) => a.startsWith("--port="))?.split("=")[1] ?? "3333");
   const host = process.argv.find((a) => a.startsWith("--host="))?.split("=")[1] ?? "localhost";
@@ -23,10 +23,11 @@ async function main() {
     .map((p) => `│    ${p.available ? "✓" : "✗"} ${p.name} (${p.envVar})`)
     .join("\n");
 
+  // eslint-disable-next-line no-console
   console.log(`
 ┌─────────────────────────────────────────┐
 │  DiriRouter Playground                  │
-│  http://${host}:${port}                 │
+│  http://${host}:${String(port)}         │
 │                                         │
 │  Providers:                             │
 ${providerLines}
@@ -37,17 +38,19 @@ ${providerLines}
 `);
 
   // 6. Handle SIGINT/SIGTERM for clean shutdown
-  const shutdown = () => {
+  const shutdown = (): void => {
+    // eslint-disable-next-line no-console
     console.log("\nShutting down...");
-    server.stop();
+    void server.stop();
     process.exit(0);
   };
 
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  void process.on("SIGINT", shutdown);
+  void process.on("SIGTERM", shutdown);
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
+  // eslint-disable-next-line no-console
   console.error("Failed to start playground:", err);
   process.exit(1);
 });
