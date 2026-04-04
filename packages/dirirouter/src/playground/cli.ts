@@ -1,6 +1,27 @@
 import { bootstrapPlayground, type BootstrapResult } from "./bootstrap.js";
 import { createApp } from "./server.js";
 import { readPlaygroundState } from "./model-state.js";
+import { resolve } from "path";
+import { fileURLToPath } from "url";
+import { readFileSync, existsSync } from "fs";
+
+// Load .env from package directory (so users can just place keys there)
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const envPath = resolve(__dirname, ".env");
+if (existsSync(envPath)) {
+  const content = readFileSync(envPath, "utf-8");
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex < 0) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim().replace(/^["']|["']$/g, "");
+    if (key && !(key in process.env)) {
+      process.env[key] = value;
+    }
+  }
+}
 
 // eslint-disable-next-line no-control-regex
 const ANSI_RE = /\x1b\[[0-9;]*m/g;
