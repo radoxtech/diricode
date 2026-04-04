@@ -88,6 +88,9 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       margin-bottom: 1rem;
       border-bottom: 1px dashed var(--border);
       padding-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
     }
 
     .form-group { margin-bottom: 1rem; }
@@ -194,6 +197,79 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       flex: 1;
       white-space: pre-wrap;
     }
+
+    /* Model Toggles UI */
+    .model-provider-group {
+      margin-bottom: 1rem;
+    }
+
+    .model-provider-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+    }
+
+    .model-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.3rem 0.5rem;
+      border-radius: 3px;
+      transition: background 0.15s;
+    }
+
+    .model-row:hover { background: #1e1e38; }
+
+    .model-row.disabled .model-id {
+      color: #475569;
+      text-decoration: line-through;
+    }
+
+    .model-id {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      transition: color 0.15s;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: #334155;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-switch input:checked + .toggle-track { background: var(--success); }
+
+    .toggle-track::before {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch input:checked + .toggle-track::before { transform: translateX(14px); }
+    .toggle-switch input:disabled + .toggle-track { opacity: 0.4; cursor: not-allowed; }
   </style>
 </head>
 <body x-data="playground()">
@@ -250,7 +326,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
             <label>Fallback Type</label>
             <select name="modelDimensions.fallbackType">
               <option value="none">none</option>
-              ${fallbackTypes.map(f => '<option value="' + f + '">' + f + '</option>').join('')}
+              ${fallbackTypes.map((f) => '<option value="' + f + '">' + f + "</option>").join("")}
             </select>
           </div>
         </div>
@@ -258,7 +334,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
         <div class="form-group">
           <label>Model Attributes</label>
           <div class="checkbox-grid">
-            ${modelAttributes.map(attr => '<label class="checkbox-label"><input type="checkbox" name="modelDimensions.modelAttributes[]" value="' + attr + '"> ' + attr + '</label>').join('')}
+            ${modelAttributes.map((attr) => '<label class="checkbox-label"><input type="checkbox" name="modelDimensions.modelAttributes[]" value="' + attr + '"> ' + attr + "</label>").join("")}
           </div>
         </div>
 
@@ -338,7 +414,35 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
         <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
       </div>
 
-      <div class="section-title">Results</div>
+      <div class="section-title">
+        <span>Models</span>
+        <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.78rem;color:#94a3b8;">
+          <span x-text="enabledModelsCount"></span> of <span x-text="totalModelsCount"></span> enabled
+        </span>
+      </div>
+      
+      <div class="model-list-section">
+        <template x-if="Object.keys(modelsByProvider).length === 0">
+          <span style="color:#94a3b8;font-size:0.8rem;">Loading models...</span>
+        </template>
+        
+        <template x-for="[provider, models] in Object.entries(modelsByProvider)" :key="provider">
+          <div class="model-provider-group">
+            <div class="model-provider-name" x-text="provider"></div>
+            <template x-for="model in models" :key="model.id">
+              <div class="model-row" :class="model.enabled ? '' : 'disabled'">
+                <span class="model-id" x-text="model.id"></span>
+                <label class="toggle-switch" :title="model.enabled ? 'Disable' : 'Enable'">
+                  <input type="checkbox" x-model="model.enabled" @change="toggleModel(model)">
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+
+      <div class="section-title" style="margin-top: 1rem;">Results</div>
       
       <div id="error-container" class="error-box"></div>
 
@@ -356,6 +460,10 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       Alpine.data('playground', () => ({
         temp: 0.7,
         loading: false,
+        
+        modelsByProvider: {},
+        enabledModelsCount: 0,
+        totalModelsCount: 0,
         
         init() {
           this.loadData();
@@ -390,20 +498,50 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
             const mRes = await fetch('/api/models');
             if (mRes.ok) {
               const data = await mRes.json();
-              const models = data.models || [];
+              const modelCards = data.modelCards || [];
               
-              const modHtml = models.map(m => 
+              this.totalModelsCount = modelCards.length;
+              this.enabledModelsCount = modelCards.filter(m => m.enabled).length;
+              
+              const grouped = {};
+              for (const m of modelCards) {
+                const provider = m.provider || 'unknown';
+                if (!grouped[provider]) grouped[provider] = [];
+                grouped[provider].push({ ...m });
+              }
+              this.modelsByProvider = grouped;
+              
+              // Render preferred/excluded models for form constraints
+              const modHtml = modelCards.map(m => 
                 \`<label class="checkbox-label"><input type="checkbox" name="constraints.preferredModels[]" value="\${m.id}"> \${m.id}</label>\`
               ).join('');
               document.getElementById('pref-models-grid').innerHTML = modHtml;
               
-              const exclModHtml = models.map(m => 
+              const exclModHtml = modelCards.map(m => 
                 \`<label class="checkbox-label"><input type="checkbox" name="constraints.excludedModels[]" value="\${m.id}"> \${m.id}</label>\`
               ).join('');
               document.getElementById('excl-models-grid').innerHTML = exclModHtml;
             }
           } catch(e) {
             console.error('Failed to load data', e);
+          }
+        },
+        
+        async toggleModel(model) {
+          this.enabledModelsCount = model.enabled ? this.enabledModelsCount + 1 : this.enabledModelsCount - 1;
+          try {
+            const res = await fetch('/api/models/toggle', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ modelId: model.id })
+            });
+            if (!res.ok) {
+              model.enabled = !model.enabled;
+              this.enabledModelsCount = model.enabled ? this.enabledModelsCount + 1 : this.enabledModelsCount - 1;
+            }
+          } catch (e) {
+            model.enabled = !model.enabled;
+            this.enabledModelsCount = model.enabled ? this.enabledModelsCount + 1 : this.enabledModelsCount - 1;
           }
         },
         
