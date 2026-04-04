@@ -1,4 +1,3 @@
-/// <reference types="bun-types" />
 import { bootstrapPlayground } from "./bootstrap.js";
 import { createApp } from "./server.js";
 
@@ -14,7 +13,8 @@ async function main(): Promise<void> {
   const app = createApp(result);
 
   // 4. Start Bun server
-  const server = Bun.serve({ port, hostname: host, fetch: app.fetch });
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+  const server = (globalThis as any).Bun.serve({ port, hostname: host, fetch: app.fetch });
 
   // 5. Print startup banner
   const modelCount = result.modelCardRegistry.list().length;
@@ -42,6 +42,7 @@ ${providerLines}
   const shutdown = (): void => {
     // eslint-disable-next-line no-console
     console.log("\nShutting down...");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     void server.stop();
     process.exit(0);
   };
