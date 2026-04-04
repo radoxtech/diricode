@@ -8,7 +8,11 @@ import type {
   ModelRouter,
   RouterClassification,
 } from "./types.js";
-import type { ModelCard, ModelCapabilities, PickerSubscription } from "@diricode/picker-contracts";
+import type {
+  ModelCard,
+  ModelCapabilities,
+  PickerSubscription,
+} from "@diricode/diri-router/contracts";
 import {
   DEFAULT_HARD_RULES_CONFIG,
   getPricingTierRejectionReason,

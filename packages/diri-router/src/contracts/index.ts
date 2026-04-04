@@ -7,7 +7,7 @@ export {
   PricingTierSchema,
   QualityBenchmarkSchema,
   SpeedBenchmarkSchema,
-} from "@diricode/diri-router/contracts";
+} from "./model-card.js";
 
 export type {
   BenchmarkBucket,
@@ -18,4 +18,8 @@ export type {
   PricingTier,
   QualityBenchmark,
   SpeedBenchmark,
-} from "@diricode/diri-router/contracts";
+} from "./model-card.js";
+
+export { PickerSubscriptionSchema, RateLimitSchema } from "./subscription.js";
+
+export type { PickerSubscription, RateLimit } from "./subscription.js";
