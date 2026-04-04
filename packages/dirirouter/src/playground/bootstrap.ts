@@ -17,6 +17,7 @@ export interface ProviderStatus {
 }
 
 export interface BootstrapResult {
+  readonly startTime: number;
   readonly diriRouter: DiriRouter;
   readonly registry: Registry;
   readonly modelCardRegistry: ModelCardRegistry;
@@ -25,6 +26,7 @@ export interface BootstrapResult {
 }
 
 export async function bootstrapPlayground(): Promise<BootstrapResult> {
+  const startTime = Date.now();
   const modelCardRegistry = new ModelCardRegistry();
   const subscriptionRegistry = new SubscriptionRegistry(modelCardRegistry);
   const registry = new Registry();
@@ -125,6 +127,7 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
   });
 
   return {
+    startTime,
     diriRouter,
     registry,
     modelCardRegistry,

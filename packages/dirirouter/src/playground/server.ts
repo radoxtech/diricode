@@ -1,21 +1,29 @@
 import { Hono } from "hono";
+import type { Context, Next } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { renderPlayground } from "./html.js";
-import type { BootstrapResult } from "./types.js";
-import { pickRoute } from "./routes/pick.js";
+import type { BootstrapResult } from "./bootstrap.js";
+import { setBootstrap } from "./routes/status.js";
+import { getStatus } from "./routes/status.js";
+import { getModels } from "./routes/models.js";
 
-export function createApp(ctx: BootstrapResult) {
+export function createApp(bootstrap: BootstrapResult): Hono {
   const app = new Hono();
+
+  app.use("*", (c: Context, next: Next) => {
+    setBootstrap(c, bootstrap);
+    return next();
+  });
 
   app.use("*", cors());
   app.use("*", logger());
 
   app.get("/health", (c) => c.json({ status: "ok" }));
 
-  app.get("/", (c) => c.html(renderPlayground({})));
+  app.get("/", (c) => c.text("DiriRouter Playground — loading..."));
 
-  app.post("/api/pick", pickRoute(ctx));
+  app.get("/api/status", getStatus);
+  app.get("/api/models", getModels);
 
   return app;
 }

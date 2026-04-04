@@ -508,7 +508,7 @@ export class CascadeModelResolver implements ModelResolver {
       }));
   }
 
-  private getCandidatePool(): ResolverCandidate[] {
+  getCandidatePool(): ResolverCandidate[] {
     const candidates = this.candidatePool.map((candidate) => ({ ...candidate }));
 
     const hasDefaultCandidate = candidates.some(
