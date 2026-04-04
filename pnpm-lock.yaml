@@ -100,9 +100,6 @@ importers:
 
   packages/core:
     dependencies:
-      '@diricode/diri-router':
-        specifier: workspace:*
-        version: link:../diri-router
       c12:
         specifier: ^2.0.0
         version: 2.0.4
@@ -129,22 +126,6 @@ importers:
         specifier: ^3.1.0
         version: 3.2.4(@types/node@20.19.37)(jiti@2.6.1)(jsdom@29.0.1)
 
-  packages/diri-router:
-    dependencies:
-      zod:
-        specifier: ^3.25.76
-        version: 3.25.76
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.37
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-      vitest:
-        specifier: ^3.1.0
-        version: 3.2.4(@types/node@20.19.37)(jiti@2.6.1)(jsdom@29.0.1)
-
   packages/dirirouter:
     dependencies:
       '@ai-sdk/openai-compatible':
@@ -153,9 +134,6 @@ importers:
       '@diricode/core':
         specifier: workspace:*
         version: link:../core
-      '@diricode/diri-router':
-        specifier: workspace:*
-        version: link:../diri-router
       '@github/models':
         specifier: 0.0.1-beta.2
         version: 0.0.1-beta.2(zod@3.25.76)
