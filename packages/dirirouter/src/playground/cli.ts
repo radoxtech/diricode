@@ -1,3 +1,4 @@
+/// <reference types="bun-types" />
 import { bootstrapPlayground } from "./bootstrap.js";
 import { createApp } from "./server.js";
 

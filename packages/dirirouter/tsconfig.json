@@ -5,6 +5,5 @@
     "rootDir": "./src"
   },
   "include": ["src/**/*"],
-  "exclude": ["src/playground/**/*"],
   "references": [{ "path": "../diri-router" }, { "path": "../core" }]
 }
