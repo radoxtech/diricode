@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import type { BootstrapResult } from "../bootstrap.js";
 import { PickRequestSchema } from "../types.js";
 import type { DecisionRequest, DecisionResponse } from "@diricode/dirirouter";
+import { readPlaygroundState } from "../model-state.js";
 
 export function pickRoute() {
   return async (c: Context) => {
@@ -15,13 +16,25 @@ export function pickRoute() {
       const chatId = randomUUID();
       const requestId = randomUUID();
 
+      const { disabledModels } = readPlaygroundState();
+      const userExcluded = validated.constraints?.excludedModels ?? [];
+      const mergedExcluded = [...new Set([...userExcluded, ...disabledModels])];
+
+      const baseConstraints = validated.constraints ?? {};
+      const constraints =
+        mergedExcluded.length > 0
+          ? { ...baseConstraints, excludedModels: mergedExcluded }
+          : Object.keys(baseConstraints).length > 0
+            ? baseConstraints
+            : undefined;
+
       const decisionRequest: DecisionRequest = {
         chatId,
         requestId,
         agent: validated.agent,
         task: validated.task,
         modelDimensions: validated.modelDimensions,
-        ...(validated.constraints && { constraints: validated.constraints }),
+        ...(constraints !== undefined && { constraints }),
       };
 
       const decisionResponse: DecisionResponse = await bootstrap.diriRouter.pick(
