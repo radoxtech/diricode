@@ -1,19 +1,17 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { renderPlayground } from "./html.js";
 
-export function createApp() {
+export function createApp(): Hono {
   const app = new Hono();
 
-  // Middleware
-  app.use("*", cors()); // Allow all origins — dev tool
-  app.use("*", logger()); // Request logging
+  app.use("*", cors());
+  app.use("*", logger());
 
-  // Health check
   app.get("/health", (c) => c.json({ status: "ok" }));
 
-  // Placeholder root
-  app.get("/", (c) => c.text("DiriRouter Playground — loading..."));
+  app.get("/", (c) => c.html(renderPlayground({})));
 
   return app;
 }
