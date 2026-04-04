@@ -1,16 +1,13 @@
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import type { Context } from "hono";
-import type { BootstrapResult } from "../types.js";
+import type { BootstrapResult } from "../bootstrap.js";
 import { PickRequestSchema } from "../types.js";
 import type { DecisionRequest, DecisionResponse } from "@diricode/dirirouter";
 
-/**
- * POST /api/pick handler: validates request, generates chatId/requestId,
- * and returns full DecisionResponse from diriRouter.pick().
- */
-export function pickRoute(ctx: BootstrapResult) {
+export function pickRoute() {
   return async (c: Context) => {
+    const bootstrap = c.get("bootstrap") as BootstrapResult;
     try {
       const body: unknown = await c.req.json();
       const validated = PickRequestSchema.parse(body);
@@ -27,7 +24,10 @@ export function pickRoute(ctx: BootstrapResult) {
         ...(validated.constraints && { constraints: validated.constraints }),
       };
 
-      const decisionResponse: DecisionResponse = await ctx.diriRouter.pick(decisionRequest, chatId);
+      const decisionResponse: DecisionResponse = await bootstrap.diriRouter.pick(
+        decisionRequest,
+        chatId,
+      );
 
       return c.json(decisionResponse);
     } catch (error) {
