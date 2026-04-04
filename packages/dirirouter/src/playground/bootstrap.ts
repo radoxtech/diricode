@@ -34,7 +34,7 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
   const resolver = new CascadeModelResolver();
   const providerStatuses: ProviderStatus[] = [];
 
-  const geminiApiKey = process.env["GEMINI_API_KEY"]?.trim() ?? "";
+  const geminiApiKey = process.env.GEMINI_API_KEY?.trim() ?? "";
   try {
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY is not set");
     const provider = new GeminiProvider({ apiKey: geminiApiKey });
@@ -51,7 +51,7 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
 
   // Dynamic import required: KimiProvider → kimi/auth.ts has top-level
   // `import { Entry } from "@napi-rs/keyring"` which must not load at startup.
-  const kimiApiKey = process.env["DC_KIMI_API_KEY"]?.trim() ?? "";
+  const kimiApiKey = process.env.DC_KIMI_API_KEY?.trim() ?? "";
   try {
     if (!kimiApiKey) throw new Error("DC_KIMI_API_KEY is not set");
     const { KimiProvider } = await import("../providers/kimi.js");
@@ -67,7 +67,7 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
     });
   }
 
-  const zaiApiKey = process.env["DC_ZAI_API_KEY"]?.trim() ?? "";
+  const zaiApiKey = process.env.DC_ZAI_API_KEY?.trim() ?? "";
   try {
     if (!zaiApiKey) throw new Error("DC_ZAI_API_KEY is not set");
     const provider = new ZaiProvider({ apiKey: zaiApiKey });
@@ -82,7 +82,7 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
     });
   }
 
-  const minimaxApiKey = process.env["DC_MINIMAX_API_KEY"]?.trim() ?? "";
+  const minimaxApiKey = process.env.DC_MINIMAX_API_KEY?.trim() ?? "";
   try {
     if (!minimaxApiKey) throw new Error("DC_MINIMAX_API_KEY is not set");
     const provider = new MinimaxProvider({ apiKey: minimaxApiKey });
@@ -101,11 +101,7 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
   // `import { Entry, findCredentials } from "@napi-rs/keyring"` which must not load at startup.
   // Env var only — no keychain lookup, no OAuth device flow.
   const copilotToken =
-    (
-      process.env["GITHUB_TOKEN"] ??
-      process.env["GH_TOKEN"] ??
-      process.env["DC_GITHUB_TOKEN"]
-    )?.trim() ?? "";
+    (process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? process.env.DC_GITHUB_TOKEN)?.trim() ?? "";
   try {
     if (!copilotToken) {
       throw new Error("No GitHub token found. Set GITHUB_TOKEN, GH_TOKEN, or DC_GITHUB_TOKEN");
