@@ -21,6 +21,7 @@
   "dependencies": {
     "@diricode/agents": "workspace:*",
     "@diricode/core": "workspace:*",
+    "@diricode/providers": "workspace:*",
     "@diricode/tools": "workspace:*",
     "@hono/node-server": "^1.19.11",
     "hono": "^4.12.8"

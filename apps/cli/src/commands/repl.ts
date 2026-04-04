@@ -5,6 +5,20 @@ import { runLogin } from "./login.js";
 import { runLogout } from "./logout.js";
 import { runWhoami } from "./whoami.js";
 
+const SERVER_PORT = Number(process.env.PORT ?? 3001);
+const EXECUTE_URL = `http://localhost:${String(SERVER_PORT)}/api/v1/execute`;
+
+interface ExecuteResponseData {
+  sessionId: string;
+  result: unknown;
+}
+
+interface ExecuteEnvelope {
+  success: boolean;
+  data?: ExecuteResponseData;
+  error?: { code: string; message: string };
+}
+
 export interface ReplOptions {
   session?: string;
 }
@@ -69,14 +83,32 @@ async function readMultilineInput(
   return lines.length > 0 ? lines.join("\n") : null;
 }
 
-function* dispatchToAgent(
-  _input: string,
+async function* dispatchToAgent(
+  input: string,
   _config: DiriCodeConfig,
-  _session: string | null,
-): Iterable<string> {
-  // TODO(rado): wire to @diricode/agents dispatcher once pipeline is ready
-  yield `[POC] Received: "${_input.slice(0, 50)}${_input.length > 50 ? "..." : ""}"\n`;
-  yield `  (Agent dispatch not yet wired)\n`;
+  session: string | null,
+): AsyncIterable<string> {
+  const response = await fetch(EXECUTE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt: input,
+      sessionId: session ?? undefined,
+      workspaceRoot: process.cwd(),
+    }),
+  });
+
+  const envelope = (await response.json()) as ExecuteEnvelope;
+
+  if (!response.ok || !envelope.success) {
+    const message = envelope.error?.message ?? `HTTP ${String(response.status)}`;
+    yield `Error: ${message}\n`;
+    return;
+  }
+
+  const output = envelope.data?.result;
+  yield typeof output === "string" ? output : JSON.stringify(output, null, 2);
+  yield "\n";
 }
 
 export async function startRepl(config: DiriCodeConfig, options: ReplOptions): Promise<void> {
@@ -114,7 +146,7 @@ export async function startRepl(config: DiriCodeConfig, options: ReplOptions): P
   });
 
   // eslint-disable-next-line no-console
-  console.log("diricode REPL (POC) — type /help for commands\n");
+  console.log("diricode REPL — type /help for commands\n");
 
   const prompt = "diricode> ";
   const continuationPrompt = "......> ";
@@ -173,7 +205,7 @@ export async function startRepl(config: DiriCodeConfig, options: ReplOptions): P
       console.log();
 
       let firstChunk = true;
-      for (const chunk of dispatchToAgent(input, config, status.session)) {
+      for await (const chunk of dispatchToAgent(input, config, status.session)) {
         if (firstChunk) {
           process.stdout.write("  ");
           firstChunk = false;
