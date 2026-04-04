@@ -6,7 +6,7 @@ const mockValidateGithubToken = vi.hoisted(() =>
   vi.fn<(token: string) => Promise<{ login: string; name?: string }>>(),
 );
 
-vi.mock("@diricode/providers", () => ({
+vi.mock("@diricode/dirirouter", () => ({
   getGithubToken: mockGetGithubToken,
   getGithubTokenSource: mockGetGithubTokenSource,
   validateGithubToken: mockValidateGithubToken,
@@ -65,7 +65,7 @@ describe("runWhoami()", () => {
   it("shows invalid-token message when validation fails", async () => {
     mockGetGithubToken.mockReturnValue("ghp_bad");
     mockGetGithubTokenSource.mockReturnValue("GITHUB_TOKEN");
-    const { InvalidTokenError } = await import("@diricode/providers");
+    const { InvalidTokenError } = await import("@diricode/dirirouter");
     mockValidateGithubToken.mockRejectedValue(new InvalidTokenError("Bad credentials"));
     const out: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((s) => {

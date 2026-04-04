@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { type ReplOptions, type ReplStatus } from "../commands/repl.js";
 import { type DiriCodeConfig } from "@diricode/core";
 
-vi.mock("@diricode/providers", () => ({
+vi.mock("@diricode/dirirouter", () => ({
   hasGithubAuth: vi.fn<() => boolean>().mockReturnValue(true),
 }));
 
@@ -64,7 +64,7 @@ describe("startRepl() auth prompt", () => {
 
   it("shows no-auth message when no GitHub token and promptOnMissing is default", async () => {
     vi.resetModules();
-    vi.doMock("@diricode/providers", () => ({ hasGithubAuth: () => false }));
+    vi.doMock("@diricode/dirirouter", () => ({ hasGithubAuth: () => false }));
     vi.doMock("node:readline/promises", () => ({
       createInterface: vi.fn().mockReturnValue({
         question: vi.fn().mockResolvedValue("/exit"),
@@ -79,7 +79,7 @@ describe("startRepl() auth prompt", () => {
 
   it("shows no message when GitHub token is present", async () => {
     vi.resetModules();
-    vi.doMock("@diricode/providers", () => ({ hasGithubAuth: () => true }));
+    vi.doMock("@diricode/dirirouter", () => ({ hasGithubAuth: () => true }));
     vi.doMock("node:readline/promises", () => ({
       createInterface: vi.fn().mockReturnValue({
         question: vi.fn().mockResolvedValue("/exit"),

@@ -1,5 +1,5 @@
 /**
- * MiniMax AI provider implementation for @diricode/providers.
+ * MiniMax AI provider implementation for @diricode/dirirouter.
  *
  * Implements the Provider interface using MiniMax's OpenAI-compatible API
  * via @ai-sdk/openai-compatible. Provides both streaming and non-streaming

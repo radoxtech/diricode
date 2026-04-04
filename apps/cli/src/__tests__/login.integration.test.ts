@@ -13,7 +13,7 @@ const mockWriteFileSync = vi.hoisted(() => vi.fn());
 const mockExistsSync = vi.hoisted(() => vi.fn<() => boolean>().mockReturnValue(false));
 const mockReadFileSync = vi.hoisted(() => vi.fn());
 
-vi.mock("@diricode/providers", () => {
+vi.mock("@diricode/dirirouter", () => {
   class MockKeychain {
     get(service: string, account: string): string | null {
       return keychainStore.get(`${service}:${account}`) ?? null;
@@ -157,7 +157,7 @@ describe("login → whoami → logout integration", () => {
   });
 
   it("login with invalid token rejects and does not store in keychain", async () => {
-    const { InvalidTokenError } = await import("@diricode/providers");
+    const { InvalidTokenError } = await import("@diricode/dirirouter");
     mockValidateGithubToken.mockRejectedValueOnce(new InvalidTokenError("Bad credentials"));
 
     const errLines: string[] = [];
@@ -174,7 +174,7 @@ describe("login → whoami → logout integration", () => {
   });
 
   it("whoami with stale keychain token shows invalid-token error and re-auth hint", async () => {
-    const { InvalidTokenError } = await import("@diricode/providers");
+    const { InvalidTokenError } = await import("@diricode/dirirouter");
     mockGetGithubToken.mockReturnValue("ghp_stale");
     mockGetGithubTokenSource.mockReturnValue("keychain");
     mockValidateGithubToken.mockRejectedValueOnce(new InvalidTokenError("Token expired"));

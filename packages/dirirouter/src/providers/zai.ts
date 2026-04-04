@@ -1,5 +1,5 @@
 /**
- * z.ai GLM Coding Plan provider implementation for @diricode/providers.
+ * z.ai GLM Coding Plan provider implementation for @diricode/dirirouter.
  *
  * Implements Provider interface using Z.ai's GLM Coding Plan API via
  * OpenAI-compatible @ai-sdk/openai-compatible. Provides both streaming

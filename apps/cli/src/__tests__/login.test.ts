@@ -5,7 +5,7 @@ const mockGetGithubToken = vi.hoisted(() => vi.fn<() => string | undefined>());
 const mockGetGithubTokenSource = vi.hoisted(() => vi.fn<() => string>());
 const mockSaveDefaultModel = vi.hoisted(() => vi.fn());
 
-vi.mock("@diricode/providers", () => {
+vi.mock("@diricode/dirirouter", () => {
   class MockKeychain {
     set = mockKeychainSet;
     get = vi.fn().mockReturnValue(null);
@@ -55,7 +55,7 @@ vi.mock("node:fs", async () => {
 });
 
 import { runLogin } from "../commands/login.js";
-import { validateGithubToken, fetchAvailableModels } from "@diricode/providers";
+import { validateGithubToken, fetchAvailableModels } from "@diricode/dirirouter";
 import { password, select } from "@inquirer/prompts";
 
 describe("runLogin()", () => {
@@ -112,7 +112,7 @@ describe("runLogin()", () => {
   });
 
   it("shows error and sets exitCode=1 on invalid token", async () => {
-    const { InvalidTokenError } = await import("@diricode/providers");
+    const { InvalidTokenError } = await import("@diricode/dirirouter");
     vi.mocked(validateGithubToken).mockRejectedValueOnce(new InvalidTokenError("Bad credentials"));
     const errOut: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((s) => {

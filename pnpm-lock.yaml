@@ -47,9 +47,9 @@ importers:
       '@diricode/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@diricode/providers':
+      '@diricode/dirirouter':
         specifier: workspace:^
-        version: link:../../packages/providers
+        version: link:../../packages/dirirouter
       '@inquirer/prompts':
         specifier: ^8.3.2
         version: 8.3.2(@types/node@20.19.37)
@@ -139,35 +139,7 @@ importers:
         specifier: ^3.1.0
         version: 3.2.4(@types/node@20.19.37)(jiti@2.6.1)(jsdom@29.0.1)
 
-  packages/github-mcp:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.37
-      vitest:
-        specifier: ^4.1.0
-        version: 4.1.1(@opentelemetry/api@1.9.0)(@types/node@20.19.37)(jsdom@29.0.1)(vite@6.4.1(@types/node@20.19.37)(jiti@2.6.1))
-
-  packages/memory:
-    dependencies:
-      better-sqlite3:
-        specifier: ^12.8.0
-        version: 12.8.0
-      zod:
-        specifier: ^3.24.0
-        version: 3.25.76
-    devDependencies:
-      '@types/better-sqlite3':
-        specifier: ^7.6.13
-        version: 7.6.13
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.37
-      vitest:
-        specifier: ^4.1.0
-        version: 4.1.1(@opentelemetry/api@1.9.0)(@types/node@20.19.37)(jsdom@29.0.1)(vite@6.4.1(@types/node@20.19.37)(jiti@2.6.1))
-
-  packages/providers:
+  packages/dirirouter:
     dependencies:
       '@ai-sdk/openai-compatible':
         specifier: ^2.0.0
@@ -201,6 +173,34 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@20.19.37)(jiti@2.6.1)(jsdom@29.0.1)
 
+  packages/github-mcp:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.37
+      vitest:
+        specifier: ^4.1.0
+        version: 4.1.1(@opentelemetry/api@1.9.0)(@types/node@20.19.37)(jsdom@29.0.1)(vite@6.4.1(@types/node@20.19.37)(jiti@2.6.1))
+
+  packages/memory:
+    dependencies:
+      better-sqlite3:
+        specifier: ^12.8.0
+        version: 12.8.0
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.37
+      vitest:
+        specifier: ^4.1.0
+        version: 4.1.1(@opentelemetry/api@1.9.0)(@types/node@20.19.37)(jsdom@29.0.1)(vite@6.4.1(@types/node@20.19.37)(jiti@2.6.1))
+
   packages/server:
     dependencies:
       '@diricode/agents':
@@ -209,9 +209,9 @@ importers:
       '@diricode/core':
         specifier: workspace:*
         version: link:../core
-      '@diricode/providers':
+      '@diricode/dirirouter':
         specifier: workspace:*
-        version: link:../providers
+        version: link:../dirirouter
       '@diricode/tools':
         specifier: workspace:*
         version: link:../tools
@@ -268,9 +268,9 @@ importers:
       '@diricode/core':
         specifier: workspace:*
         version: link:../core
-      '@diricode/providers':
+      '@diricode/dirirouter':
         specifier: workspace:*
-        version: link:../providers
+        version: link:../dirirouter
       '@diricode/server':
         specifier: workspace:*
         version: link:../server
