@@ -1,5 +1,5 @@
 /**
- * Retry engine for @diricode/providers.
+ * Retry engine for @diricode/dirirouter.
  *
  * Provides exponential backoff retry logic with jitter, AbortSignal support,
  * and a discriminated-union result type so callers never need to catch.

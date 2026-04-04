@@ -1,5 +1,5 @@
 {
-  "name": "@diricode/providers",
+  "name": "@diricode/dirirouter",
   "version": "0.0.0",
   "private": false,
   "license": "MIT",
@@ -7,7 +7,12 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./contracts": "./dist/contracts/index.js",
+    "./providers": "./dist/providers/index.js",
+    "./router": "./dist/router/index.js",
+    "./picker": "./dist/picker/index.js",
+    "./feedback": "./dist/feedback/index.js"
   },
   "scripts": {
     "build": "tsc --build",

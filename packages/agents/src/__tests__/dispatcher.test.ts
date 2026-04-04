@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { AgentError, AgentRegistry, createDispatcher } from "../index.js";
 import type { Agent, AgentContext, AgentResult } from "../index.js";
-import type { DiriRouter } from "@diricode/providers";
+import type { DiriRouter } from "@diricode/dirirouter";
 
 type MockFn = ReturnType<typeof vi.fn>;
 

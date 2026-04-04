@@ -20,7 +20,7 @@
   "dependencies": {
     "@diricode/core": "workspace:*",
     "@diricode/agents": "workspace:*",
-    "@diricode/providers": "workspace:*",
+    "@diricode/dirirouter": "workspace:*",
     "@diricode/server": "workspace:*",
     "zod": "^3.24.0"
   },

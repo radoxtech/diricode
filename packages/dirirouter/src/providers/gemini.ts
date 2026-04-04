@@ -1,5 +1,5 @@
 /**
- * Google Gemini provider implementation for @diricode/providers.
+ * Google Gemini provider implementation for @diricode/dirirouter.
  *
  * Implements the Provider interface using Google's Gemini API via the
  * @google/genai SDK. Provides both streaming and non-streaming generation.

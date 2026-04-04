@@ -5,7 +5,7 @@ import {
   getGithubTokenSource,
   validateGithubToken,
   InvalidTokenError,
-} from "@diricode/providers";
+} from "@diricode/dirirouter";
 import { getGlobalConfigDir } from "@diricode/core";
 
 function getGoogleAuthStatus(): { configured: boolean; source: string } {

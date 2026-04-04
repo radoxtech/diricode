@@ -26,8 +26,8 @@ import {
   createFilterPolicyForDomain,
   TurnEnvelope,
 } from "@diricode/core";
-import type { DecisionRequest, ModelAttribute, ModelTier } from "@diricode/providers";
-import type { DiriRouter } from "@diricode/providers";
+import type { DecisionRequest, ModelAttribute, ModelTier } from "@diricode/dirirouter";
+import type { DiriRouter } from "@diricode/dirirouter";
 
 import type { AgentRegistry } from "./registry.js";
 import { DelegationGraph, createHandoffEnvelope, createDelegationResult } from "./protocol.js";

@@ -13,7 +13,7 @@ import {
   initiateGithubDeviceFlow,
   pollGithubDeviceToken,
   GithubOAuthError,
-} from "@diricode/providers";
+} from "@diricode/dirirouter";
 import { getGlobalConfigDir } from "@diricode/core";
 
 const GITHUB_CLIENT_ID = "Ov23li7a7FBdI2WkK0dd";
