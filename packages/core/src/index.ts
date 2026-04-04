@@ -178,41 +178,6 @@ export type {
   Comparison,
 } from "./providers/index.js";
 
-export {
-  PricingTierSchema,
-  TaskComplexitySchema,
-  HardRuleSchema,
-  HardRulesConfigSchema,
-  DEFAULT_HARD_RULES_CONFIG,
-  comparePricingTiers,
-  isPricingTierAllowed,
-  getPricingTierRejectionReason,
-  resolveHardRuleRange,
-  FeedbackOutcomeSchema,
-  FeedbackSubmissionSchema,
-  Tier1HeuristicRouter,
-  Tier2BertRouter,
-  Tier3TinyLLMRouter,
-  CascadeModelResolver,
-  resolverCandidateFromContracts,
-} from "./llm-picker/index.js";
-
-export type {
-  PricingTier,
-  TaskComplexity,
-  HardRule,
-  HardRulesConfig,
-  HardRuleEvaluationContext,
-  HardRuleEvaluationResult,
-  CascadeModelResolverOptions,
-  ResolverCandidate,
-  DecisionRequest,
-  DecisionResponse,
-  FeedbackOutcome,
-  FeedbackSubmission,
-  FeedbackCollector,
-} from "./llm-picker/index.js";
-
 export * from "./agents/dispatcher-contract.js";
 export * from "./agents/boundary-violation.js";
 export * from "./agents/handoff-filter.js";
