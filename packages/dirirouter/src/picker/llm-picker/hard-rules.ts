@@ -1,8 +1,8 @@
-import type { PricingTier } from "@diricode/diri-router/contracts";
+import type { PricingTier } from "@diricode/dirirouter/contracts";
 import { z } from "zod";
 
-export { PricingTierSchema } from "@diricode/diri-router/contracts";
-export type { PricingTier } from "@diricode/diri-router/contracts";
+export { PricingTierSchema } from "@diricode/dirirouter/contracts";
+export type { PricingTier } from "@diricode/dirirouter/contracts";
 
 export const TaskComplexitySchema = z.enum(["simple", "moderate", "complex", "expert"]);
 export type TaskComplexity = z.infer<typeof TaskComplexitySchema>;

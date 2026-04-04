@@ -12,7 +12,7 @@ import type {
   ModelCard,
   ModelCapabilities,
   PickerSubscription,
-} from "@diricode/diri-router/contracts";
+} from "@diricode/dirirouter/contracts";
 import {
   DEFAULT_HARD_RULES_CONFIG,
   getPricingTierRejectionReason,
