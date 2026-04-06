@@ -20,7 +20,7 @@ import type {
   ModelTier,
   ModelAttribute,
   FallbackType,
-} from "@diricode/dirirouter/picker/llm-picker/types.js";
+} from "@diricode/dirirouter/llm-picker/types.js";
 import {
   ModelTierSchema,
   ModelAttributeSchema,
@@ -29,7 +29,7 @@ import {
   AgentInfoSchema,
   TaskInfoSchema,
   DecisionConstraintsSchema,
-} from "@diricode/dirirouter/picker/llm-picker/types.js";
+} from "@diricode/dirirouter/llm-picker/types.js";
 import type { DiriRouter } from "@diricode/dirirouter/diri-router.js";
 import type { Registry } from "@diricode/dirirouter/registry.js";
 import type { ModelCardRegistry } from "@diricode/dirirouter/picker/model-card-registry.js";
@@ -97,7 +97,7 @@ export interface BootstrapResult {
  * Omits `chatId` and `requestId` from `DecisionRequest` since these
  * are auto-generated server-side.
  *
- * @see DecisionRequest from @diricode/dirirouter/picker/llm-picker/types
+ * @see DecisionRequest from @diricode/dirirouter/llm-picker/types
  */
 export interface PickRequest {
   /** Agent identity and role. */
@@ -202,12 +202,12 @@ void _chatRequestTypeCheck;
 
 /**
  * Re-export of `ModelTier` for playground consumers.
- * @see @diricode/dirirouter/picker/llm-picker/types
+ * @see @diricode/dirirouter/llm-picker/types
  */
 export type { ModelTier, ModelAttribute, FallbackType };
 
 /**
  * Re-export of relevant Zod schemas for playground consumers.
- * @see @diricode/dirirouter/picker/llm-picker/types
+ * @see @diricode/dirirouter/llm-picker/types
  */
 export { ModelTierSchema, ModelAttributeSchema, FallbackTypeSchema, ModelDimensionsSchema };

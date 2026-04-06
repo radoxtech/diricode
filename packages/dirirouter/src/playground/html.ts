@@ -1,5 +1,5 @@
 import type { BootstrapResult } from "./types.js";
-import { ModelAttributeSchema, FallbackTypeSchema } from "../picker/llm-picker/types.js";
+import { ModelAttributeSchema, FallbackTypeSchema } from "../llm-picker/types.js";
 
 export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   const modelAttributes = ModelAttributeSchema.options;
