@@ -61,6 +61,7 @@
 | [053](adr-053-router-cost-tracking.md) | Router-Centric Cost Tracking | MVP-2+v2 | Router |
 | [054](adr-054-ai-sdk-transport-layer.md) | Vercel AI SDK as Transport Layer | MVP-1 | Router |
 | [055](adr-055-diri-router-unified-package.md) | diri-router Unified Package | MVP-1+MVP-2 | Router |
+| [056](adr-056-tiered-specialist-agents.md) | Tiered Specialist Agents: Junior / Mid / Senior E2E Execution | MVP+v2 | Architecture |
 
 ## Template
 
