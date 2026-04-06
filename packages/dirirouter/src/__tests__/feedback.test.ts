@@ -9,6 +9,9 @@ describe("LogFeedbackCollector", () => {
     await collector.submit({
       chatId: "test-chat-123",
       requestId: "550e8400-e29b-41d4-a716-446655440000",
+      model: "gpt-4o",
+      modelTier: "heavy",
+      taskTag: "code-generation",
       outcome: {
         success: true,
         tokenCount: { input: 100, output: 50 },
@@ -20,6 +23,9 @@ describe("LogFeedbackCollector", () => {
     expect(consoleSpy).toHaveBeenCalledWith("[feedback]", {
       chatId: "test-chat-123",
       requestId: "550e8400-e29b-41d4-a716-446655440000",
+      model: "gpt-4o",
+      modelTier: "heavy",
+      taskTag: "code-generation",
       outcome: {
         success: true,
         tokenCount: { input: 100, output: 50 },

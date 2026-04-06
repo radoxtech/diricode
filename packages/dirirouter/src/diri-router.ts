@@ -124,6 +124,8 @@ export class DiriRouter {
       model: modelConfig,
       signal: options.signal,
     });
+    // In actual production implementation we would pass `failedModels` to #resolver.resolve
+    // when requesting a new fallback candidate. For now DiriRouter uses ProviderRouter as a fallback.
     return {
       text: fallbackText,
       provider: this.#registry.getDefault().name,

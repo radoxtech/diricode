@@ -98,7 +98,7 @@ describe("DiriRouter", () => {
       const request: DecisionRequest = {
         chatId: "test-chat-session",
         requestId: "test-request-id",
-        agent: { id: "test-agent", role: "coder" },
+        agent: { id: "test-agent", role: "coder", specializations: [], seniority: "mid" },
         task: { type: "simple" },
         modelDimensions: {
           tier: "low" as const,

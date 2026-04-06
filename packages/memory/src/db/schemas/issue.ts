@@ -9,7 +9,11 @@ export type IssuePriority = z.infer<typeof IssuePrioritySchema>;
 
 // --- Domain types ---
 export const IssueSchema = z.object({
-  id: z.string().min(1),
+  // UUID for internal relationships and references
+  id: z.string().uuid(),
+  // Sequential numeric ID used for mapping when the issue is synced to external systems
+  // like GitHub Projects or Jira (e.g., #42)
+  externalId: z.number().int().positive().optional(),
   title: z.string().min(1),
   description: z.string().nullable().optional(),
   status: IssueStatusSchema,
