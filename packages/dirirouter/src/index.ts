@@ -181,7 +181,7 @@ export {
   Tier3TinyLLMRouter,
   CascadeModelResolver,
   resolverCandidateFromContracts,
-} from "./picker/llm-picker/index.js";
+} from "./llm-picker/index.js";
 
 export type {
   TaskComplexity,
@@ -212,4 +212,4 @@ export type {
   RouterClassification,
   ModelRouter,
   ModelResolver,
-} from "./picker/llm-picker/index.js";
+} from "./llm-picker/index.js";

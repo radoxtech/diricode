@@ -2,7 +2,7 @@ import { Registry } from "../registry.js";
 import { ModelCardRegistry } from "../picker/model-card-registry.js";
 import { SubscriptionRegistry } from "../picker/subscription-registry.js";
 import { seedAllRegistries } from "../picker/seed-models.js";
-import { CascadeModelResolver } from "../picker/llm-picker/model-resolver.js";
+import { CascadeModelResolver } from "../llm-picker/model-resolver.js";
 import { DiriRouter } from "../diri-router.js";
 import { GeminiProvider } from "../providers/gemini.js";
 import { ZaiProvider } from "../providers/zai.js";

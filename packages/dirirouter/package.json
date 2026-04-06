@@ -12,6 +12,7 @@
     "./providers": "./dist/providers/index.js",
     "./router": "./dist/router/index.js",
     "./picker": "./dist/picker/index.js",
+    "./llm-picker": "./dist/llm-picker/index.js",
     "./feedback": "./dist/feedback/index.js"
   },
   "scripts": {
