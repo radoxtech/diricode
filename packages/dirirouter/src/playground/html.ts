@@ -15,6 +15,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   <!-- HTMX & SSE Extension -->
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
   <script src="https://unpkg.com/htmx-ext-sse@2.2.2"></script>
+  <script src="https://unpkg.com/htmx-ext-json-enc@2.0.0"></script>
   
   <!-- Alpine.js -->
   <script defer src="https://unpkg.com/alpinejs@3.14.8"></script>
@@ -281,7 +282,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   <main>
     <!-- LEFT PANEL: FORM -->
     <div class="panel panel-left">
-      <form id="req-form" @submit.prevent>
+      <form id="req-form" @submit.prevent hx-ext="json-enc">
         
         <div class="section-title">Task & Agent</div>
         
@@ -301,6 +302,18 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
             </select>
           </div>
           <div class="form-col">
+            <label>Agent Seniority</label>
+            <select name="agent.seniority">
+              <option value="junior">junior</option>
+              <option value="mid" selected>mid</option>
+              <option value="senior">senior</option>
+              <option value="lead">lead</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
             <label>Task Type</label>
             <select name="task.type">
               <option value="code-generation">code-generation</option>
@@ -308,6 +321,10 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
               <option value="debugging">debugging</option>
               <option value="research">research</option>
             </select>
+          </div>
+          <div class="form-col">
+            <label>Agent Specializations (comma separated)</label>
+            <input type="text" name="agent.specializations" placeholder="e.g. react, nodejs">
           </div>
         </div>
 
@@ -340,6 +357,17 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
 
         <div class="section-title">Constraints</div>
 
+        <div class="form-row">
+          <div class="form-col">
+            <label>Min Context Window</label>
+            <input type="number" name="constraints.minContextWindow" placeholder="e.g. 128000">
+          </div>
+          <div class="form-col">
+            <label>Max Cost USD (per 1k)</label>
+            <input type="number" step="0.01" name="constraints.maxCostUsd" placeholder="e.g. 0.50">
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Preferred Providers</label>
           <div class="checkbox-grid" id="pref-providers-grid">
@@ -370,26 +398,15 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
 
         <div class="section-title">Generate Options</div>
 
-        <div class="form-row">
-          <div class="form-col">
-            <label>Temperature (<span x-text="temp"></span>)</label>
-            <div class="slider-container">
-              <input type="range" name="temperature" min="0" max="2" step="0.1" x-model="temp">
-            </div>
-          </div>
-          <div class="form-col">
-            <label>Max Tokens</label>
-            <input type="number" name="maxTokens" value="2048">
-          </div>
+        <div class="form-group">
+          <label>Max Tokens</label>
+          <input type="number" name="maxTokens" value="2048">
         </div>
 
         <div class="actions">
-          <!-- Pick Only uses hx-post and updates the results container -->
+          <!-- Pick Only uses custom Alpine logic -->
           <button type="button" 
-                  hx-post="/api/pick" 
-                  hx-target="#results-container"
-                  hx-swap="innerHTML"
-                  @click="clearErrors"
+                  @click="pickOnly"
                   x-show="!loading">
             Pick Only
           </button>
@@ -458,7 +475,6 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   <script>
     document.addEventListener('alpine:init', () => {
       Alpine.data('playground', () => ({
-        temp: 0.7,
         loading: false,
         
         modelsByProvider: {},
@@ -557,11 +573,79 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
           err.innerHTML = \`<strong>Error:</strong> \${msg}<br>\${actionable ? \`<span style="color:#f87171">\${actionable}</span>\` : ''}\`;
         },
 
+        getFormData() {
+          const form = document.getElementById('req-form');
+          const formData = new FormData(form);
+          const minContextWindowStr = formData.get('constraints.minContextWindow');
+          const maxCostUsdStr = formData.get('constraints.maxCostUsd');
+
+          const specRaw = formData.get('agent.specializations');
+          const specializations = specRaw 
+            ? specRaw.split(',').map(s => s.trim()).filter(Boolean) 
+            : [];
+
+          return {
+            agent: { 
+              role: formData.get('agent.role'),
+              seniority: formData.get('agent.seniority'),
+              specializations
+            },
+            task: { type: formData.get('task.type'), description: formData.get('prompt') },
+            modelDimensions: {
+              tier: formData.get('modelDimensions.tier'),
+              modelAttributes: formData.getAll('modelDimensions.modelAttributes[]'),
+              fallbackType: formData.get('modelDimensions.fallbackType') === 'none' ? null : formData.get('modelDimensions.fallbackType')
+            },
+            constraints: {
+              preferredProviders: formData.getAll('constraints.preferredProviders[]'),
+              excludedProviders: formData.getAll('constraints.excludedProviders[]'),
+              preferredModels: formData.getAll('constraints.preferredModels[]'),
+              excludedModels: formData.getAll('constraints.excludedModels[]'),
+              minContextWindow: minContextWindowStr ? parseInt(minContextWindowStr, 10) : undefined,
+              maxCostUsd: maxCostUsdStr ? parseFloat(maxCostUsdStr) : undefined
+            },
+            prompt: formData.get('prompt'),
+            maxTokens: parseInt(formData.get('maxTokens'), 10)
+          };
+        },
+
+        async pickOnly() {
+          this.loading = true;
+          this.clearErrors();
+          
+          const results = document.getElementById('results-container');
+          const sseContainer = document.getElementById('sse-container');
+          results.innerHTML = 'Loading...';
+          sseContainer.innerHTML = '';
+          
+          try {
+            const data = this.getFormData();
+            const res = await fetch('/api/pick', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+
+            const json = await res.json();
+            
+            if (!res.ok) {
+              this.showError(json.error || 'Failed to pick model', json.actionable || JSON.stringify(json.details || json));
+              results.innerHTML = '';
+            } else {
+              results.innerHTML = '<pre style="white-space: pre-wrap; word-wrap: break-word;">' + JSON.stringify(json, null, 2) + '</pre>';
+            }
+          } catch(e) {
+            this.showError('Network Error', e.message);
+            results.innerHTML = '';
+          } finally {
+            this.loading = false;
+          }
+        },
+
         async startChat() {
           this.loading = true;
           this.clearErrors();
           
-          const form = document.getElementById('req-form');
           const results = document.getElementById('results-container');
           const sseContainer = document.getElementById('sse-container');
           
@@ -569,30 +653,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
           sseContainer.innerHTML = '';
           
           try {
-            // Because SSE via HTMX doesn't trivially support sending a complex JSON POST body to initiate a stream,
-            // and the prompt says "Pick + Chat submits to /api/chat and displays SSE stream",
-            // we'll POST first to get an ID or if the endpoint expects form-data, we can just use HTMX.
-            // But we will manually POST the JSON, then set up the SSE connection.
-            
-            const formData = new FormData(form);
-            const data = {
-              agent: { role: formData.get('agent.role') },
-              task: { type: formData.get('task.type'), description: formData.get('prompt') },
-              modelDimensions: {
-                tier: formData.get('modelDimensions.tier'),
-                modelAttributes: formData.getAll('modelDimensions.modelAttributes[]'),
-                fallbackType: formData.get('modelDimensions.fallbackType') === 'none' ? null : formData.get('modelDimensions.fallbackType')
-              },
-              constraints: {
-                preferredProviders: formData.getAll('constraints.preferredProviders[]'),
-                excludedProviders: formData.getAll('constraints.excludedProviders[]'),
-                preferredModels: formData.getAll('constraints.preferredModels[]'),
-                excludedModels: formData.getAll('constraints.excludedModels[]')
-              },
-              prompt: formData.get('prompt'),
-              temperature: parseFloat(formData.get('temperature')),
-              maxTokens: parseInt(formData.get('maxTokens'), 10)
-            };
+            const data = this.getFormData();
 
             const res = await fetch('/api/chat', {
               method: 'POST',

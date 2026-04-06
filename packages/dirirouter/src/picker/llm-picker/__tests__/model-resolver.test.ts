@@ -38,7 +38,7 @@ import type {
 const validRequest = (): DecisionRequest => ({
   chatId: "test-chat-session",
   requestId: "550e8400-e29b-41d4-a716-446655440000",
-  agent: { id: "coder-agent", role: "coding" },
+  agent: { id: "coder-agent", role: "coding", seniority: "senior", specializations: [] },
   task: { type: "implement-feature", description: "Add dark mode" },
   modelDimensions: {
     tier: "heavy",
@@ -689,7 +689,7 @@ describe("CascadeModelResolver", () => {
     const baseRequest = (tier: ModelTier): DecisionRequest => ({
       chatId: "test-chat-session",
       requestId: "550e8400-e29b-41d4-a716-446655440000",
-      agent: { id: "test-agent", role: "architect" },
+      agent: { id: "test-agent", role: "architect", seniority: "senior", specializations: [] },
       task: { type: "complex-architecture" },
       modelDimensions: {
         tier,
@@ -833,7 +833,7 @@ describe("CascadeModelResolver", () => {
 
       const response = await resolver.resolve({
         ...validRequest(),
-        agent: { id: "architect-agent", role: "architect" },
+        agent: { id: "architect-agent", role: "architect", specializations: [], seniority: "mid" },
         task: { type: "simple" },
       });
 
@@ -851,7 +851,7 @@ describe("CascadeModelResolver", () => {
 
       const response = await resolver.resolve({
         ...validRequest(),
-        agent: { id: "coder-agent", role: "coder" },
+        agent: { id: "coder-agent", role: "coder", seniority: "mid", specializations: [] },
         task: { type: "simple" },
       });
 
@@ -874,7 +874,12 @@ describe("CascadeModelResolver", () => {
 
       const response = await resolver.resolve({
         ...validRequest(),
-        agent: { id: "architect-agent", role: "architect" },
+        agent: {
+          id: "architect-agent",
+          role: "architect",
+          seniority: "senior",
+          specializations: [],
+        },
         task: { type: "complex-architecture" },
       });
 

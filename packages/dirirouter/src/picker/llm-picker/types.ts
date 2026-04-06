@@ -86,10 +86,13 @@ export type ClassificationTrace = z.infer<typeof ClassificationTraceSchema>;
 
 /**
  * Minimal agent identity included in a decision request.
+ * Expanded to handle seniority and specializations.
  */
 export const AgentInfoSchema = z.object({
   id: z.string().min(1),
   role: z.string().min(1),
+  seniority: z.enum(["junior", "mid", "senior", "lead"]).default("mid"),
+  specializations: z.array(z.string()).default([]),
 });
 export type AgentInfo = z.infer<typeof AgentInfoSchema>;
 
@@ -126,10 +129,14 @@ export const DecisionRequestSchema = z.object({
   requestId: z.string().uuid(),
   agent: AgentInfoSchema,
   task: TaskInfoSchema,
+  /** Any issue tracking details should be passed generically or typed via external packages */
+  issueContext: z.record(z.unknown()).optional(),
   modelDimensions: ModelDimensionsSchema,
   constraints: DecisionConstraintsSchema.optional(),
   /** Named policy override; null means use the default policy */
   policyOverride: z.string().nullable().optional(),
+  /** explicitly tracked failed models during fallback */
+  failedModels: z.array(z.string()).optional(),
 });
 export type DecisionRequest = z.infer<typeof DecisionRequestSchema>;
 
@@ -219,10 +226,14 @@ export type FeedbackOutcome = z.infer<typeof FeedbackOutcomeSchema>;
 
 /**
  * Feedback submission linking outcome to original decision.
+ * Used for reinforcement learning based on Model x Tier x TaskTag.
  */
 export const FeedbackSubmissionSchema = z.object({
   chatId: z.string().min(1),
   requestId: z.string().uuid(),
+  model: z.string().min(1),
+  modelTier: ModelTierSchema,
+  taskTag: z.string().min(1),
   outcome: FeedbackOutcomeSchema,
 });
 export type FeedbackSubmission = z.infer<typeof FeedbackSubmissionSchema>;

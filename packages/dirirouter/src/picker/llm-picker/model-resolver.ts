@@ -539,6 +539,10 @@ export class CascadeModelResolver implements ModelResolver {
       return `excluded by constraints: model ${descriptor.model} is excluded`;
     }
 
+    if (request.failedModels?.includes(descriptor.model) === true) {
+      return `excluded by fallback: model ${descriptor.model} previously failed`;
+    }
+
     if (
       request.constraints?.maxCostUsd !== undefined &&
       descriptor.estimatedCostUsd !== undefined &&

@@ -7,11 +7,7 @@ const logFeedback = (data: unknown): void => {
 
 export class LogFeedbackCollector implements FeedbackCollector {
   submit(feedback: FeedbackSubmission): Promise<void> {
-    logFeedback({
-      chatId: feedback.chatId,
-      requestId: feedback.requestId,
-      outcome: feedback.outcome,
-    });
+    logFeedback(feedback);
     return Promise.resolve();
   }
 }

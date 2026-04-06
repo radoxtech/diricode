@@ -130,7 +130,12 @@ function buildDecisionRequest(
   return {
     chatId: crypto.randomUUID(),
     requestId: crypto.randomUUID(),
-    agent: { id: agent.name, role: agent.capabilities.primary },
+    agent: {
+      id: agent.name,
+      role: agent.capabilities.primary,
+      seniority: "senior",
+      specializations: [],
+    },
     task: { type: taskType },
     modelDimensions: {
       tier: toModelTier(requestedTier),

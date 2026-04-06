@@ -101,6 +101,17 @@ export interface BootstrapResult {
  */
 export interface PickRequest {
   /** Agent identity and role. */
+  agent: z.input<typeof AgentInfoSchema>;
+  /** Task type and description. */
+  task: z.input<typeof TaskInfoSchema>;
+  /** Model selection dimensions. */
+  modelDimensions: z.input<typeof ModelDimensionsSchema>;
+  /** Optional constraints for filtering/ranking candidates. */
+  constraints?: z.input<typeof DecisionConstraintsSchema>;
+}
+
+export interface PickRequestOutput {
+  /** Agent identity and role. */
   agent: AgentInfo;
   /** Task type and description. */
   task: TaskInfo;
@@ -119,7 +130,7 @@ export interface PickRequest {
  * - `modelDimensions` matches ModelDimensionsSchema
  * - `constraints` is optional and matches DecisionConstraintsSchema if provided
  */
-export const PickRequestSchema: z.ZodType<PickRequest> = z.object({
+export const PickRequestSchema: z.ZodType<PickRequestOutput, z.ZodTypeDef, PickRequest> = z.object({
   agent: AgentInfoSchema,
   task: TaskInfoSchema,
   modelDimensions: ModelDimensionsSchema,
@@ -127,12 +138,12 @@ export const PickRequestSchema: z.ZodType<PickRequest> = z.object({
 });
 
 /**
- * Inferred TypeScript type from `PickRequestSchema`.
+ * Inferred TypeScript type from `PickRequestSchema` (output).
  */
-export type PickRequestInferred = z.infer<typeof PickRequestSchema>;
+export type PickRequestInferred = z.output<typeof PickRequestSchema>;
 
 // Ensure schema produces the correct type
-const _pickRequestTypeCheck: PickRequest = {} as PickRequestInferred;
+const _pickRequestTypeCheck: PickRequestOutput = {} as PickRequestInferred;
 void _pickRequestTypeCheck;
 
 // ---------------------------------------------------------------------------
