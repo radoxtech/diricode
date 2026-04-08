@@ -43,25 +43,18 @@ Operational sequence:
 
 ## Epic Hierarchy
 
-Use four planning levels with strict title prefixes:
+Use two planning levels with strict title prefixes:
 
-1. **[Meta-Epic]**
-   - Label: `level:meta-epic`
-   - Example title: `[Meta-Epic] Product Evolution`
-
-2. **[Epic]**
+1. **[Epic]**
    - Label: `level:epic`
-   - Example title: `[Epic] Identity and Access`
+   - Example title: `[Epic] Agent Workers`
+   - Tracks children via child list comment pinned on the epic issue
 
-3. **[Sub-Epic]**
-   - Label: `level:sub-epic`
-   - Example title: `[Sub-Epic] Registration Reliability`
-
-4. **[Task]**
+2. **[Task]**
    - Label: `level:task`
-   - Example title: `[Task] Preserve inputs on validation error`
+   - Example title: `[Task] DC-AW-001: Implement worker base class`
 
-Traceability rule: each lower level links upward (`[Task]` -> `[Sub-Epic]` -> `[Epic]` -> `[Meta-Epic]`).
+Traceability rule: each `[Task]` links upward to its parent `[Epic]` via GitHub sub-issues or child list comments.
 
 For detailed hierarchy management and linking conventions, see `.ai/knowledge/epic-hierarchy.md`.
 
@@ -246,7 +239,7 @@ Cross-reference: `github-workflow-export/04-worktree-isolation-rules.md`.
 ## Glossary
 
 - **Issue-First**: policy requiring a GitHub issue before code changes.
-- **[Meta-Epic] / [Epic] / [Sub-Epic] / [Task]**: four-level planning hierarchy.
+- **[Epic] / [Task]**: two-level planning hierarchy (simplified from earlier 4-level design during 2026-04 remediation).
 - **Status Field**: project board state machine (`Backlog` through `Done`).
 - **In Progress**: active implementation state with branch/worktree.
 - **Review**: PR-created state awaiting approval.

@@ -1,7 +1,7 @@
 # Worktree Isolation Safety Rules
 
 > Safety reference for AI models working in git worktrees.
-> See `start-work.md` for creating worktrees, `finish-work.md` for cleanup.
+> See `start.md` for creating worktrees, `finish.md` for cleanup.
 
 ---
 
@@ -209,7 +209,7 @@ Before every operation in a worktree, verify:
 
 **Never modify files outside your active worktree.**
 
-**After finish-work completes**, the worktree is removed. Do not attempt further operations in that path.
+**After `/finish` completes**, the worktree is removed. Do not attempt further operations in that path.
 
 ---
 
@@ -244,5 +244,5 @@ Run all `pnpm` commands from the worktree root. Package resolution works identic
 
 ## Related
 
-- **`start-work.md`** — creates worktrees (cross-reference)
-- **`finish-work.md`** — removes worktrees after merge (cross-reference)
+- **`start.md`** — creates worktrees (cross-reference)
+- **`finish.md`** — removes worktrees after merge (cross-reference)

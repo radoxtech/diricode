@@ -30,12 +30,8 @@ Track issue/task complexity and hierarchy level.
 
 | Label             | Color     | Description                                  |
 | ----------------- | --------- | -------------------------------------------- |
-| `level:meta-epic` | `#8B008B` | Cross-project meta epic, strategic direction |
 | `level:epic`      | `#0366D6` | Major feature or initiative                  |
-| `level:sub-epic`  | `#6F42C1` | Sub-epic, part of larger epic                |
 | `level:task`      | `#1F883D` | Individual task or work item                 |
-
-**Usage:** Applied by GraphQL field names from ProjectV2 (inherited from workflow)
 
 ---
 
@@ -45,6 +41,7 @@ Categorize work by type for branch naming and health scoring.
 
 | Label                | Color     | Description                        |
 | -------------------- | --------- | ---------------------------------- |
+| `feature`            | `#0075CA` | Feature-type issues                |
 | `type:bug`           | `#D73A49` | Bug fix or defect resolution       |
 | `type:enhancement`   | `#0075CA` | New feature or improvement         |
 | `type:documentation` | `#FFF8DC` | Documentation, guides, comments    |
@@ -56,6 +53,7 @@ Categorize work by type for branch naming and health scoring.
 
 - `type:bug` → `fix/` prefix
 - `type:enhancement` → `feat/` prefix
+- `feature` → `feat/` prefix
 - `type:refactor` → `refactor/` prefix
 - `type:documentation` → `docs/` prefix
 - `type:test` → `test/` prefix
@@ -75,10 +73,6 @@ Define urgency and importance for issue resolution.
 | `priority:medium`   | `#FFA500` | Standard priority, schedule next sprint  |
 | `priority:low`      | `#FFEB3B` | Nice to have, backlog items              |
 
-**Health Scoring Note:** Priority field values from 08-project-health.md:
-
-- Critical, High, Medium, Low (status names map to GraphQL field values)
-
 ---
 
 ### Status Labels
@@ -89,10 +83,6 @@ Track issue resolution status and blockers.
 | --------------------- | --------- | --------------------------------------- |
 | `status:blocked`      | `#EF476F` | Blocked, awaiting dependency resolution |
 | `status:needs-review` | `#FFD60A` | Ready for code review                   |
-
-**Project Status Field:** Replaces labels with ProjectV2 single-select values:
-
-- Backlog, Todo, Ready, In Progress, Review, Blocked, Done
 
 ---
 
@@ -106,214 +96,50 @@ Organize work by sprint iteration.
 | `sprint:next`    | `#138496` | Next planned sprint         |
 | `sprint:backlog` | `#8B9299` | Backlog, no sprint assigned |
 
-**ProjectV2 Sprint Field:** Uses iteration field (replaces labels)
-
-- Sprint values: Sprint 1, Sprint 2, Sprint 3, Sprint 4, Sprint 5, etc.
-
----
-
-### Live Board Runtime Labels
-
-The live GitHub project for `radoxtech/diricode` currently operates on a **2-level delivery model**:
-
-| Label     | Meaning                                                            |
-| --------- | ------------------------------------------------------------------ |
-| `epic`    | Parent planning issue                                              |
-| `feature` | Atomic implementation unit for current sprint / worktree selection |
-
-> This is the **operational truth** for the current GitHub board. It coexists with the repo's documented 4-level aspirational hierarchy in `.ai/knowledge/epic-hierarchy.md`.
-
 ---
 
 ### Routing Labels for Parallel Work
 
-These labels exist to make `/current-sprint`, `/start-work`, and `/project-health` capable of recommending **non-conflicting parallel work**.
+These labels exist to make `/current-sprint`, `/start`, and `/project-health` capable of recommending **non-conflicting parallel work**.
 
 #### Assignment Rules
 
-- Every `feature` issue gets **exactly 1** `component:*` label.
+- Every `feature` issue gets **exactly 1** `module:*` label.
 - Every `feature` issue gets **1 primary** `area:*` label and optionally **1 secondary** `area:*` label.
 - `conflict:*` labels are only added when the feature touches a genuinely shared surface.
 - `execution:*` labels are operational hints, not long-lived planning taxonomy.
 
 ---
 
-### Component Labels
+### Module Labels (Current Taxonomy)
 
-| Label                   | Description                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| `component:repo`        | Monorepo layout, tooling root, workspace foundation          |
-| `component:config`      | Config schema, loading, env, path resolution                 |
-| `component:providers`   | Model/provider routing and fallback logic                    |
-| `component:server`      | HTTP/SSE/session API surface                                 |
-| `component:tools`       | Filesystem, shell, git, LSP, AST, fetch tools                |
-| `component:safety`      | Safety rails, approvals, budget and command guards           |
-| `component:agent-core`  | Shared agent runtime and delegation substrate                |
-| `component:agents`      | Individual agent implementations / personas                  |
-| `component:cli`         | CLI entrypoint and session UX                                |
-| `component:testing`     | Test harnesses, utilities, CI test execution                 |
-| `component:memory`      | SQLite memory, sessions, timeline, search                    |
-| `component:pipeline`    | Turn lifecycle, orchestration, execution waves               |
-| `component:context`     | Repo map, ranking, condensing, context composer              |
-| `component:hooks`       | Hook engine, executors, hook config                          |
-| `component:skills`      | Skill definitions, loading, injection, work-mode integration |
-| `component:eventstream` | Event bus, metrics, observability pipeline                   |
-| `component:web`         | Web UI, SSE client, chat/session/approval UX                 |
+| Label                     | Description                                                  |
+| ------------------------- | ------------------------------------------------------------ |
+| `module:core`             | Core types, contracts, interfaces, Permission Engine         |
+| `module:code-index`       | Code Structural Index (tree-sitter, PageRank)               |
+| `module:prompt-composer`  | Prompt Composer (3-layer context management)                |
+| `module:semantic-search`  | Semantic Search (embeddings, vector search)                 |
+| `module:agents`           | Agent Workers (specialized agents + skills)                 |
+| `module:orchestrators`    | Orchestrators (dispatcher, delegation, coordination)        |
+| `module:dirirouter`       | DiriRouter (model routing, providers, cost tracking)         |
+| `module:project-planner`  | Diricontext (project knowledge graph)                       |
+| `module:tools`            | Tools Runtime (MCP tool schemas + handlers)                 |
+| `module:web`              | Web Dashboard                                                |
+| `module:tui`              | TUI (Ink-based terminal UI)                                  |
+| `module:cli`              | CLI                                                          |
+| `module:server`           | Server (Hono API)                                            |
+| `module:memory`           | Agent Memory                                                 |
 
 ---
 
-### Area Labels
+### Area Labels (Cross-cutting)
 
-Use these as the narrow implementation surface for each feature.
-
-#### `component:repo`
-
-- `area:workspace-layout`
-- `area:package-scaffolding`
-- `area:tsconfig`
-- `area:lint-format`
-- `area:ci-pipeline`
-
-#### `component:config`
-
-- `area:config-schema`
-- `area:config-loading`
-- `area:path-resolution`
-- `area:env-loading`
-
-#### `component:providers`
-
-- `area:provider-registry`
-- `area:provider-copilot`
-- `area:provider-kimi`
-- `area:retry-fallback`
-- `area:provider-streaming`
-
-#### `component:server`
-
-- `area:http-server`
-- `area:sse-endpoint`
-- `area:session-api`
-- `area:api-versioning`
-
-#### `component:tools`
-
-- `area:file-read`
-- `area:file-write`
-- `area:file-edit`
-- `area:shell-exec`
-- `area:file-search`
-- `area:git-integration`
-- `area:lsp-integration`
-- `area:ast-tooling`
-- `area:web-fetch`
-
-#### `component:safety`
-
-- `area:bash-safety`
-- `area:file-safety`
-- `area:git-safety`
-- `area:budget-guard`
-- `area:approval-flow`
-
-#### `component:agent-core`
-
-- `area:agent-lifecycle`
-- `area:agent-registry`
-- `area:dispatcher-runtime`
-- `area:delegation-protocol`
-- `area:prompt-builder`
-- `area:agent-sandbox`
-- `area:model-tier-routing`
-
-#### `component:agents`
-
-- `area:agent-dispatcher`
-- `area:agent-code-writer`
-- `area:agent-explorer`
-- `area:agent-reviewer`
-- `area:agent-verifier`
-- `area:agent-planner`
-- `area:agent-debugger`
-- `area:agent-git-operator`
-- `area:agent-skill-integration`
-- `area:agent-frontend-specialist`
-
-#### `component:cli`
-
-- `area:cli-entry`
-- `area:cli-repl`
-- `area:cli-noninteractive`
-- `area:cli-session-management`
-
-#### `component:testing`
-
-- `area:test-workspace`
-- `area:test-utils`
-- `area:test-harness`
-- `area:test-ci`
-
-#### `component:memory`
-
-- `area:memory-schema`
-- `area:session-storage`
-- `area:timeline-storage`
-- `area:fts-search`
-- `area:token-telemetry`
-- `area:multi-project-memory`
-- `area:github-issues-client`
-
-#### `component:pipeline`
-
-- `area:turn-lifecycle`
-- `area:pipeline-phases`
-- `area:task-scheduler`
-- `area:budget-enforcement`
-- `area:deviation-rules`
-
-#### `component:context`
-
-- `area:structural-index`
-- `area:file-ranking`
-- `area:repo-map`
-- `area:history-condensing`
-- `area:context-composer`
-- `area:active-file-tracking`
-
-#### `component:hooks`
-
-- `area:hook-engine`
-- `area:hook-inprocess`
-- `area:hook-external`
-- `area:hook-implementations`
-- `area:hook-config`
-
-#### `component:skills`
-
-- `area:skill-definition`
-- `area:skill-loader`
-- `area:skill-prompt-injection`
-- `area:skill-builtins`
-- `area:work-mode-integration`
-
-#### `component:eventstream`
-
-- `area:event-bus`
-- `area:event-instrumentation`
-- `area:metrics-aggregation`
-- `area:agent-tree-ui`
-- `area:metrics-ui`
-- `area:activity-indicator`
-
-#### `component:web`
-
-- `area:web-scaffold`
-- `area:web-sse-client`
-- `area:web-chat`
-- `area:web-diff-view`
-- `area:web-session-ui`
-- `area:web-approval-ui`
-- `area:web-work-mode`
+| Label                | Description                                         |
+| -------------------- | --------------------------------------------------- |
+| `area:observability` | Observability concerns (EventStream, metrics, tracing) |
+| `area:hooks`         | Hook framework concerns                             |
+| `area:testing`       | Testing infrastructure                              |
+| `area:config`        | Configuration system                                |
 
 ---
 
@@ -351,29 +177,24 @@ These are optional operational hints for routing automation.
 
 ---
 
-### Feature-to-Taxonomy Mapping by Epic
+### Feature-to-Taxonomy Mapping (9-Module Architecture)
 
-Use this as the rollout map for the current 120 live `feature` issues.
-
-| Epic                     | Feature range / prefix | Component               | Typical areas                                                                                                                                                                                                                                                    | Common conflicts                                                                                 |
-| ------------------------ | ---------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| #1 Monorepo Setup        | `DC-SETUP-*`           | `component:repo`        | `area:workspace-layout`, `area:package-scaffolding`, `area:tsconfig`, `area:lint-format`, `area:ci-pipeline`                                                                                                                                                     | `conflict:workspace-structure`, `conflict:build-toolchain`, `conflict:shared-types`              |
-| #2 Configuration System  | `DC-CORE-001..004`     | `component:config`      | `area:config-schema`, `area:config-loading`, `area:path-resolution`, `area:env-loading`                                                                                                                                                                          | `conflict:config-surface`, `conflict:shared-types`                                               |
-| #3 Provider Router       | `DC-PROV-*`            | `component:providers`   | `area:provider-registry`, `area:provider-copilot`, `area:provider-kimi`, `area:retry-fallback`, `area:provider-streaming`                                                                                                                                        | `conflict:provider-contract`, `conflict:shared-types`                                            |
-| #4 Server API Foundation | `DC-SRV-*`             | `component:server`      | `area:http-server`, `area:sse-endpoint`, `area:session-api`, `area:api-versioning`                                                                                                                                                                               | `conflict:api-contract`, `conflict:event-schema`, `conflict:session-schema`                      |
-| #5 Tools Runtime         | `DC-TOOL-*`            | `component:tools`       | `area:file-read`, `area:file-write`, `area:file-edit`, `area:shell-exec`, `area:file-search`, `area:git-integration`, `area:lsp-integration`, `area:ast-tooling`, `area:web-fetch`                                                                               | `conflict:tool-registry`, `conflict:shared-types`, `conflict:build-toolchain`                    |
-| #6 Safety Guardrails     | `DC-SAFE-*`            | `component:safety`      | `area:bash-safety`, `area:file-safety`, `area:git-safety`, `area:budget-guard`, `area:approval-flow`                                                                                                                                                             | `conflict:tool-registry`, `conflict:config-surface`, `conflict:build-toolchain`                  |
-| #7 Agents Core           | `DC-CORE-005..012`     | `component:agent-core`  | `area:agent-lifecycle`, `area:agent-registry`, `area:dispatcher-runtime`, `area:delegation-protocol`, `area:prompt-builder`, `area:agent-sandbox`, `area:model-tier-routing`                                                                                     | `conflict:agent-registry`, `conflict:prompt-contract`, `conflict:shared-types`                   |
-| #8 Agents Roster         | `DC-AGENT-*`           | `component:agents`      | `area:agent-dispatcher`, `area:agent-code-writer`, `area:agent-explorer`, `area:agent-reviewer`, `area:agent-verifier`, `area:agent-planner`, `area:agent-debugger`, `area:agent-git-operator`, `area:agent-skill-integration`, `area:agent-frontend-specialist` | `conflict:agent-registry`, `conflict:prompt-contract`                                            |
-| #9 CLI                   | `DC-CLI-*`             | `component:cli`         | `area:cli-entry`, `area:cli-repl`, `area:cli-noninteractive`, `area:cli-session-management`                                                                                                                                                                      | `conflict:session-schema`, `conflict:config-surface`, `conflict:api-contract`                    |
-| #10 Testing              | `DC-TEST-*`            | `component:testing`     | `area:test-workspace`, `area:test-utils`, `area:test-harness`, `area:test-ci`                                                                                                                                                                                    | `conflict:build-toolchain`, `conflict:shared-types`, `conflict:api-contract`                     |
-| #11 Memory               | `DC-MEM-*`             | `component:memory`      | `area:memory-schema`, `area:session-storage`, `area:timeline-storage`, `area:fts-search`, `area:token-telemetry`, `area:multi-project-memory`, `area:github-issues-client`                                                                                       | `conflict:memory-schema`, `conflict:session-schema`, `conflict:shared-types`                     |
-| #12 Pipeline             | `DC-PIPE-*`            | `component:pipeline`    | `area:turn-lifecycle`, `area:pipeline-phases`, `area:task-scheduler`, `area:budget-enforcement`, `area:deviation-rules`                                                                                                                                          | `conflict:prompt-contract`, `conflict:event-schema`, `conflict:session-schema`                   |
-| #13 Context              | `DC-CTX-*`             | `component:context`     | `area:structural-index`, `area:file-ranking`, `area:repo-map`, `area:history-condensing`, `area:context-composer`, `area:active-file-tracking`                                                                                                                   | `conflict:shared-types`, `conflict:memory-schema`, `conflict:prompt-contract`                    |
-| #14 Hooks                | `DC-HOOK-*`            | `component:hooks`       | `area:hook-engine`, `area:hook-inprocess`, `area:hook-external`, `area:hook-implementations`, `area:hook-config`                                                                                                                                                 | `conflict:prompt-contract`, `conflict:event-schema`, `conflict:config-surface`                   |
-| #15 Skills               | `DC-SKILL-*`           | `component:skills`      | `area:skill-definition`, `area:skill-loader`, `area:skill-prompt-injection`, `area:skill-builtins`, `area:work-mode-integration`                                                                                                                                 | `conflict:prompt-contract`, `conflict:agent-registry`, `conflict:shared-types`                   |
-| #16 EventStream          | `DC-OBS-*`             | `component:eventstream` | `area:event-bus`, `area:event-instrumentation`, `area:metrics-aggregation`, `area:agent-tree-ui`, `area:metrics-ui`, `area:activity-indicator`                                                                                                                   | `conflict:event-schema`, `conflict:session-schema`, `conflict:ui-shell`                          |
-| #17 Web UI               | `DC-WEB-*`             | `component:web`         | `area:web-scaffold`, `area:web-sse-client`, `area:web-chat`, `area:web-diff-view`, `area:web-session-ui`, `area:web-approval-ui`, `area:web-work-mode`                                                                                                           | `conflict:api-contract`, `conflict:event-schema`, `conflict:ui-shell`, `conflict:session-schema` |
+| Module                    | Role                                                                                     | Typical Areas                                      |
+| ------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `module:project-planner`  | Diricontext — project knowledge across 3 namespaces (docs, plan, reference)              | `area:config`, `area:observability`                |
+| `module:code-index`       | Tree-sitter parsing, PageRank file scoring, FTS5 symbol search                          | `area:testing`, `area:config`                      |
+| `module:prompt-composer`  | 3-layer context management: structural index → condenser pipeline → context composer     | `area:hooks`, `area:config`                        |
+| `module:semantic-search`  | Embedding provider abstraction, sqlite-vec storage, hybrid FTS5+vector search            | `area:testing`, `area:config`                      |
+| `module:memory`           | SQLite-backed session/turn state, ReasoningBank, cross-session querying                  | `area:observability`, `area:config`                |
+| `module:dirirouter`       | Context-aware model routing, provider registry, cost tracking, fallback chains           | `area:observability`, `area:config`                |
+| `module:agents`           | Specialized agent workers (code-writer, planner, explorer, etc.) + skills                | `area:hooks`, `area:testing`                       |
+| `module:orchestrators`    | Dispatcher, delegation, coordination, monitoring — never mutate code directly            | `area:observability`, `area:hooks`                 |
+| `module:core`             | Cross-cutting permission handlers, audit logging, granular permission levels             | `area:config`, `area:testing`                      |
+| `module:tools`            | MCP tool schemas + handlers, tool registration                                           | `area:hooks`, `area:testing`                       |
+| `module:server`           | Hono API, HTTP/SSE/session API surface                                                   | `area:observability`, `area:config`                |
+| `module:web`              | Web UI, SSE client, chat/session/approval UX                                             | `area:observability`, `area:hooks`                 |
+| `module:cli`              | CLI entrypoint and session UX                                                            | `area:config`, `area:observability`                |
+| `module:tui`              | Ink-based terminal UI                                                                    | `area:observability`, `area:config`                |
 
 ---
 
@@ -384,17 +205,9 @@ Use this as the rollout map for the current 120 live `feature` issues.
 #### Level Labels
 
 ```bash
-gh label create "level:meta-epic" \
-  --color "8B008B" \
-  --description "Cross-project meta epic, strategic direction"
-
 gh label create "level:epic" \
   --color "0366D6" \
   --description "Major feature or initiative"
-
-gh label create "level:sub-epic" \
-  --color "6F42C1" \
-  --description "Sub-epic, part of larger epic"
 
 gh label create "level:task" \
   --color "1F883D" \
@@ -404,6 +217,10 @@ gh label create "level:task" \
 #### Type Labels
 
 ```bash
+gh label create "feature" \
+  --color "0075CA" \
+  --description "Feature-type issues"
+
 gh label create "type:bug" \
   --color "D73A49" \
   --description "Bug fix or defect resolution"
@@ -429,52 +246,32 @@ gh label create "type:chore" \
   --description "Maintenance, tooling, dependencies"
 ```
 
-#### Priority Labels
+#### Module Labels
 
 ```bash
-gh label create "priority:critical" \
-  --color "FF0000" \
-  --description "Blocking production issues, urgent fixes"
-
-gh label create "priority:high" \
-  --color "FF6B35" \
-  --description "Important, should be done next"
-
-gh label create "priority:medium" \
-  --color "FFA500" \
-  --description "Standard priority, schedule next sprint"
-
-gh label create "priority:low" \
-  --color "FFEB3B" \
-  --description "Nice to have, backlog items"
+gh label create "module:core" --color "E99695" --description "Core types, contracts, interfaces, Permission Engine"
+gh label create "module:code-index" --color "BFD4F2" --description "Code Structural Index (tree-sitter, PageRank)"
+gh label create "module:prompt-composer" --color "C5DEF5" --description "Prompt Composer (3-layer context management)"
+gh label create "module:semantic-search" --color "D4E5F9" --description "Semantic Search (embeddings, vector search)"
+gh label create "module:agents" --color "0052CC" --description "Agent Workers (specialized agents + skills)"
+gh label create "module:orchestrators" --color "006B75" --description "Orchestrators (dispatcher, delegation, coordination)"
+gh label create "module:dirirouter" --color "FBCA04" --description "DiriRouter (model routing, providers, cost tracking)"
+gh label create "module:project-planner" --color "1D76DB" --description "Diricontext (project knowledge graph)"
+gh label create "module:tools" --color "5319E7" --description "Tools Runtime (MCP tool schemas + handlers)"
+gh label create "module:web" --color "C2E0C6" --description "Web Dashboard"
+gh label create "module:tui" --color "0E8A16" --description "TUI (Ink-based terminal UI)"
+gh label create "module:cli" --color "D93F0B" --description "CLI"
+gh label create "module:server" --color "FBCA04" --description "Server (Hono API)"
+gh label create "module:memory" --color "FEF2C0" --description "Agent Memory"
 ```
 
-#### Status Labels
+#### Area Labels
 
 ```bash
-gh label create "status:blocked" \
-  --color "EF476F" \
-  --description "Blocked, awaiting dependency resolution"
-
-gh label create "status:needs-review" \
-  --color "FFD60A" \
-  --description "Ready for code review"
-```
-
-#### Sprint Labels
-
-```bash
-gh label create "sprint:current" \
-  --color "17A2B8" \
-  --description "Current active sprint"
-
-gh label create "sprint:next" \
-  --color "138496" \
-  --description "Next planned sprint"
-
-gh label create "sprint:backlog" \
-  --color "8B9299" \
-  --description "Backlog, no sprint assigned"
+gh label create "area:observability" --color "D4C5F9" --description "Observability concerns (EventStream, metrics, tracing)"
+gh label create "area:hooks" --color "C5DEF5" --description "Hook framework concerns"
+gh label create "area:testing" --color "76D5FF" --description "Testing infrastructure"
+gh label create "area:config" --color "BFDADC" --description "Configuration system"
 ```
 
 ---
@@ -486,16 +283,9 @@ gh label create "sprint:backlog" \
 ```bash
 gh project create \
   --owner {USER} \
-  --title "Travel Itinerary Roadmap" \
+  --title "DiriCode Development Roadmap" \
   --format markdown
 ```
-
-**Output will include:**
-
-- Project Number (e.g., `1`)
-- Project ID (e.g., `PVT_kwHOADKEXM4BNVF8`)
-
-Save these for later reference.
 
 ---
 
@@ -504,8 +294,6 @@ Save these for later reference.
 ### Field 1: Status (Single Select)
 
 **Purpose:** Track issue workflow state
-
-**GraphQL Field Name:** `status` (from 08-project-health.md)
 
 **Options:**
 
@@ -519,70 +307,17 @@ Save these for later reference.
 | Blocked     | `f6ccf626` | Blocked by external dependency    |
 | Done        | `98236657` | Completed and closed              |
 
-**Creation Command:**
-
-```bash
-gh api graphql -f query='
-  mutation($projectId: ID!) {
-    createProjectV2Field(input: {
-      projectId: $projectId
-      dataType: SINGLE_SELECT
-      name: "Status"
-    }) {
-      projectV2Field {
-        id
-        name
-      }
-    }
-  }
-' -f projectId="{PROJECT_ID}" --jq '.data.createProjectV2Field.projectV2Field.id'
-```
-
 ---
 
 ### Field 2: Sprint (Iteration)
 
 **Purpose:** Organize work into sprints/iterations
 
-**GraphQL Field Name:** `sprint` (from 01-start-work.md, 08-project-health.md)
-
-**Sprint Iterations:**
-
-| Sprint               | ID         | Duration | Dates          |
-| -------------------- | ---------- | -------- | -------------- |
-| Sprint 0 (Completed) | `118be4cf` | Initial  | -              |
-| Sprint 1             | `01bb0774` | 2 weeks  | Jan 25 - Feb 7 |
-| Sprint 2             | `fad0fc58` | 2 weeks  | Feb 8 - Feb 21 |
-| Sprint 3             | `2d96f7f0` | 2 weeks  | Feb 22 - Mar 7 |
-| Sprint 4             | `94988e66` | 2 weeks  | Mar 8 - Mar 21 |
-| Sprint 5             | `4befd4f8` | 2 weeks  | Mar 22 - Apr 4 |
-
-**Creation Command:**
-
-```bash
-gh api graphql -f query='
-  mutation($projectId: ID!) {
-    createProjectV2Field(input: {
-      projectId: $projectId
-      dataType: ITERATION
-      name: "Sprint"
-    }) {
-      projectV2Field {
-        id
-        name
-      }
-    }
-  }
-' -f projectId="{PROJECT_ID}" --jq '.data.createProjectV2Field.projectV2Field.id'
-```
-
 ---
 
 ### Field 3: Priority (Single Select)
 
 **Purpose:** Indicate issue urgency
-
-**GraphQL Field Name:** `priority` (from 08-project-health.md)
 
 **Options:**
 
@@ -593,32 +328,11 @@ gh api graphql -f query='
 | Medium   | `befae8e5` | Standard         |
 | Low      | `c60b002b` | Backlog          |
 
-**Creation Command:**
-
-```bash
-gh api graphql -f query='
-  mutation($projectId: ID!) {
-    createProjectV2Field(input: {
-      projectId: $projectId
-      dataType: SINGLE_SELECT
-      name: "Priority"
-    }) {
-      projectV2Field {
-        id
-        name
-      }
-    }
-  }
-' -f projectId="{PROJECT_ID}" --jq '.data.createProjectV2Field.projectV2Field.id'
-```
-
 ---
 
 ### Field 4: Level (Single Select)
 
 **Purpose:** Track task hierarchy and complexity
-
-**GraphQL Field Name:** `level` (from 01-start-work.md)
 
 **Options:**
 
@@ -626,143 +340,7 @@ gh api graphql -f query='
 | --------- | --- | -------------------- |
 | Meta Epic | `-` | Cross-project epic   |
 | Epic      | `-` | Major feature        |
-| Sub-Epic  | `-` | Feature component    |
 | Task      | `-` | Individual work item |
-
-**Creation Command:**
-
-```bash
-gh api graphql -f query='
-  mutation($projectId: ID!) {
-    createProjectV2Field(input: {
-      projectId: $projectId
-      dataType: SINGLE_SELECT
-      name: "Level"
-    }) {
-      projectV2Field {
-        id
-        name
-      }
-    }
-  }
-' -f projectId="{PROJECT_ID}" --jq '.data.createProjectV2Field.projectV2Field.id'
-```
-
----
-
-### Field 5: Epic (Single Select)
-
-**Purpose:** Group tasks by epic initiative
-
-**GraphQL Field Name:** `epic` (referenced in health scoring)
-
-**Options:** Dynamic based on project epics
-
-**Creation Command:**
-
-```bash
-gh api graphql -f query='
-  mutation($projectId: ID!) {
-    createProjectV2Field(input: {
-      projectId: $projectId
-      dataType: SINGLE_SELECT
-      name: "Epic"
-    }) {
-      projectV2Field {
-        id
-        name
-      }
-    }
-  }
-' -f projectId="{PROJECT_ID}" --jq '.data.createProjectV2Field.projectV2Field.id'
-```
-
----
-
-## Project Views
-
-### View 1: Board View (by Status)
-
-Kanban-style board showing issues grouped by status.
-
-**Setup:**
-
-```bash
-gh project view-create \
-  --owner {USER} \
-  --project {PROJECT_NUMBER} \
-  --name "Board" \
-  --view-type "board" \
-  --group-by "status"
-```
-
-**Displays:** Status columns (Backlog, Todo, Ready, In Progress, Review, Blocked, Done)
-
----
-
-### View 2: Sprint Board (by Iteration)
-
-Filtered view showing only current sprint issues.
-
-**Setup:**
-
-```bash
-gh project view-create \
-  --owner {USER} \
-  --project {PROJECT_NUMBER} \
-  --name "Sprint Board" \
-  --view-type "board" \
-  --filter "sprint = @current" \
-  --group-by "status"
-```
-
-**Displays:** Only issues in current sprint iteration
-
----
-
-### View 3: Epic View (by Level)
-
-Hierarchical view grouped by epic level.
-
-**Setup:**
-
-```bash
-gh project view-create \
-  --owner {USER} \
-  --project {PROJECT_NUMBER} \
-  --name "Epic View" \
-  --view-type "table" \
-  --group-by "epic"
-```
-
-**Displays:** Issues organized by epic grouping
-
----
-
-## Placeholder Configuration
-
-### Required Replacements
-
-Replace these placeholders with your actual values:
-
-| Placeholder        | Description                     | Example                |
-| ------------------ | ------------------------------- | ---------------------- |
-| `{USER}`           | GitHub username or organization | `your-org`             |
-| `{REPO}`           | Repository name                 | `your-repo`            |
-| `{PROJECT_NUMBER}` | Project number (from creation)  | `1`                    |
-| `{PROJECT_ID}`     | Full project ID (from creation) | `PVT_kwHOADKEXM4BNVF8` |
-
-### Field IDs to Update After Creation
-
-After creating custom fields, replace these IDs:
-
-| Placeholder           | Type     | Example                          |
-| --------------------- | -------- | -------------------------------- |
-| `{STATUS_FIELD_ID}`   | Field ID | `PVTSSF_lAHOADKEXM4BNVF8zg8W1dk` |
-| `{SPRINT_FIELD_ID}`   | Field ID | `PVTIF_lAHOADKEXM4BNVF8zg8ZNSI`  |
-| `{PRIORITY_FIELD_ID}` | Field ID | `PVTSSF_lAHOADKEXM4BNVF8zg8W13Y` |
-| `{LEVEL_FIELD_ID}`    | Field ID | `PVTSSF_lAHOADKEXM4BNVF8zg8XXX`  |
-| `{EPIC_FIELD_ID}`     | Field ID | `PVTSSF_lAHOADKEXM4BNVF8zg8YYY`  |
 
 ---
 
@@ -776,24 +354,20 @@ Complete shell script to set up all labels and project fields in sequence.
 # Configuration
 USER="{USER}"
 REPO="{REPO}"
-PROJECT_NUMBER="{PROJECT_NUMBER}"
-PROJECT_ID="{PROJECT_ID}"
 
 echo "=== GitHub Labels & Project Setup ==="
 echo ""
 echo "Repository: $USER/$REPO"
-echo "Project: $PROJECT_NUMBER"
 echo ""
 
 # 1. Create Level Labels
 echo "[1/4] Creating Level labels..."
-gh label create "level:meta-epic" --color "8B008B" --description "Cross-project meta epic, strategic direction" --repo "$USER/$REPO"
 gh label create "level:epic" --color "0366D6" --description "Major feature or initiative" --repo "$USER/$REPO"
-gh label create "level:sub-epic" --color "6F42C1" --description "Sub-epic, part of larger epic" --repo "$USER/$REPO"
 gh label create "level:task" --color "1F883D" --description "Individual task or work item" --repo "$USER/$REPO"
 
 # 2. Create Type Labels
 echo "[2/4] Creating Type labels..."
+gh label create "feature" --color "0075CA" --description "Feature-type issues" --repo "$USER/$REPO"
 gh label create "type:bug" --color "D73A49" --description "Bug fix or defect resolution" --repo "$USER/$REPO"
 gh label create "type:enhancement" --color "0075CA" --description "New feature or improvement" --repo "$USER/$REPO"
 gh label create "type:documentation" --color "FFF8DC" --description "Documentation, guides, comments" --repo "$USER/$REPO"
@@ -801,88 +375,45 @@ gh label create "type:refactor" --color "9E42F5" --description "Code refactoring
 gh label create "type:test" --color "76D5FF" --description "Test additions or improvements" --repo "$USER/$REPO"
 gh label create "type:chore" --color "BDBDBD" --description "Maintenance, tooling, dependencies" --repo "$USER/$REPO"
 
-# 3. Create Priority Labels
-echo "[3/4] Creating Priority labels..."
-gh label create "priority:critical" --color "FF0000" --description "Blocking production issues, urgent fixes" --repo "$USER/$REPO"
-gh label create "priority:high" --color "FF6B35" --description "Important, should be done next" --repo "$USER/$REPO"
-gh label create "priority:medium" --color "FFA500" --description "Standard priority, schedule next sprint" --repo "$USER/$REPO"
-gh label create "priority:low" --color "FFEB3B" --description "Nice to have, backlog items" --repo "$USER/$REPO"
+# 3. Create Module Labels
+echo "[3/4] Creating Module labels..."
+gh label create "module:core" --color "E99695" --description "Core types, contracts, interfaces, Permission Engine" --repo "$USER/$REPO"
+gh label create "module:code-index" --color "BFD4F2" --description "Code Structural Index (tree-sitter, PageRank)" --repo "$USER/$REPO"
+gh label create "module:prompt-composer" --color "C5DEF5" --description "Prompt Composer (3-layer context management)" --repo "$USER/$REPO"
+gh label create "module:semantic-search" --color "D4E5F9" --description "Semantic Search (embeddings, vector search)" --repo "$USER/$REPO"
+gh label create "module:agents" --color "0052CC" --description "Agent Workers (specialized agents + skills)" --repo "$USER/$REPO"
+gh label create "module:orchestrators" --color "006B75" --description "Orchestrators (dispatcher, delegation, coordination)" --repo "$USER/$REPO"
+gh label create "module:dirirouter" --color "FBCA04" --description "DiriRouter (model routing, providers, cost tracking)" --repo "$USER/$REPO"
+gh label create "module:project-planner" --color "1D76DB" --description "Diricontext (project knowledge graph)" --repo "$USER/$REPO"
+gh label create "module:tools" --color "5319E7" --description "Tools Runtime (MCP tool schemas + handlers)" --repo "$USER/$REPO"
+gh label create "module:web" --color "C2E0C6" --description "Web Dashboard" --repo "$USER/$REPO"
+gh label create "module:tui" --color "0E8A16" --description "TUI (Ink-based terminal UI)" --repo "$USER/$REPO"
+gh label create "module:cli" --color "D93F0B" --description "CLI" --repo "$USER/$REPO"
+gh label create "module:server" --color "FBCA04" --description "Server (Hono API)" --repo "$USER/$REPO"
+gh label create "module:memory" --color "FEF2C0" --description "Agent Memory" --repo "$USER/$REPO"
 
-# 4. Create Status & Sprint Labels
-echo "[4/4] Creating Status and Sprint labels..."
-gh label create "status:blocked" --color "EF476F" --description "Blocked, awaiting dependency resolution" --repo "$USER/$REPO"
-gh label create "status:needs-review" --color "FFD60A" --description "Ready for code review" --repo "$USER/$REPO"
-gh label create "sprint:current" --color "17A2B8" --description "Current active sprint" --repo "$USER/$REPO"
-gh label create "sprint:next" --color "138496" --description "Next planned sprint" --repo "$USER/$REPO"
-gh label create "sprint:backlog" --color "8B9299" --description "Backlog, no sprint assigned" --repo "$USER/$REPO"
+# 4. Create Area Labels
+echo "[4/4] Creating Area labels..."
+gh label create "area:observability" --color "D4C5F9" --description "Observability concerns (EventStream, metrics, tracing)" --repo "$USER/$REPO"
+gh label create "area:hooks" --color "C5DEF5" --description "Hook framework concerns" --repo "$USER/$REPO"
+gh label create "area:testing" --color "76D5FF" --description "Testing infrastructure" --repo "$USER/$REPO"
+gh label create "area:config" --color "BFDADC" --description "Configuration system" --repo "$USER/$REPO"
 
 echo ""
 echo "✅ All labels created successfully!"
-echo ""
-echo "=== Next Steps ==="
-echo "1. Update field IDs in workflow scripts after project creation"
-echo "2. Configure GitHub Projects custom fields (see custom-fields-configuration.md)"
-echo "3. Set up project views (Board, Sprint Board, Epic View)"
-echo "4. Add existing issues to project"
-echo ""
 ```
 
 ---
 
 ## Related Documentation
 
-- **01-start-work.md** - GraphQL field names: status, sprint, priority, level, epic
+- **start.md** - GraphQL field names: status, sprint, priority, level, epic
 - **08-project-health.md** - Health scoring based on field values
 - **03-gh-workflow.md** - Label-to-branch-type mapping
 - **GitHub CLI Docs** - https://cli.github.com/manual/
 
 ---
 
-## Troubleshooting
-
-### Label Already Exists
-
-If label creation fails because it already exists:
-
-```bash
-# Update existing label
-gh label edit "priority:critical" --color "FF0000" --description "Updated description"
-
-# Or delete and recreate
-gh label delete "priority:critical" --yes
-gh label create "priority:critical" --color "FF0000" --description "Blocking production issues, urgent fixes"
-```
-
-### GraphQL Field Creation Fails
-
-Ensure project ID is correct:
-
-```bash
-# Verify project ID
-gh project list --owner {USER} --jq '.[] | {title, id}'
-```
-
-### Sprint Iteration Not Found
-
-Create missing sprint iterations:
-
-```bash
-gh api graphql -f query='
-  mutation($projectId: ID!) {
-    createProjectV2Iteration(input: {
-      projectId: $projectId
-      title: "Sprint 6"
-      startDate: "2026-04-05"
-      duration: 14
-    }) {
-      projectV2Iteration { id title }
-    }
-  }
-' -f projectId="{PROJECT_ID}"
-```
-
----
-
-**Last Updated:** 2026-03-17
-**Version:** 1.0.0
-**Status:** Complete Guide for Initial Setup
+**Last Updated:** 2026-04-08
+**Version:** 1.1.0
+**Status:** Updated for 22-batch remediation and 9-module architecture
