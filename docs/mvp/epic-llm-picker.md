@@ -1,3 +1,5 @@
+> ⚠️ **DEPRECATED** — LLM Picker was superseded by DiriRouter (ADR-055). See [epic-diri-router.md](epic-diri-router.md).
+
 # Epic: LLM Picker (@diricode/providers)
 
 > ⚠️ **SUPERSEDED by [epic-diri-router.md](./epic-diri-router.md)**  

@@ -1,5 +1,7 @@
 # Epic: diri-router — Unified Model Routing (@diricode/diri-router)
 
+> **Note**: DiriRouter supersedes the earlier "LLM Picker" design (ADR-049 → ADR-055).
+
 > **Supersedes**: [epic-router.md](./epic-router.md), [epic-llm-picker.md](./epic-llm-picker.md)  
 > **ADR**: [ADR-055](../adr/adr-055-diri-router-unified-package.md), [ADR-055 Addendum](../adr/adr-055-addendum-context-tiers.md)  
 > **Scope**: POC → MVP-2  

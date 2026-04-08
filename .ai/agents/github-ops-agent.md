@@ -212,7 +212,7 @@ The `github-ops` agent enforces the **AI Collaboration Model** defined in `.ai/k
 - ❌ Merge PRs to main/develop (human review gate is non-negotiable)
 - ❌ Delete remote branches without PR merge
 - ❌ Force push to any branch
-- ❌ Create Meta-Epics (requires human strategic approval)
+- ❌ Create new epics without human approval (requires human strategic approval)
 - ❌ Approve PRs (requires human judgment)
 - ❌ Access credentials, secrets, or .env files
 

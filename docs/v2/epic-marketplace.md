@@ -1,3 +1,5 @@
+> ⚠️ **DEPRECATED** — Marketplace scope was closed during the 2026-04 issue remediation (Batch 11). All related issues have been closed.
+
 # Epic: Skill Marketplace and Catalog (v2.1)
 
 > Package: `@diricode/core` + new `@diricode/marketplace`

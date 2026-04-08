@@ -20,7 +20,7 @@ It must refuse to start work that is:
 
 **⚠️ THIS RULE MUST NEVER BE VIOLATED:**
 
-When you finish work in a worktree (via `/finish-work` or similar):
+When you finish work in a worktree (via `/finish` or similar):
 
 1. The worktree branch **MUST be merged to `main`**
 2. The PR **MUST be created and merged**
@@ -28,7 +28,7 @@ When you finish work in a worktree (via `/finish-work` or similar):
 
 **Why?** Worktrees in opencode are persistent coding environments reused across multiple sessions. Deleting a worktree destroys the developer's workspace and context for future sessions.
 
-**The `/finish-work` command MUST:**
+**The `/finish` command MUST:**
 
 - Create the PR
 - Merge the PR to main
@@ -385,7 +385,7 @@ User: /start #11
 
 - `./current-sprint.md`
 - `./project-health.md`
-- `./finish-work.md`
+- `./finish.md`
 
 ---
 

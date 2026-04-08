@@ -1,3 +1,5 @@
+> ⚠️ **DEPRECATED** — Jira integration scope was closed during the 2026-04 issue remediation (Batch 11). All related issues have been closed.
+
 # Epic: Jira Cloud & Server Backend (v4.0)
 
 > Package: `@diricode/core` + new `@diricode/jira-mcp`
