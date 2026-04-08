@@ -1,331 +1,172 @@
-# DiriCode — Implementation Plan Overview
+# DiriCode — Project Overview
 
-> Comprehensive implementation roadmap spanning MVP (4 iterations), v2, v3, v4.
-> Generated from: 49 ADRs, MVP spec, and design decisions.
-> Date: 2026-04-03
+DiriCode is a local-first agentic coding framework designed for high-autonomy software development. It operates as a modular system where specialized agents cooperate through a structured pipeline to plan, execute, and verify complex engineering tasks. Built with a "vibe coding" philosophy, it prioritizes developer experience, observability, and resumable execution.
 
----
+## 9-Module Architecture
 
-## Architecture (Mermaid)
+The framework is organized into nine distinct modules, each owning a specific concern of the agentic lifecycle. This modularity ensures that concerns like project knowledge, codebase indexing, and model routing remain decoupled and independently maintainable.
+
+| # | Module | Package | Status | Role |
+|---|--------|---------|--------|------|
+| 0 | **Diricontext** | `packages/project-planner/` | In Progress | Graph-based directed context — project knowledge across 3 namespaces |
+| 1 | **Code Structural Index** | `packages/code-index/` | Planned | Tree-sitter parsing, PageRank file scoring, and FTS5 symbol search |
+| 2 | **Prompt Composer** | `packages/prompt-composer/` | Planned | 3-layer context management and token budget orchestration |
+| 3 | **Semantic Search** | `packages/semantic-search/` | Planned | Embedding provider abstraction and hybrid FTS5+vector search |
+| 4 | **Agent Memory** | `packages/memory/` | Existing | SQLite-backed session state, ReasoningBank, and turn persistence |
+| 5 | **DiriRouter** | `packages/dirirouter/` | Existing | Context-aware model routing, provider registry, and cost tracking |
+| 6a | **Agent Workers** | `packages/agents/` | Existing | Specialized agents that perform work and execute skills |
+| 6b | **Orchestrators** | `packages/orchestrators/` | Planned | Coordination, delegation, and monitoring logic |
+| 7 | **Permission Engine** | `packages/core/` | Existing | Granular permission levels, audit logging, and safety handlers |
+
+## Architecture Diagram
 
 ```mermaid
 graph TD
-    subgraph "Clients"
+    subgraph "Client Layer"
         CLI[CLI Entrypoint]
-        Web[Web UI - PRIMARY]
-        TUI[Ink TUI - v2]
+        Web[Web Dashboard - PRIMARY]
+        TUI[TUI - v2]
     end
 
-    subgraph "@diricode/server"
-        Hono[Hono HTTP + REST + SSE]
-        EventBus[Typed EventStream - Zod]
+    subgraph "Server & Transport"
+        API[Hono API]
+        SSE[SSE EventStream]
     end
 
-    subgraph "@diricode/core"
-        Dispatcher[Dispatcher Agent — Read-Only]
-        SubAgents[Sub-Agents — 40 agents, 3 tiers]
-        HookFW[Hook Framework — 6 MVP / 20 total]
-        AgentLoader[Hybrid Agent Loader — TS + SKILL.md]
-        Pipeline[Pipeline — Interview→Plan→Execute→Verify]
-        Guardrails[Guardrails — paralysis/budget/checkpoint]
-        WorkMode[4D Work Modes — Quality/Autonomy/Verbose/Creativity]
+    subgraph "Orchestration Layer"
+        Dispatcher[Dispatcher - Read-Only]
+        Orchestrators[Orchestrator Agents]
+        Pipeline[Sequential-first Pipeline]
     end
 
-    subgraph "@diricode/memory"
-        SQLite[SQLite + FTS5 + Timeline]
-        SyncAdapter[Sync Adapters — GitHub, GitLab, Jira]
+    subgraph "Worker Layer"
+        Workers[Agent Workers + Skills]
     end
 
-    subgraph "@diricode/tools"
-        Hashline[Hashline Edit + FS]
-        BashSafe[Bash + tree-sitter guard]
-        ASTGrep[AST-grep + Glob + Grep]
-        GitSafe[Git + Safety Rails]
-        SmartCode[Smart Code Tools — tree-sitter]
-        MCPMgr[MCP Session Manager]
-        Annotations[Tool Annotations]
+    subgraph "Knowledge & Context"
+        Diricontext[Diricontext - Project Graph]
+        Composer[Prompt Composer]
+        Index[Code Structural Index]
+        Semantic[Semantic Search]
     end
 
-    subgraph "@diricode/diri-router"
-        DiriRouter[diri-router — Unified Picker + Router]
-        Redactor[Secret Redactor]
-        AISDK[Vercel AI SDK Transport]
+    subgraph "Runtime State"
+        Memory[Agent Memory - SQLite]
+        DiriRouter[DiriRouter - Model Routing]
+        Safety[Permission Engine]
     end
 
-    subgraph "External"
-        LLMs[(LLM Providers: Copilot, Kimi)]
-        GH[(GitHub API)]
-    end
-
-    CLI --> Hono
-    Web --> Hono
-    TUI --> Hono
-
-    Hono --> EventBus
-    EventBus --> Dispatcher
-    Dispatcher --> SubAgents
-    SubAgents --> AgentLoader
-    SubAgents --> HookFW
-    SubAgents --> Pipeline
-    SubAgents --> Guardrails
-    SubAgents --> WorkMode
-
-    SubAgents --> Hashline
-    SubAgents --> BashSafe
-    SubAgents --> ASTGrep
-    SubAgents --> GitSafe
-    SubAgents --> SmartCode
-    SubAgents --> MCPMgr
-    SubAgents --> Annotations
-
-    SubAgents --> SQLite
-    SQLite --> Hono
-    SyncAdapter -.->|optional push| GH
-
-    SubAgents --> DiriRouter
-    DiriRouter --> Redactor
-    Redactor --> AISDK
-    AISDK --> LLMs
+    CLI & Web & TUI --> API
+    API --> SSE
+    API --> Dispatcher
+    Dispatcher --> Pipeline
+    Pipeline --> Orchestrators
+    Orchestrators --> Workers
+    
+    Workers --> Diricontext & Composer & Index & Semantic
+    Composer --> Index & Semantic & Memory & Diricontext
+    Workers --> DiriRouter & Memory & Safety
 ```
 
----
+## Module Descriptions
 
-## Middleware Pipeline
+### Module 0: Diricontext (`packages/project-planner/`)
+A graph-based directed context system that stores project knowledge across three namespaces: **docs** (what IS), **plan** (what WILL BE), and **reference** (external context). It functions as both an MCP server and a library, providing agents with structured insights into features, tasks, and architectural decisions.
 
-DiriCode uses a layered middleware approach inspired by LangChain's middleware patterns (implemented natively, no dependency):
+### Module 1: Code Structural Index (`packages/code-index/`)
+Uses tree-sitter to parse the codebase into a persistent SQLite index. It builds import graphs, computes PageRank file scores to identify "important" files, and exposes FTS5 full-text search over symbols. This ensures agents can navigate large repositories without exhausting context windows.
 
-```mermaid
-graph LR
-    Dispatcher -->|delegates| Agent
-    Agent -->|calls| Middleware
-    subgraph "Middleware Pipeline"
-        M1[Tool Selector] --> M2[Emulator]
-        M2 --> M3[Approval]
-        M3 --> M4[Retry]
-        M4 --> M5[Limits]
-    end
-    Middleware -->|executes| Tools
-    Tools -->|returns| Agent
-    Agent -->|returns| Dispatcher
-```
+### Module 2: Prompt Composer (`packages/prompt-composer/`)
+Manages the runtime token budget through a 3-layer architecture. It consumes the structural index, runs a condenser pipeline (deduplication, masking, and summarization), and assembles the final prompt to ensure high-density context within model limits.
 
-**Key Patterns:**
-- **Interceptor/Wrapper Split**: State modification vs control flow
-- **Execution Order**: FIFO interceptors, nested wrappers, LIFO cleanup
-- **Composition**: Wrappers compose naturally for safety, retry, limits
+### Module 3: Semantic Search (`packages/semantic-search/`)
+Provides a unified abstraction for embedding providers and vector storage via `sqlite-vec`. It enables hybrid search patterns by combining FTS5 keyword matching with vector similarity, allowing agents to find relevant code and documentation through semantic intent.
 
-See [ADR-033: Interceptor/Wrapper Hook Split](adr/adr-033-interceptor-wrapper-hook-split.md), [ADR-034: Middleware Execution Order](adr/adr-034-middleware-execution-order.md), and [ADR-015: Tool Annotations](adr/adr-015-tool-annotations.md) for details.
+### Module 4: Agent Memory (`packages/memory/`)
+The source of truth for all runtime state. It persists session history, message turns, and agent observations in SQLite. It includes the **ReasoningBank**, which stores problem-approach-outcome triplets to allow agents to learn from past successes and failures across sessions.
 
-## Version Roadmap
+### Module 5: DiriRouter (`packages/dirirouter/`)
+A unified model routing package that handles provider registration, cost tracking, and fallback chains. It uses context-aware tiers (LOW, MEDIUM, HEAVY) to select the optimal model for a given task, balancing performance, cost, and context window requirements.
 
-| Version | Theme | Iterations | Key Deliverable |
-|---------|-------|-----------|-----------------|
-| **MVP** | Core engine + Web UI | POC, MVP-1, MVP-2, MVP-3 | Working agent system with pipeline, web interface, and real task execution |
-| **v2** | Ecosystem + Polish | v2.0, v2.1 | TUI, annotation approval, embeddings, skill marketplace, context monitoring |
-| **v3** | Safety + Automation | v3.0, v3.1 | Sandbox, auto-advance, GitLab sync adapter, advanced hooks |
-| **v4** | Enterprise + Scale | v4.0 | Jira backend, multi-user support |
+### Module 6a: Agent Workers (`packages/agents/`)
+Specialized agents designed to perform specific technical tasks. Workers possess specialized instructions and can be granted **skills** (defined in `SKILL.md` files) to extend their capabilities. They are the primary actors that interact with tools and modify the filesystem.
 
----
+### Module 6b: Orchestrators (`packages/orchestrators/`)
+Agents dedicated to coordination and management rather than direct technical work. This includes the dispatcher, sequential executors, and background task managers. Orchestrators delegate to workers and aggregate their results, ensuring the dependency always flows from orchestrator to worker.
 
-## MVP Iteration Exit Criteria
+### Module 7: Permission Engine (`packages/core/`)
+A cross-cutting safety layer that enforces granular permission levels. It provides audit logging for all sensitive operations and manages user approvals for tool execution. It is integrated into the core contracts to ensure safety is never an afterthought.
 
-| Iteration | Codename | Exit Criterion (Demo Scenario) |
-|-----------|----------|-------------------------------|
-| **POC** | "Wheel" | User types a prompt in CLI → dispatcher delegates to code-writer → file created on disk via Copilot. Technical spikes validated (Bun+tree-sitter, AI SDK+Copilot, SQLite FTS5, c12+JSONC). |
-| **MVP-1** | "Scooter" | User types "add a login page" → planner creates a plan → code-writer implements → code-reviewer reviews → atomic git commit made. Memory persists across sessions. |
-| **MVP-2** | "Bicycle" | Full pipeline runs: Interview→Plan→Execute→Verify. Hooks fire (pre-commit, plan-created). Guardrails catch analysis paralysis. Context management keeps agents under 50% window. Skills loaded from SKILL.md. |
-| **MVP-3** | "Car" | User opens Web UI → sees real-time agent tree → watches pipeline execute → inspects cost metrics. All 15+ MVP agents operational. Observability dashboard functional. |
+## Agent Roster
 
----
+The roster is divided between **Workers** who do work and **Orchestrators** who coordinate.
 
-## Immutable Pillars
+### Workers
+- **code-writer**: Implements features and fixes bugs.
+- **code-explorer**: Research and codebase navigation.
+- **planner-quick** & **planner-thorough**: Strategy formulation at different depths.
+- **architect**: High-level structural design and pattern selection.
+- **project-builder**: Handles boilerplate and project initialization.
+- **sprint-planner**: Organizes tasks into executable milestones.
+- **sandbox**: Isolated execution and verification.
 
-These decisions are foundational and NOT subject to change (from spec Section 10):
+### Orchestrators
+- **dispatcher**: The primary entry point. Read-only, routes requests, and delegates tasks.
+- **sequential-executor**: Manages turn-based pipeline execution.
+- **background-task-manager**: Handles long-running or async sub-tasks.
 
-| Pillar | ADR | Summary |
-|--------|-----|---------|
-| HTTP + SSE | ADR-001 | Client-server protocol |
-| Dispatcher-first | ADR-002 | Read-only orchestrator, never writes |
-| Nested delegation + loop guard | ADR-003 | Unlimited depth with safety |
-| JSONC + c12 config | ADR-009 | Config format and loader |
-| `.dc/` directory | ADR-010 | Project directory convention |
-| `DC_*` env vars | ADR-011 | Environment variable prefix |
-| 4-dimension work modes | ADR-012 | Quality/Autonomy/Verbose/Creativity |
-| Git safety rails | ADR-027 | Non-negotiable, even in Full Auto |
-| Secret redaction | ADR-028 | Auto-mask before sending to LLMs |
-| Tree-sitter bash | ADR-029 | Safe command parsing |
+**Key Principle**: Dependency flows from Orchestrator to Worker. Orchestrators decide whom to assign; Workers decide how to execute using their assigned skills.
 
----
+## Key Design Decisions
 
-## Agent Roster → Version Mapping
+- **Dispatcher-first (ADR-002)**: A read-only orchestrator manages all sub-agent coordination to prevent circular dependencies and state corruption.
+- **Pipeline-first, Sequential-first (ADR-013)**: Execution follows a structured **Interview → Plan → Execute → Verify** sequence with first-class checkpoint and resume support.
+- **DiriRouter Unified Routing (ADR-055)**: A single system manages model selection, scoring, and fallback, superseding the previous "LLM Picker" design.
+- **Diricontext Structured Knowledge**: Project state is managed as a persistent graph rather than flat text, improving agent reasoning over complex feature maps.
+- **EventStream Observability (ADR-031)**: All runtime actions emit typed events, providing a transparent, replayable record of agent activity.
+- **SQLite Runtime Truth (ADR-048)**: Local SQLite databases serve as the primary source of truth for agent state and memory, ensuring a fast, local-first experience.
 
-| Agent | Tier | Category | Target Iteration |
-|-------|------|----------|-----------------|
-| dispatcher | HEAVY | Command & Control | POC |
-| code-writer | HEAVY | Code Production | POC |
-| code-explorer | MEDIUM | Research & Exploration | POC |
-| planner-quick | MEDIUM | Strategy & Planning | POC |
-| summarizer | LOW | Utility | POC |
-| planner-thorough | HEAVY | Strategy & Planning | MVP-1 |
-| architect | HEAVY | Strategy & Planning | MVP-1 |
-| code-reviewer-thorough | HEAVY | Quality Assurance | MVP-1 |
-| code-reviewer-quick | MEDIUM | Quality Assurance | MVP-1 |
-| verifier | MEDIUM | Quality Assurance | MVP-1 |
-| commit-writer | LOW | Utility | MVP-1 |
-| git-operator | MEDIUM | Utility | MVP-2 |
-| debugger | MEDIUM | Code Production | MVP-2 |
-| test-writer | MEDIUM | Code Production | MVP-2 |
-| project-builder | MEDIUM | Strategy & Planning | MVP-2 |
-| prompt-validator | MEDIUM | Strategy & Planning | MVP-3 |
-| plan-reviewer | MEDIUM | Quality Assurance | MVP-3 |
-| code-writer-hard | HEAVY | Code Production | MVP-3 |
-| code-writer-quick | LOW | Code Production | MVP-3 |
-| creative-thinker | MEDIUM | Code Production | MVP-3 |
-| frontend-specialist | MEDIUM | Code Production | MVP-3 |
-| refactoring-agent | MEDIUM | Code Production | MVP-3 |
-| web-researcher | MEDIUM | Research & Exploration | MVP-3 |
-| browser-agent | MEDIUM | Research & Exploration | MVP-3 |
-| codebase-mapper | MEDIUM | Research & Exploration | MVP-3 |
-| namer | LOW | Utility | MVP-3 |
-| issue-writer | LOW | Utility | MVP-3 |
-| auto-continue | MEDIUM | Command & Control | v2 |
-| project-roadmapper | MEDIUM | Strategy & Planning | v2 |
-| sprint-planner | MEDIUM | Strategy & Planning | v2 |
-| todo-manager | LOW | Strategy & Planning | v2 |
-| file-builder | MEDIUM | Code Production | v2 |
-| spec-compliance-reviewer | MEDIUM | Quality Assurance | v2 |
-| risk-assessor | MEDIUM | Quality Assurance | v2 |
-| merge-coordinator | MEDIUM | Quality Assurance | v2 |
-| license-checker | LOW | Quality Assurance | v2 |
-| integration-checker | MEDIUM | Quality Assurance | v2 |
-| long-task-runner | MEDIUM | Utility | v2 |
-| github-operator | MEDIUM | Utility | v2 |
-| devops-operator | MEDIUM | Utility | v3 |
+## Roadmap
 
----
+### MVP-1 — First Believable Runtime
+- Sequential-first execution with explicit turn lifecycles.
+- Checkpoint and resume as a core requirement.
+- EventStream-based transparency for all agent actions.
+- Initial DiriRouter integration with context-aware tiers.
+- Basic memory-backed runtime state.
 
-**Agent Execution Features:**
-- **HEAVY tier agents** run as async subagents with isolated context and full tool access (see [ADR-039](adr/adr-039-async-subagent-pattern.md))
-- **Tool-based agent discovery**: Agents are registered with capabilities metadata, enabling dynamic routing by the dispatcher (see [ADR-040](adr/adr-040-tool-based-agent-discovery.md))
+### MVP-2 — Core Intelligence
+- Implementation of Prompt Composer for advanced context management.
+- Deployment of Code Structural Index with tree-sitter and PageRank.
+- Permission Engine Phase 1 with granular levels.
+- DiriRouter cost tracking and refined model scoring.
 
+### v2 — Ecosystem Expansion
+- Semantic Search with embeddings and hybrid retrieval.
+- ReasoningBank extensions for cross-session learning.
+- Observability v2 with structured metrics and trace correlation.
+- Advanced hook framework for auto-advance and approval workflows.
+- Sandbox environment for safe code execution.
 
-## Hook Types → Version Mapping
+### v3 — Advanced Orchestration
+- Observability v3 with distributed tracing and anomaly detection.
+- Bounded parallel execution and swarm coordination patterns.
+- DiriRouter Elo scoring and automated A/B testing of model performance.
 
-| Hook | Type | Target | ADR-024 |
-|------|------|--------|---------|
-| session-start | Lifecycle | MVP (6 hooks) | ✓ |
-| pre-commit | Safety | MVP | ✓ |
-| post-commit | Lifecycle | MVP | ✓ |
-| error-retry | Recovery | MVP | ✓ |
-| plan-created | Pipeline | MVP | ✓ |
-| plan-validated | Pipeline | MVP | ✓ |
-| pre-tool-use | Approval | v2 (7 hooks) | ✓ |
-| post-tool-use | Telemetry | v2 | ✓ |
-| context-monitor | Context | v2 | ✓ |
-| preemptive-compaction | Context | v2 | ✓ |
-| rules-injection | Context | v2 | ✓ |
-| file-guard | Safety | v2 | ✓ |
-| loop-detection | Safety | v2 | ✓ |
-| session-end | Lifecycle | v3 (7 hooks) | ✓ |
-| task-completed | Pipeline | v3 | ✓ |
-| worktree-create | Git | v3 | ✓ |
-| worktree-remove | Git | v3 | ✓ |
-| config-change | Config | v3 | ✓ |
-| user-prompt-submit | UI | v3 | ✓ |
-| subagent-stop | Lifecycle | v3 | ✓ |
+## Existing Packages
 
----
+Today, the repository contains several active packages with more planned to complete the 9-module architecture:
 
-## Technical Risks (Validate in POC)
+- **apps/cli/**: CLI entry point for the framework.
+- **packages/core/**: Shared types, contracts, and the Permission Engine.
+- **packages/agents/**: Agent Worker implementations.
+- **packages/tools/**: MCP tool schemas and handlers.
+- **packages/dirirouter/**: Unified model routing and providers.
+- **packages/memory/**: SQLite-backed agent memory and state.
+- **packages/server/**: Hono-based API server.
+- **packages/web/**: Primary Web Dashboard (Vite + React).
+- **packages/project-planner/**: Diricontext implementation.
+- **packages/github-mcp/**, **packages/web-search/**: Integration MCPs.
+- **packages/test-harness/**, **packages/test-utils/**: Internal testing utilities.
 
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| tree-sitter bindings may not work in Bun | Blocks bash safety, smart code tools, indexing | POC spike: test tree-sitter-bash + tree-sitter-typescript in Bun |
-| Vercel AI SDK may lack Copilot/Kimi adapters | Blocks entire provider layer | POC spike: verify @ai-sdk adapters or write custom provider |
-| c12 may not natively support JSONC | Blocks config system | POC spike: test c12 with .jsonc files |
-| SQLite FTS5 on Bun may have limitations | Blocks memory search | POC spike: test bun:sqlite with FTS5 virtual table |
-| Sync adapter latency during critical paths | May degrade agent responsiveness on heavy syncs | Design batching strategy, async-first sync architecture (resolved: SQLite is source of truth, sync is optional) |
-
----
-
-## Performance Targets
-
-| Metric | Target | Measured At |
-|--------|--------|------------|
-| First streaming token | < 3s from prompt | MVP-1 |
-| Agent delegation overhead | < 500ms per hop | MVP-1 |
-| FTS5 search (100k files repo) | < 100ms | MVP-2 |
-| Server RSS memory | < 512MB | MVP-3 |
-| Simple task cost ("create a file") | < $0.05 | MVP-1 |
-| Medium task cost ("add a feature") | < $0.50 | MVP-2 |
-| Context overhead per delegation | < 15% of task tokens | MVP-2 |
-
----
-
-## Document Index
-
-### Global
-- [overview.md](overview.md) — This file
-- [cross-cutting.md](cross-cutting.md) — Conventions, error handling, logging, TypeScript rules
-
-### MVP (POC → MVP-1 → MVP-2 → MVP-3)
-- [mvp/index.md](mvp/index.md) — MVP parent epic
-- [mvp/epic-monorepo-setup.md](mvp/epic-monorepo-setup.md) — Turborepo + pnpm + shared config (POC)
-- [mvp/epic-router.md](mvp/epic-router.md) — @diricode/providers (POC)
-- [mvp/epic-server.md](mvp/epic-server.md) — @diricode/server Hono HTTP+SSE (POC)
-- [mvp/epic-diri-router.md](mvp/epic-diri-router.md) — @diricode/diri-router unified routing (POC→MVP-2)
-- [mvp/epic-tools.md](mvp/epic-tools.md) — @diricode/tools (POC → MVP-2)
-- [mvp/epic-memory.md](mvp/epic-memory.md) — @diricode/memory SQLite+FTS5 (MVP-1)
-- [mvp/epic-agents-core.md](mvp/epic-agents-core.md) — Agent infrastructure + dispatcher (POC → MVP-1)
-- [mvp/epic-agents-roster.md](mvp/epic-agents-roster.md) — Individual agent implementations (POC → MVP-3)
-- [mvp/epic-hooks.md](mvp/epic-hooks.md) — Hook framework + 6 MVP hooks (MVP-2)
-- [mvp/epic-pipeline.md](mvp/epic-pipeline.md) — Pipeline orchestrator (MVP-1 → MVP-2)
-- [mvp/epic-context.md](mvp/epic-context.md) — Context management 3-layer (MVP-1 → MVP-2)
-- [mvp/epic-config.md](mvp/epic-config.md) — JSONC + c12 + 4 layers (POC)
-- [mvp/epic-safety.md](mvp/epic-safety.md) — Git safety + secret redaction + bash guard (POC → MVP-1)
-- [mvp/epic-skills.md](mvp/epic-skills.md) — Skills system agentskills.io (MVP-2 → MVP-3)
-- [mvp/epic-observability.md](mvp/epic-observability.md) — EventStream + Agent Tree + Metrics (MVP-2 → MVP-3)
-- [mvp/epic-web-ui.md](mvp/epic-web-ui.md) — Vite + React + shadcn/ui (MVP-3)
-- [mvp/epic-cli.md](mvp/epic-cli.md) — CLI entrypoint (POC → MVP-1)
-- [mvp/epic-testing-infra.md](mvp/epic-testing-infra.md) — Vitest + mocks + fixtures (POC)
-
-### v2 — Ecosystem + Polish
-- [v2/index.md](v2/index.md) — v2 parent epic
-- [v2/epic-tui.md](v2/epic-tui.md) — Ink TUI
-- [v2/epic-annotation-approval.md](v2/epic-annotation-approval.md) — Annotation-driven approval
-- [v2/epic-embeddings.md](v2/epic-embeddings.md) — Semantic embeddings
-- [v2/epic-hooks-v2.md](v2/epic-hooks-v2.md) — 7 additional hooks
-- [v2/epic-observability-v2.md](v2/epic-observability-v2.md) — Detail Panel + Timeline
-- [v2/epic-marketplace.md](v2/epic-marketplace.md) — Skill/plugin catalog
-- [v2/epic-context-v2.md](v2/epic-context-v2.md) — Context monitoring + token budget
-- [v2/epic-agents-v2.md](v2/epic-agents-v2.md) — 12 additional agents
-
-### v3 — Safety + Automation
-- [v3/index.md](v3/index.md) — v3 parent epic
-- [v3/epic-sandbox.md](v3/epic-sandbox.md) — Docker/VM sandboxing
-- [v3/epic-hooks-v3.md](v3/epic-hooks-v3.md) — 7 more hooks
-- [v3/epic-auto-advance.md](v3/epic-auto-advance.md) — Full-auto mode
-- [v3/epic-observability-v3.md](v3/epic-observability-v3.md) — Cost analytics, performance profiling, comparison view
-- [v3/epic-gitlab.md](v3/epic-gitlab.md) — GitLab sync adapter
-- [v3/epic-local-backend.md](v3/epic-local-backend.md) — SQLite is now the default local issue system
-- [v3/epic-advanced-modes.md](v3/epic-advanced-modes.md) — Named presets, advanced work modes
-
-### v4 — Enterprise + Scale
-- [v4/index.md](v4/index.md) — v4 parent epic
-- [v4/epic-jira.md](v4/epic-jira.md) — Jira backend
-- [v4/epic-multi-user.md](v4/epic-multi-user.md) — Auth, permissions, teams
-
----
-
-## Source References
-
-| Source | File | Role |
-|--------|------|------|
-| MVP Spec | spec-mvp-diricode.md | Primary technical reference |
-| ADRs (49) | docs/adr/ | Architecture decisions |
-| Agent Roster | ADR-004 | 40 agents, 3 tiers, 6 categories |
-| Work Modes | ADR-012 | 4-dimension work system |
-| Hooks | ADR-024 | 20 hook types roadmap |
-| Observability | ADR-031 | EventStream + UI components |
-| Multi-Subscription | ADR-042 | Subscription rotation, quality scoring, A/B testing |
-| diri-router | ADR-055 | Unified model routing (Picker + Router) |
+**Planned Packages**: `orchestrators/`, `prompt-composer/`, `semantic-search/`, `code-index/`.

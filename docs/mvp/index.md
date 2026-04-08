@@ -13,15 +13,16 @@
 
 Epics active:
 - [epic-monorepo-setup.md](epic-monorepo-setup.md) — Project scaffolding
-- [epic-config.md](epic-config.md) — JSONC + c12 + Zod
-- [epic-diri-router.md](epic-diri-router.md) — Model routing (Picker + Router)
-- [epic-server.md](epic-server.md) — Hono HTTP + SSE
-- [epic-tools.md](epic-tools.md) — Basic file ops + bash (subset)
+- [epic-config.md](epic-config.md) — JSONC + c12 + Zod (#184)
+- [epic-diri-router.md](epic-diri-router.md) — Model routing (DiriRouter ADR-055) (#3)
+- [epic-server.md](epic-server.md) — Hono HTTP + SSE (#192)
+- [epic-tools.md](epic-tools.md) — Basic file ops + bash (subset) (#5)
 - [epic-safety.md](epic-safety.md) — Secret redactor + bash guard (basics)
 - [epic-agents-core.md](epic-agents-core.md) — Dispatcher infrastructure
 - [epic-agents-roster.md](epic-agents-roster.md) — 5 POC agents
-- [epic-cli.md](epic-cli.md) — Basic CLI entrypoint
-- [epic-testing-infra.md](epic-testing-infra.md) — Vitest setup + mock providers
+- [epic-cli.md](epic-cli.md) — Basic CLI entrypoint (#9)
+- [epic-testing-infra.md](epic-testing-infra.md) — Vitest setup + mock providers (#10)
+- [epic-bun-migration.md](epic-bun-migration.md) — Bun runtime (#163)
 
 **Exit**: User types prompt in CLI → dispatcher delegates to specialist → tools run safely → result returns with basic event visibility.
 
@@ -33,12 +34,12 @@ Epics active:
 Epics active:
 - [epic-memory.md](epic-memory.md) — SQLite + FTS5 + timeline + local issue system
 - [epic-pipeline.md](epic-pipeline.md) — Turn lifecycle + dispatcher→specialist→tools path + sequential checkpoints
-- [epic-context.md](epic-context.md) — Structural context signal, not full context autopilot
+- [epic-prompt-composer.md](epic-prompt-composer.md) — Prompt Composer (NEW #631)
 - [epic-agents-roster.md](epic-agents-roster.md) — +6 agents (planners, reviewers, verifier)
 - [epic-safety.md](epic-safety.md) — Git safety rails (full)
 - [epic-cli.md](epic-cli.md) — Session management, profile support
 - [epic-tools.md](epic-tools.md) — Git tools + LSP + AST-aware structural tooling
-- [epic-observability.md](epic-observability.md) — Event/data layer for live execution transparency
+- [epic-event-stream.md](epic-event-stream.md) — EventStream backbone (NEW #623)
 
 **Exit**: Prompt enters system → dispatcher selects execution path → specialist uses tools → streamed progress is visible → checkpoint saved → session can resume from last valid state.
 
@@ -48,14 +49,15 @@ Epics active:
 **Goal**: Expand reliability and autonomy without breaking the controlled MVP-1 runtime.
 
 Epics active:
-- [epic-hooks.md](epic-hooks.md) — Hook framework + 6 MVP hooks
+- [epic-hooks.md](epic-hooks.md) — Hook framework + 6 MVP hooks (#14)
 - [epic-pipeline.md](epic-pipeline.md) — Full pipeline (Interview→Plan→Execute→Verify)
-- [epic-context.md](epic-context.md) — Deeper compression/budget features after first runtime path works
-- [epic-skills.md](epic-skills.md) — SKILL.md parser + loader + shadowing
-- [epic-observability.md](epic-observability.md) — richer observability on top of stable event layer
+- [epic-prompt-composer.md](epic-prompt-composer.md) — Deeper compression/budget features (Layer 3)
+- [epic-skills.md](epic-skills.md) — SKILL.md parser + loader + shadowing (#15)
+- [epic-event-stream.md](epic-event-stream.md) — richer observability on top of stable event layer
 - [epic-tools.md](epic-tools.md) — additional smart tooling, MCP basics, tool annotations
-- [epic-agents-roster.md](epic-agents-roster.md) — +4 agents (git-operator, debugger, test-writer, project-builder)
-- [epic-llm-picker.md](epic-llm-picker.md) — LLM Picker decision engine + dashboard
+- [epic-agent-workers.md](epic-agent-workers.md) — Agent Workers (NEW #613)
+- [epic-orchestrators.md](epic-orchestrators.md) — Orchestrators (NEW #614)
+- [epic-permission-engine.md](epic-permission-engine.md) — Permission Engine (#621)
 
 **Exit**: Full Interview→Plan→Execute→Verify path works on top of the already-trustworthy runtime substrate.
 
@@ -65,9 +67,10 @@ Epics active:
 **Goal**: Complete MVP with richer Web UI, broader observability surfaces, and the wider MVP agent set.
 
 Epics active:
-- [epic-web-ui.md](epic-web-ui.md) — Vite + React + shadcn/ui
-- [epic-observability.md](epic-observability.md) — Agent Tree UI + Metrics Bar + Live Activity
-- [epic-context.md](epic-context.md) — Layer 3: smart context per subtask + inheritance
+- [epic-web-dashboard.md](epic-web-dashboard.md) — Vite + React + shadcn/ui (#17)
+- [epic-event-stream.md](epic-event-stream.md) — Agent Tree UI + Metrics Bar + Live Activity
+- [epic-semantic-search.md](epic-semantic-search.md) — Semantic Search (NEW #632)
+- [epic-code-index.md](epic-code-index.md) — Code Structural Index (NEW #633)
 - [epic-agents-roster.md](epic-agents-roster.md) — Remaining MVP agents (prompt-validator, plan-reviewer, specialists, etc.)
 - [epic-skills.md](epic-skills.md) — Skill-embedded MCP + references/ subfolder
 
@@ -79,13 +82,10 @@ Epics active:
 
 - No TUI (v2)
 - No annotation-driven approval flow (v2)
-- No embeddings / vector search (v2)
 - No full context-monitor/autocompaction stack in the first believable runtime slice
 - No skill marketplace / catalog (v2)
 - No sandbox / Docker isolation (v3)
 - No auto-advance / full-auto mode (v3)
-- No GitLab / Jira backends (v3/v4)
-- No multi-user / auth / teams (v4)
 - No Windows support (not planned)
 - No IDE extensions (not planned)
 - No voice interface (not planned)
@@ -97,22 +97,27 @@ Epics active:
 | Epic | Package(s) | Iterations | Issues |
 |------|-----------|------------|--------|
 | [monorepo-setup](epic-monorepo-setup.md) | root | POC | DC-SETUP-001..005 |
-| [config](epic-config.md) | @diricode/core | POC | DC-CORE-001..004 |
-| [diri-router](epic-diri-router.md) | @diricode/diri-router | POC→MVP-2 | DC-DR-001..011 |
-| [server](epic-server.md) | @diricode/server | POC | DC-SRV-001..004 |
-| [tools](epic-tools.md) | @diricode/tools | POC→MVP-2 | DC-TOOL-001..012 + #45 |
-| [memory](epic-memory.md) | @diricode/memory | MVP-1 | DC-MEM-001..009 |
-| [agents-core](epic-agents-core.md) | @diricode/core | POC→MVP-1 | DC-CORE-005..016 |
-| [agents-roster](epic-agents-roster.md) | @diricode/core | POC→MVP-3 | DC-AGENT-001..025 |
-| [hooks](epic-hooks.md) | @diricode/core | MVP-2 | DC-HOOK-001..005 |
-| [pipeline](epic-pipeline.md) | @diricode/core | MVP-1→MVP-2 | DC-PIPE-001..009 |
-| [context](epic-context.md) | @diricode/core | MVP-1→MVP-3 | DC-CTX-001..009 |
-| [safety](epic-safety.md) | @diricode/tools | POC→MVP-1 | DC-SAFE-001..005 |
-| [skills](epic-skills.md) | @diricode/core | MVP-2→MVP-3 | DC-SKILL-001..006 |
-| [observability](epic-observability.md) | @diricode/core, web | MVP-1→MVP-3 | DC-OBS-001..009 |
-| [web-ui](epic-web-ui.md) | @diricode/web | MVP-3 | DC-WEB-001..007 |
-| [cli](epic-cli.md) | apps/cli | POC→MVP-1 | DC-CLI-001..004 |
-| [testing-infra](epic-testing-infra.md) | root, test-utils | POC | DC-TEST-001..004 |
+| [config](epic-config.md) | packages/core | POC | #184 |
+| [diri-router](epic-diri-router.md) | packages/dirirouter | POC→MVP-2 | #3 |
+| [server](epic-server.md) | packages/server | POC | #192 |
+| [tools](epic-tools.md) | packages/tools | POC→MVP-2 | #5 |
+| [memory](epic-memory.md) | packages/memory | MVP-1 | DC-MEM-001..009 |
+| [agent-workers](epic-agent-workers.md) | packages/agents | POC→MVP-3 | #613 |
+| [orchestrators](epic-orchestrators.md) | packages/orchestrators | MVP-2 | #614 |
+| [hooks](epic-hooks.md) | packages/core | MVP-2 | #14 |
+| [pipeline](epic-pipeline.md) | packages/core | MVP-1→MVP-2 | DC-PIPE-001..009 |
+| [prompt-composer](epic-prompt-composer.md) | packages/prompt-composer | MVP-1→MVP-3 | #631 |
+| [semantic-search](epic-semantic-search.md) | packages/semantic-search | MVP-3 | #632 |
+| [code-index](epic-code-index.md) | packages/code-index | MVP-3 | #633 |
+| [safety](epic-safety.md) | packages/tools | POC→MVP-1 | DC-SAFE-001..005 |
+| [skills](epic-skills.md) | packages/agents | MVP-2→MVP-3 | #15 |
+| [event-stream](epic-event-stream.md) | packages/core | MVP-1→MVP-3 | #623 |
+| [permission-engine](epic-permission-engine.md) | packages/core | MVP-2 | #621 |
+| [web-dashboard](epic-web-dashboard.md) | packages/web | MVP-3 | #17 |
+| [cli](epic-cli.md) | apps/cli | POC→MVP-1 | #9 |
+| [testing-infra](epic-testing-infra.md) | root, test-utils | POC | #10 |
+| [bun-migration](epic-bun-migration.md) | root | POC | #163 |
+| [diricontext](epic-diricontext.md) | packages/project-planner | MVP-1 | #576-612 |
 
 ---
 
