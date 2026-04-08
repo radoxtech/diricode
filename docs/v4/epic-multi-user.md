@@ -1,3 +1,5 @@
+> ⚠️ **DEPRECATED** — Multi-user scope was closed during the 2026-04 issue remediation (Batch 11). All related issues have been closed.
+
 # Epic: Multi-User Collaboration — Auth, Permissions & Teams (v4.1)
 
 > Package: `@diricode/server` + `@diricode/core` + `@diricode/web`

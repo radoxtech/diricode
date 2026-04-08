@@ -1,3 +1,5 @@
+> ⚠️ **DEPRECATED** — GitLab integration scope was closed during the 2026-04 issue remediation (Batch 11). All related issues have been closed.
+
 # Epic: GitLab Issues Backend (v3.1)
 
 > Package: `@diricode/core` + new `@diricode/gitlab-mcp`
