@@ -12,7 +12,7 @@ This documentation pack contains complete workflows for:
 
 1. **GitHub Operations** - Cost-effective GitHub issue and PR management
 2. **Git Workflow** - Branch management, PRs, commits, and issue tracking
-3. **Epic Hierarchy** - Multi-level project organization (Meta-Epic → Epic → Sub-Epic → Task)
+3. **Epic Hierarchy** - Two-level project organization (Epic → Task)
 4. **Sprint Management** - Current sprint status and implementation tracking
 5. **Worktree Isolation** - AI-safe isolated development environments
 6. **AI Collaboration** - LLM integration patterns and best practices
@@ -51,8 +51,8 @@ These commands are used when **contributing to DiriCode's codebase**, not when D
 
 | Command           | Purpose                                      | File                         |
 | ----------------- | -------------------------------------------- | ---------------------------- |
-| `/start-work`     | Initialize task branch/worktree              | `commands/start-work.md`     |
-| `/finish-work`    | Complete work, create PR, merge              | `commands/finish-work.md`    |
+| `/start`     | Initialize task branch/worktree              | `commands/start.md`     |
+| `/finish`    | Complete work, create PR, merge              | `commands/finish.md`    |
 | `/current-sprint` | Show sprint status & task candidates         | `commands/current-sprint.md` |
 | `/project-health` | Project health check, stale issues, blockers | `commands/project-health.md` |
 
@@ -64,11 +64,11 @@ These commands are used when **contributing to DiriCode's codebase**, not when D
 
 Executable workflows for common **DiriCode development** tasks (contributing to DiriCode, not DiriCode's runtime execution):
 
-1. **`start-work.md`** - Initialize worktree-based git workflow for a new `[Task]` issue
+1. **`start.md`** - Initialize worktree-based git workflow for a new `[Task]` issue
    - Validates task-level issues only
    - Queries GitHub Projects for sprint candidates
    - Creates isolated worktree with epic context
-2. **`finish-work.md`** - Complete work workflow and create PR
+2. **`finish.md`** - Complete work workflow and create PR
    - Closes worktree cleanly
    - Creates PR with proper commit linking
    - Handles merge and cleanup
@@ -92,60 +92,59 @@ Specialized executor agents for consultative workflows:
    - Issue management and GraphQL queries
    - Epic-specific operations
    - Executes: `git`, `gh`, and GitHub CLI commands
-
-### Knowledge Directory (`.ai/knowledge/`)
-
-Reference documentation and architectural patterns for **developing DiriCode** (GitHub Projects #4 setup, contributor workflows, label taxonomy). These patterns describe the development process, not DiriCode's runtime behavior:
-
-1. **`epic-hierarchy.md`** - Multi-level project organization
-   - Four-level hierarchy: Meta-Epic → Epic → Sub-Epic → Task
-   - Naming conventions and bracket prefixes
-   - Parent-child relationships
-   - Issue linking requirements
 2. **`github-ops-agent.md`** - GitHub Operations Agent configuration
    - Cost optimization patterns
    - Agent delegation strategies
    - GitHub CLI automation
    - Project management integration
-3. **`worktree-isolation.md`** - AI-safe isolated development rules
+
+### Knowledge Directory (`.ai/knowledge/`)
+
+Reference documentation and architectural patterns for **developing DiriCode** (GitHub Projects #4 setup, contributor workflows, label taxonomy). These patterns describe the development process, not DiriCode's runtime behavior:
+
+1. **`epic-hierarchy.md`** - Project organization
+   - Two-level hierarchy: Epic → Task (simplified from earlier 4-level design)
+   - Child list comment pattern for tracking epic children
+   - Label conventions: `level:epic`, `level:task`
+2. **`worktree-isolation.md`** - AI-safe isolated development rules
    - Worktree creation and cleanup
    - Context isolation for LLM safety
    - File access restrictions
    - Branch management
-4. **`labels-and-setup.md`** - Project setup and labeling strategy
+3. **`labels-and-setup.md`** - Project setup and labeling strategy
    - Required labels for issue tracking
    - GitHub Projects configuration
    - Sprint board setup
    - Label-based filtering
-5. **`ai-collaboration.md`** - LLM integration patterns
+4. **`ai-collaboration.md`** - LLM integration patterns
    - Prompt engineering for issue workflows
    - Agent delegation and skill loading
    - Context management in isolated environments
    - Cost optimization strategies
+5. **`naming-conventions.md`** - Issue, branch, and label naming patterns
+   - Bracket prefix format for issues
+   - Branch naming conventions
+   - PR title format
+   - Label taxonomy
 
 ---
 
 ## 🎯 Key Concepts
 
-### Epic Hierarchy (4 Levels)
+### Epic Hierarchy (2 Levels)
 
-DiriCode uses a strict four-level hierarchy for organization:
+DiriCode uses a simplified two-level hierarchy (established during 2026-04 remediation):
 
 ```
-[Meta-Epic] Platform Rebuild                           (Strategic)
-├─ [Epic] User Authentication System                   (Major feature)
-│  ├─ [Sub-Epic] Registration Flow                    (Component)
-│  │  ├─ [Task] Add email validation                  (Atomic work)
-│  │  ├─ [Task] Implement password reset              (Atomic work)
-│  │  └─ [Task] Add 2FA support                       (Atomic work)
-│  └─ [Sub-Epic] Login Flow
-│     └─ [Task] Add social login
-└─ [Epic] User Profiles
-   └─ [Sub-Epic] Profile Management
-      └─ [Task] Add profile picture upload
+[Epic] Agent Workers (#613)                            (Major feature)
+├─ [Task] DC-AW-001: Implement worker base class      (Atomic work)
+├─ [Task] DC-AW-002: Add code-writer agent             (Atomic work)
+└─ [Task] DC-AW-003: Add planner agent                 (Atomic work)
 ```
 
-**CRITICAL RULE:** Only `[Task]` level issues can be started with `/start-work`.
+Each epic tracks its children via a **child list comment** pinned on the epic issue. No Meta-Epics or Sub-Epics — epics are directly assigned `level:epic` and tasks `level:task`.
+
+**CRITICAL RULE:** Only `[Task]` level issues can be started with `/start`.
 
 ### Issue-First Development
 
@@ -175,7 +174,7 @@ git commit -m "refactor: optimize validation - refs #{ISSUE_NUMBER}"
 
 ```bash
 # Show current sprint status and ready tasks
-# (Command integrated in /start-work workflow)
+# (Command integrated in /start workflow)
 ```
 
 ---
@@ -187,17 +186,20 @@ git commit -m "refactor: optimize validation - refs #{ISSUE_NUMBER}"
 ```
 .ai/
 ├── commands/
-│   ├── start-work.md
-│   ├── finish-work.md
+│   ├── start.md
+│   ├── finish.md
 │   ├── current-sprint.md
 │   └── project-health.md
-│   └── README.md
+├── agents/
+│   ├── github-ops.md
+│   └── github-ops-agent.md
 ├── knowledge/
 │   ├── epic-hierarchy.md
-│   ├── github-ops-agent.md
 │   ├── worktree-isolation.md
 │   ├── labels-and-setup.md
-│   └── ai-collaboration.md
+│   ├── ai-collaboration.md
+│   ├── naming-conventions.md
+│   └── github-workflow-spec.md
 └── README.md (this file)
 ```
 
@@ -225,25 +227,15 @@ Create the following custom fields/views:
 Use the bracket prefixes to establish hierarchy:
 
 ```bash
-# Create Meta-Epic
-gh issue create --title "[Meta-Epic] Project Name" \
-  --body "Description of strategic goal" \
-  --label "meta-epic"
-
-# Create Epic (link to Meta-Epic in description)
+# Create Epic
 gh issue create --title "[Epic] Feature Name" \
-  --body "Feature description. Related: #{META_EPIC_NUMBER}" \
-  --label "epic"
+  --body "Feature description" \
+  --label "level:epic"
 
-# Create Sub-Epic
-gh issue create --title "[Sub-Epic] Component Name" \
-  --body "Component description. Related: #{EPIC_NUMBER}" \
-  --label "sub-epic"
-
-# Create Task (ready for /start-work)
+# Create Task (ready for /start)
 gh issue create --title "[Task] Specific work item" \
-  --body "Task description. Related: #{SUB_EPIC_NUMBER}" \
-  --label "task"
+  --body "Task description. Parent: #{EPIC_NUMBER}" \
+  --label "level:task"
 ```
 
 ### 5. Add Tasks to Project Sprint
@@ -271,7 +263,7 @@ gh project item-add {PROJECT_NUMBER} --owner {USER} --url https://github.com/{US
 ### Starting a Task
 
 ```bash
-# 1. Execute /start-work command
+# 1. Execute /start command
 # 2. Select task from sprint list
 # 3. Verify epic hierarchy displayed correctly
 # 4. Worktree created and checked out
@@ -281,7 +273,7 @@ gh project item-add {PROJECT_NUMBER} --owner {USER} --url https://github.com/{US
 ### Finishing Work
 
 ```bash
-# 1. Execute /finish-work command
+# 1. Execute /finish command
 # 2. Review changes
 # 3. PR created with issue linking
 # 4. Worktree cleaned up
@@ -295,11 +287,11 @@ gh project item-add {PROJECT_NUMBER} --owner {USER} --url https://github.com/{US
 ### DO:
 
 - ✅ Create issues BEFORE starting work
-- ✅ Use proper bracket prefixes: `[Meta-Epic]`, `[Epic]`, `[Sub-Epic]`, `[Task]`
+- ✅ Use proper bracket prefixes: `[Epic]`, `[Task]`
 - ✅ Link all commits to issues: `fixes #{ISSUE_NUMBER}`
 - ✅ Use worktree isolation for each task
 - ✅ Check sprint board before selecting tasks
-- ✅ Use `/start-work` to initialize workflows
+- ✅ Use `/start` to initialize workflows
 - ✅ Delete worktree after finishing work
 - ✅ Verify epic hierarchy before starting
 
@@ -366,7 +358,7 @@ gh project item-edit {PROJECT_NUMBER} --id {ITEM_ID} --field "Status" --single-s
 ### Issue: "Invalid task level"
 
 **Cause:** Issue is not `[Task]` level  
-**Solution:** `/start-work` only works with `[Task]` issues. Create or select a proper task.
+**Solution:** `/start` only works with `[Task]` issues. Create or select a proper task.
 
 ### Issue: Permission Denied for GitHub CLI
 
@@ -445,13 +437,13 @@ Issue created on GitHub Project
     ↓
 Epic hierarchy validated
     ↓
-/start-work command
+/start command
     ↓
 Worktree created (isolated)
     ↓
 Code changes committed with issue linking
     ↓
-/finish-work command
+/finish command
     ↓
 PR created → Review → Merge
     ↓
@@ -464,17 +456,23 @@ Worktree cleaned up
 
 ### Command Files
 
-- `start-work.md` - Task initialization workflow
-- `finish-work.md` - Work completion and PR creation
+- `start.md` - Task initialization workflow
+- `finish.md` - Work completion and PR creation
 - `current-sprint.md` - Sprint status and candidates
 
 ### Knowledge Files
 
-- `epic-hierarchy.md` - Four-level organization structure
-- `github-ops-agent.md` - GitHub automation patterns
+- `epic-hierarchy.md` - Two-level organization structure (Epic → Task)
 - `worktree-isolation.md` - Isolated development rules
 - `labels-and-setup.md` - Project configuration
 - `ai-collaboration.md` - LLM integration patterns
+- `naming-conventions.md` - Issue, branch, and label naming
+- `github-workflow-spec.md` - GitHub workflow specification
+
+### Agent Files
+
+- `github-ops.md` - GitHub Workflow Executor agent definition
+- `github-ops-agent.md` - GitHub Operations Agent configuration and patterns
 
 ---
 
@@ -497,11 +495,11 @@ Worktree cleaned up
    - Add to project sprint board
 
 5. **Start work**
-   - Run `/start-work` command
+   - Run `/start` command
    - Select task from sprint list
 
 6. **Finish work**
-   - Run `/finish-work` command
+   - Run `/finish` command
    - PR is created automatically
 
 ---
