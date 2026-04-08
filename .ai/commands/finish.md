@@ -350,5 +350,4 @@ Fetch + rebase origin/main
 
 ## See Also
 
-- **[finish-work.md](./finish-work.md)** — Oryginalny workflow
 - **[start.md](./start.md)** — Start task
