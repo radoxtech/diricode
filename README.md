@@ -8,118 +8,56 @@
 [![CI Status](https://img.shields.io/github/actions/workflow/status/radoxtech/diricode/ci.yml?branch=main)](https://github.com/radoxtech/diricode/actions)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-green.svg)](https://nodejs.org/)
 
-DiriCode is a local-first agentic coding framework focused on building a **believable working prototype first**: a controlled runtime loop with a read-only dispatcher, specialized agents, safe tools, streamed execution visibility, and resumable checkpoints.
+DiriCode is a local-first agentic coding framework built around a **modular 9-module architecture**: a read-only dispatcher, specialized agent workers, orchestrator coordination, context-aware model routing (DiriRouter), structured project knowledge (Diricontext), safe tools, streamed execution visibility, and resumable checkpoints.
 
-> **Status: Pre-MVP (v0.0.0)** — core runtime pieces exist, but the end-to-end pipeline is still being wired.
+> **Status: Pre-MVP (v0.0.0)** — core runtime pieces exist, modular architecture established, end-to-end pipeline integration in progress.
 
 ---
 
-## Current Direction
+## Architecture Overview
 
-The near-term goal is **not** to ship the entire long-range 40-agent vision at once.
+DiriCode is organized into **9 distinct modules**, each owning a well-defined concern:
 
-The goal is to ship the fastest believable prototype with these properties:
+| # | Module | Package | Role |
+|---|--------|---------|------|
+| 0 | **Diricontext** | `packages/project-planner/` | Graph-based directed context — project knowledge across 3 namespaces (docs, plan, reference) |
+| 1 | **Code Structural Index** | `packages/code-index/` *(planned)* | Tree-sitter parsing, PageRank file scoring, FTS5 symbol search |
+| 2 | **Prompt Composer** | `packages/prompt-composer/` *(planned)* | 3-layer context management: structural index → condenser pipeline → context composer |
+| 3 | **Semantic Search** | `packages/semantic-search/` *(planned)* | Embedding provider abstraction, sqlite-vec storage, hybrid FTS5+vector search |
+| 4 | **Agent Memory** | `packages/memory/` | SQLite-backed session/turn state, ReasoningBank, cross-session querying |
+| 5 | **DiriRouter** | `packages/dirirouter/` | Context-aware model routing, provider registry, cost tracking, fallback chains |
+| 6a | **Agent Workers** | `packages/agents/` | Specialized agents that do the work (code-writer, planner, explorer, etc.) + skills |
+| 6b | **Orchestrators** | `packages/orchestrators/` *(planned)* | Dispatcher, delegation, coordination, monitoring — never mutate code directly |
+| 7 | **Permission Engine** | `packages/core/` | Cross-cutting permission handlers, audit logging, granular permission levels |
 
-- **Read-only dispatcher** orchestrates work without directly mutating code.
-- **Sequential-first runtime** is easier to debug, trust, and resume.
-- **Streaming visibility** makes agent/tool progress observable instead of opaque.
-- **Checkpoint/resume** is a first-class MVP-1 requirement.
-- **Semantic navigation + structural tooling** raise coding quality early.
-- **Local SQLite state** keeps runtime operations offline-first and low-latency.
+### Design Principles
 
-Later capabilities — broader swarm execution, richer approval UX, advanced context autopilot, full ReasoningBank live integration, and **intelligent model selection via the LLM Picker** (ADR-049) — remain in the roadmap, but they are not the first delivery target.
-
-## What Exists Today
-
-These parts are already real in the repository:
-
-- **Dispatcher and delegation protocol**
-  - read-only dispatcher runtime
-  - parent/child delegation envelopes
-  - context inheritance modes
-  - async job/sandbox primitives
-- **Tool layer**
-  - file read/write/edit
-  - grep/glob
-  - bash execution with safety controls
-  - LSP and AST-aware tooling foundations
-- **Runtime state and memory**
-  - SQLite-backed repositories
-  - task/context persistence primitives
-  - local-first issue system direction
-- **Transport and observability foundations**
-  - Hono API routes
-  - SSE transport
-  - event emission foundations
-- **Provider layer**
-  - provider registry
-  - router foundations
-  - model scoring / experiment primitives
-  - LLM Picker design (ADR-049)
-
-The biggest remaining gap is **integration**, not “missing ideas.”
-
-## Prototype-First Scope
-
-### First-wave priorities
-
-The current prototype-first rollout is shaped by these patterns:
-
-1. Tool Call Loop
-2. Sequential-first execution with later wave compatibility
-3. Streaming Tool Calls
-4. Tool Loop Error Handling
-5. Read-Only Dispatcher
-6. Handoff Input Filtering
-7. Tool Whitelisting per Agent
-8. Semantic Navigation
-9. Structural Refactoring support
-10. Session Checkpointing / Resume
-11. Event Stream Coordination
-
-### Second-wave priorities
-
-After the first runtime path works:
-
-- auto-compact / tool result spill
-- sub-agent spawning and stronger autonomy loops
-- hash-anchored edits / fuzzier patch application
-- lightweight `AGENTS.md` support
-- ReasoningBank foundations and cross-session memory querying
-- stronger intent gate evolution
-- richer router/cost intelligence
-- LLM Picker decision engine (ADR-049)
-
-### Later priorities
-
-- full context-budget sophistication
-- file guard / AI-slop guards in broader hook framework
-- full permission service
-- confidence-based multi-agent review
-- interactive terminal / TUI
-
-## Architecture
+- **Workers vs Orchestrators**: Workers do the work and receive skills. Orchestrators delegate, coordinate, and monitor. Dependency direction: orchestrator → worker, never reverse.
+- **Diricontext ≠ Runtime Context**: Diricontext is a persistent project knowledge graph. Prompt Composer is runtime token budget management. Different systems, different lifecycles.
+- **Skills belong with workers**: Skills are AI instruction sets (SKILL.md + frontmatter). Workers execute them; orchestrators decide whom to assign.
+- **Tool registration in tools/**: All MCP tool schemas + handlers live in `packages/tools/`. Domain logic is imported from the owning module.
 
 ```mermaid
 graph TD
     subgraph Clients
         CLI[CLI]
         Web[Web UI]
+        TUI[TUI - Ink]
     end
 
     subgraph Server
         API[Hono API]
-        SSE[SSE / Event stream]
+        SSE[SSE / EventStream]
     end
 
-    subgraph Core
+    subgraph "Orchestration Layer"
         Dispatcher[Dispatcher - read only]
-        Pipeline[Sequential-first pipeline]
-        Prompt[Prompt builder]
+        Pipeline[Sequential-first Pipeline]
+        Orchestrators[Orchestrator Agents]
     end
 
-    subgraph Agents
-        Specialists[Specialist agents]
+    subgraph "Worker Layer"
+        Workers[Agent Workers + Skills]
     end
 
     subgraph Tools
@@ -129,132 +67,173 @@ graph TD
         Git[Git]
     end
 
-    subgraph Memory
-        SQLite[SQLite runtime state]
+    subgraph "Knowledge & Context"
+        Diricontext[Diricontext - project graph]
+        PromptComposer[Prompt Composer]
+        CodeIndex[Code Structural Index]
+        SemanticSearch[Semantic Search]
     end
 
-    subgraph Providers
-        Registry[Provider registry]
-        Picker[LLM Picker]
-        Router[Routing foundations]
+    subgraph "Runtime State"
+        Memory[Agent Memory - SQLite]
+    end
+
+    subgraph "Model Routing"
+        DiriRouter[DiriRouter]
+        Providers[Provider Registry]
+    end
+
+    subgraph "Safety"
+        Permissions[Permission Engine]
     end
 
     CLI --> API
     Web --> API
+    TUI --> API
     API --> SSE
     API --> Dispatcher
     Dispatcher --> Pipeline
-    Pipeline --> Specialists
-    Specialists --> Files
-    Specialists --> Search
-    Specialists --> Bash
-    Specialists --> Git
-    Dispatcher --> SQLite
-    Specialists --> SQLite
-    Specialists --> Picker
-    Picker --> Router
-    Router --> Registry
+    Pipeline --> Orchestrators
+    Orchestrators --> Workers
+    Workers --> Files
+    Workers --> Search
+    Workers --> Bash
+    Workers --> Git
+    Workers --> Diricontext
+    PromptComposer --> CodeIndex
+    PromptComposer --> SemanticSearch
+    PromptComposer --> Memory
+    PromptComposer --> Diricontext
+    Workers --> DiriRouter
+    DiriRouter --> Providers
+    Dispatcher --> Memory
+    Workers --> Memory
+    Workers --> Permissions
 ```
 
 ## Key Architectural Decisions
 
-### Dispatcher-first
+### Dispatcher-first (ADR-002)
 
-The dispatcher remains the orchestrator and stays read-only. It routes, delegates, aggregates, and exposes progress — but should not become a hidden “do everything” agent.
+The dispatcher remains the orchestrator and stays read-only. It routes, delegates, aggregates, and exposes progress — but should not become a hidden "do everything" agent. With the agents/orchestrators split, dispatching logic lives in `packages/orchestrators/`.
 
-See: `docs/adr/adr-002-dispatcher-first-agent-architecture.md`
+### Pipeline-first, sequential-first (ADR-013)
 
-### Pipeline-first, sequential-first
+The long-term shape remains **Interview → Plan → Execute → Verify**, but MVP-1 delivery is:
 
-The long-term shape remains **Interview → Plan → Execute → Verify**, but MVP-1 delivery is clarified as:
-
-**Prompt → Dispatcher → Specialist → Tool execution → Response**
+**Prompt → Dispatcher → Orchestrator → Worker → Tool execution → Response**
 
 with **checkpoint/resume** and **observable progress** required from the start.
 
-See: `docs/adr/adr-013-project-pipeline.md`
+### DiriRouter — unified model routing (ADR-055)
 
-### EventStream as observability backbone
+Supersedes the earlier "LLM Picker" design (ADR-049). DiriRouter unifies provider routing, model selection, cost tracking, context-aware tier management, and fallback chains in a single package. Context window tiers: LOW (<200k), MEDIUM (200k–800k), HEAVY (>800k).
+
+### Diricontext — structured project knowledge
+
+A graph-based directed context system with 3 namespaces: **docs** (what IS — features, components, ADR decisions), **plan** (what WILL BE — tasks, epics, sprints), **reference** (external context — legacy apps, competitors). Published independently as an MCP server + TypeScript library.
+
+### EventStream as observability backbone (ADR-031)
 
 Observability starts with typed events and replayable runtime data. Richer UI surfaces build on top of that.
 
-See: `docs/adr/adr-031-observability-eventstream-agent-tree.md`
-
-### SQLite is runtime truth
+### SQLite is runtime truth (ADR-048)
 
 Runtime state lives in SQLite. GitHub is for planning/project visibility, not the runtime source of truth.
 
-See: `docs/adr/adr-048-sqlite-issue-system.md`
+## What Exists Today
 
-## MVP Roadmap Shape
-
-### POC
-
-Prove the basic path:
-
-- dispatcher runtime
-- safe tools
-- provider path
-- CLI/server/SSE skeleton
-
-### MVP-1
-
-Ship the first believable runtime:
-
-- sequential-first execution
-- explicit turn lifecycle
-- heuristic route into execution path
-- checkpoint/resume
-- semantic navigation / structural tooling uplift
-- early evented transparency
-- memory-backed runtime state
-
-### MVP-2+
-
-Expand safely:
-
-- richer hooks and guardrails
-- stronger autonomy / bounded waves
-- smarter context management
-- ReasoningBank live integration
-- richer observability UI
+- **Dispatcher and delegation protocol** — read-only dispatcher runtime, parent/child delegation envelopes, context inheritance modes, async job/sandbox primitives
+- **Tool layer** — file read/write/edit, grep/glob, bash execution with safety controls, LSP and AST-aware tooling foundations
+- **Runtime state and memory** — SQLite-backed repositories (12 repos), task/context persistence, local-first direction
+- **Transport and observability** — Hono API routes, SSE transport, event emission foundations
+- **Provider layer + DiriRouter** — provider registry, context-aware routing, model scoring, fallback chains, context window tiers (ADR-055)
+- **Agent workers** — dispatcher, planner-quick, code-writer, code-explorer, sequential-executor, sandbox, background-task-manager
+- **Diricontext** — designed and specified across 6 implementation waves (#576–#612)
 
 ## Current Package Layout
 
 ```text
 apps/
-  cli/
+  cli/                    # CLI entry point
 packages/
-  core/
-  agents/
-  tools/
-  providers/
-  server/
-  memory/
-  web/
+  core/                   # Types, contracts, interfaces + Permission Engine
+  agents/                 # Agent Workers (specialized agents + skills)
+  orchestrators/          # Orchestrators (planned — dispatcher, coordination)
+  tools/                  # MCP tool schemas + handlers
+  dirirouter/             # DiriRouter — model routing, providers, cost tracking
+  memory/                 # Agent Memory — SQLite session/turn state
+  server/                 # Hono API server
+  web/                    # Web Dashboard (Vite + React + shadcn/ui)
+  project-planner/        # Diricontext — project knowledge graph
+  prompt-composer/        # Prompt Composer (planned — context management)
+  semantic-search/        # Semantic Search (planned — embeddings + hybrid search)
+  code-index/             # Code Structural Index (planned — tree-sitter + PageRank)
+  github-mcp/             # GitHub MCP integration
+  web-search/             # Web search MCP integration
+  test-harness/           # Test harness utilities
+  test-utils/             # Test utilities
 docs/
-  adr/
-  mvp/
-  v2/
-  v3/
-  v4/
+  adr/                    # Architecture Decision Records (ADR-001 through ADR-055)
+  mvp/                    # MVP epic documentation
+  v2/                     # v2 roadmap (hooks, observability, semantic search)
+  v3/                     # v3 roadmap (advanced observability, swarm)
 ```
+
+## Roadmap
+
+### MVP-1 — First Believable Runtime
+
+- Sequential-first execution with explicit turn lifecycle
+- Checkpoint/resume as first-class requirement
+- Semantic navigation / structural tooling uplift
+- Early evented transparency (EventStream)
+- Memory-backed runtime state
+- DiriRouter basic model selection
+
+### MVP-2 — Core Intelligence
+
+- Prompt Composer (3-layer context management)
+- Code Structural Index (tree-sitter + PageRank)
+- Permission Engine Phase 1
+- DiriRouter cost tracking + context-aware tiers
+- Hook framework (6 MVP hook types)
+
+### v2 — Expansion
+
+- Semantic Search (embeddings + hybrid search)
+- Agent Memory extensions (ReasoningBank, cross-session querying)
+- Observability v2 (structured metrics, trace correlation)
+- Hook framework v2 (approval system, auto-advance)
+- Sandbox execution environment
+- Advanced UX (TUI via Ink, speech-to-text exploration)
+
+### v3 — Advanced
+
+- Observability v3 (distributed tracing, anomaly detection)
+- Swarm coordination (bounded parallel execution)
+- Advanced orchestration patterns
+- DiriRouter Elo scoring + A/B testing
 
 ## Current Status
 
-| Area                                | Status          | Notes                                                |
-| ----------------------------------- | --------------- | ---------------------------------------------------- |
-| Dispatcher / delegation             | ✅ Partial-real | Strong runtime foundation exists                     |
-| Tool layer                          | ✅ Partial-real | File/search/bash/LSP/AST foundations exist           |
-| SQLite memory backbone              | ✅ Partial-real | Repositories and local-first direction are real      |
-| SSE / transport                     | ✅ Partial-real | Transport exists; full event model still in progress |
-| Provider layer                      | ✅ Partial-real | Registry exists; richer routing still evolving       |
-| LLM Picker                          | 📐 Designed     | ADR-049 accepted; implementation in MVP-2            |
-| End-to-end pipeline                 | 🏗️ In progress  | Core integration still being wired                   |
-| Checkpoint / resume                 | 🏗️ In progress  | Explicit MVP-1 requirement                           |
-| Semantic navigation / refactoring   | 🏗️ In progress  | High-priority prototype multiplier                   |
-| Full context budgeting / compaction | 📋 Later        | Deliberately not first-wave                          |
-| Full swarm / broad autonomy         | 📋 Later        | Architectural direction kept, delivery delayed       |
+| Area | Status | Notes |
+|------|--------|-------|
+| Core runtime / dispatcher | ✅ Partial-real | Strong runtime foundation exists |
+| Tool layer | ✅ Partial-real | File/search/bash/LSP/AST foundations exist |
+| SQLite memory backbone | ✅ Partial-real | 12 repositories, local-first direction real |
+| SSE / EventStream transport | ✅ Partial-real | Transport exists; full event model in progress |
+| DiriRouter (model routing) | ✅ Partial-real | Providers, context tiers, fallback chains exist |
+| Agent Workers | ✅ Partial-real | 7 agent definitions exist |
+| Diricontext | 📐 Designed | 6-wave implementation plan, 32 issues specified |
+| Orchestrators | 📐 Designed | Split from agents, epic #614 with 18 issues |
+| Prompt Composer | 📐 Designed | ADR-016/017, epic #631 with 12 issues |
+| Code Structural Index | 📐 Designed | ADR-018, epic #633 with 5 issues |
+| Semantic Search | 📐 Designed | ADR-021 addendum, epic #632 with 5 issues |
+| Permission Engine | 📐 Designed | ADR-051/052, epic #621 with ~12 issues |
+| End-to-end pipeline | 🏗️ In progress | Core integration being wired |
+| Checkpoint / resume | 🏗️ In progress | Explicit MVP-1 requirement |
+| Hooks framework | 📐 Designed | ADR-024, epics #14/#186/#253 |
 
 ## Getting Started
 
@@ -284,19 +263,21 @@ pnpm typecheck
 
 ## Documentation Index
 
-- ADRs: `docs/adr/`
-- MVP plan: `docs/mvp/`
-- later roadmap: `docs/v2/`, `docs/v3/`, `docs/v4/`
+- **ADRs**: `docs/adr/` — 55 Architecture Decision Records
+- **MVP plan**: `docs/mvp/` — epic breakdown and implementation order
+- **v2 roadmap**: `docs/v2/` — hooks, observability, semantic search
+- **v3 roadmap**: `docs/v3/` — advanced observability, swarm coordination
 
 ## Contributing
 
 The project is still in active architectural shaping. If you want to understand the current direction, start with:
 
-1. `docs/adr/adr-002-dispatcher-first-agent-architecture.md`
-2. `docs/adr/adr-013-project-pipeline.md`
-3. `docs/adr/adr-031-observability-eventstream-agent-tree.md`
-4. `docs/adr/adr-048-sqlite-issue-system.md`
-5. `docs/mvp/index.md`
+1. `docs/adr/adr-002-dispatcher-first-agent-architecture.md` — Dispatcher-first architecture
+2. `docs/adr/adr-055-diri-router-unified-package.md` — DiriRouter unified routing
+3. `docs/adr/adr-013-project-pipeline.md` — Pipeline design
+4. `docs/adr/adr-031-observability-eventstream-agent-tree.md` — Observability
+5. `docs/adr/adr-048-sqlite-issue-system.md` — SQLite runtime state
+6. `docs/mvp/index.md` — MVP implementation plan
 
 ## License
 
