@@ -13,7 +13,15 @@
  */
 
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
+import type {
+  GenerateOptions,
+  ModelConfig,
+  ModelDescriptor,
+  ModelQuota,
+  Provider,
+  ProviderAdapter,
+  StreamChunk,
+} from "../types.js";
 
 /** Default base URL for Z.ai GLM Coding Plan API */
 const DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/coding/paas/v4";
@@ -43,7 +51,7 @@ export class ZaiProvider implements Provider {
 
   /**
    * Default model configuration.
-   * Uses glm-5-turbo for cost-effective, fast responses optimized for coding.
+   * Uses glm-5-turbo for optimal balance of speed and quality for coding tasks.
    */
   readonly defaultModel: ModelConfig = {
     modelId: "glm-5-turbo",
@@ -82,9 +90,7 @@ export class ZaiProvider implements Provider {
   constructor(config: ZaiProviderConfig | string) {
     const rawApiKey = typeof config === "string" ? config : config.apiKey;
     const baseURL =
-      typeof config === "string"
-        ? DEFAULT_ZAI_BASE_URL
-        : (config.baseURL ?? DEFAULT_ZAI_BASE_URL);
+      typeof config === "string" ? DEFAULT_ZAI_BASE_URL : (config.baseURL ?? DEFAULT_ZAI_BASE_URL);
 
     const envApiKey = process.env.DC_ZAI_API_KEY ?? "";
     const resolvedApiKey = rawApiKey.trim() || envApiKey;
@@ -231,6 +237,155 @@ export class ZaiProvider implements Provider {
     }
 
     return new Error(`ZaiProvider ${context} failed: Unknown error occurred`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ProviderAdapter — LLM Picker static metadata
+// ---------------------------------------------------------------------------
+
+const ZAI_MODELS: ModelDescriptor[] = [
+  {
+    apiModel: "glm-5",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 2,
+  },
+  {
+    apiModel: "glm-5-turbo",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-5.1",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 2,
+  },
+  {
+    apiModel: "glm-5v-turbo",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: true,
+    attachment: true,
+    quotaMultiplier: 2,
+  },
+  {
+    apiModel: "glm-4.7",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.7-flash",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.7-flashx",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.6",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.6v",
+    contextWindow: 128_000,
+    maxOutput: 32_768,
+    canReason: true,
+    toolCall: true,
+    vision: true,
+    attachment: true,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.5",
+    contextWindow: 131_072,
+    maxOutput: 98_304,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.5-flash",
+    contextWindow: 131_072,
+    maxOutput: 98_304,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.5-air",
+    contextWindow: 131_072,
+    maxOutput: 98_304,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.5v",
+    contextWindow: 64_000,
+    maxOutput: 16_384,
+    canReason: true,
+    toolCall: true,
+    vision: true,
+    attachment: true,
+    quotaMultiplier: 1,
+  },
+];
+
+export class ZaiProviderAdapter implements ProviderAdapter {
+  readonly providerId = "zai";
+
+  listModels(): ModelDescriptor[] {
+    return ZAI_MODELS;
+  }
+
+  getQuota(): ModelQuota[] | null {
+    return null;
   }
 }
 

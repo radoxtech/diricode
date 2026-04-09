@@ -26,9 +26,7 @@ describe("ZaiProvider", () => {
     });
 
     it("throws error when config object has empty apiKey", () => {
-      expect(() => new ZaiProvider({ apiKey: "" })).toThrow(
-        "ZaiProvider requires an API key",
-      );
+      expect(() => new ZaiProvider({ apiKey: "" })).toThrow("ZaiProvider requires an API key");
     });
   });
 
@@ -80,5 +78,4 @@ describe("ZaiProvider", () => {
       expect(provider.name).toBe("zai");
     });
   });
-
 });
