@@ -69,3 +69,5 @@ export type Issue = z.infer<typeof IssueSchema>;
 export { initDatabase } from "./lib/database.js";
 export * from "./types/index.js";
 export * from "./legacy.js";
+export { NodeStorage } from "./lib/storage.js";
+export { NamespaceStorage } from "./lib/namespaces.js";
