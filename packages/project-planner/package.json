@@ -1,7 +1,7 @@
 {
-  "name": "@diricode/project-planner",
-  "version": "0.0.0",
-  "description": "DiriCode issue tracking and project management domain models",
+  "name": "diricontext",
+  "version": "0.1.0",
+  "description": "Graph-based project knowledge and context models for Diricontext",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,17 +10,37 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js",
+      "default": "./dist/cli.js"
     }
+  },
+  "bin": {
+    "diricontext": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "better-sqlite3": "latest",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "latest",
+    "@types/node": "^20.0.0",
+    "vitest": "^4.1.0",
     "typescript": "^5.4.5"
   }
 }
