@@ -65,3 +65,5 @@ export const IssueSchema = z.object({
 });
 
 export type Issue = z.infer<typeof IssueSchema>;
+
+export { initDatabase } from "./lib/database.js";
