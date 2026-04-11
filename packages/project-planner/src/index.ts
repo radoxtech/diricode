@@ -75,6 +75,7 @@ export {
   DuplicateEdgeError,
 } from "./lib/edges.js";
 export type { CreateEdgeInput, EdgeFilters } from "./lib/edges.js";
+export { SearchEngine } from "./lib/search.js";
 export * from "./types/index.js";
 export * from "./legacy.js";
 export { NodeStorage } from "./lib/storage.js";
