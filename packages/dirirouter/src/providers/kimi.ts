@@ -1,4 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { classifyError } from "../error-classifier.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
 import type { ModelCard } from "../contracts/model-card.js";
 
@@ -194,15 +195,15 @@ export class KimiProvider implements Provider {
   }
 
   async generate(options: GenerateOptions): Promise<string> {
-    this.#ensureInitialized();
-
     const modelId = options.model?.modelId ?? this.defaultModel.modelId;
 
-    if (this.#provider === null) {
-      throw new Error("KimiProvider not initialized");
-    }
-
     try {
+      this.#ensureInitialized();
+
+      if (this.#provider === null) {
+        throw new Error("KimiProvider not initialized");
+      }
+
       const { generateText } = await import("ai");
       const { text } = await generateText({
         model: this.#provider.chatModel(modelId),
@@ -218,20 +219,23 @@ export class KimiProvider implements Provider {
 
       return text;
     } catch (error) {
-      throw this.#handleError(error, "generate");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
   }
 
   async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-    this.#ensureInitialized();
-
     const modelId = options.model?.modelId ?? this.defaultModel.modelId;
 
-    if (this.#provider === null) {
-      throw new Error("KimiProvider not initialized");
-    }
-
     try {
+      this.#ensureInitialized();
+
+      if (this.#provider === null) {
+        throw new Error("KimiProvider not initialized");
+      }
+
       const { streamText } = await import("ai");
       const result = streamText({
         model: this.#provider.chatModel(modelId),
@@ -249,34 +253,11 @@ export class KimiProvider implements Provider {
 
       yield { delta: "", done: true };
     } catch (error) {
-      throw this.#handleError(error, "stream");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
-  }
-
-  #handleError(error: unknown, context: string): Error {
-    if (error instanceof Error) {
-      if (
-        error.message.toLowerCase().includes("api key") ||
-        error.message.toLowerCase().includes("unauthorized") ||
-        error.message.toLowerCase().includes("401")
-      ) {
-        return new Error(
-          "Invalid or missing Kimi API key. " +
-            "Check your DC_KIMI_API_KEY environment variable or use KimiProvider.login(apiKey).",
-        );
-      }
-
-      if (
-        error.message.toLowerCase().includes("rate limit") ||
-        error.message.toLowerCase().includes("429")
-      ) {
-        return new Error("Rate limit exceeded. Please wait before retrying.");
-      }
-
-      return new Error(`KimiProvider ${context} failed: ${error.message}`);
-    }
-
-    return new Error(`KimiProvider ${context} failed: Unknown error occurred`);
   }
 }
 

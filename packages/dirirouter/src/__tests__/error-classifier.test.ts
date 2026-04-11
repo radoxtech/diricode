@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type ClassifiedError, type ProviderErrorKind } from "../index.js";
+import { ClassifiedError, type ProviderErrorKind } from "../index.js";
 import { classifyError, deriveRetryable, parseRetryAfter } from "../index.js";
 
 describe("classifyError", () => {
@@ -14,9 +14,9 @@ describe("classifyError", () => {
       expect(classifyError(err, { provider: "copilot" }).kind).toBe("auth_error");
     });
 
-    it("403 with 'quota' message → quota_exhausted", () => {
+    it("403 with 'quota' message → auth_error", () => {
       const err = { statusCode: 403, message: "You have exceeded your quota" };
-      expect(classifyError(err, { provider: "copilot" }).kind).toBe("quota_exhausted");
+      expect(classifyError(err, { provider: "copilot" }).kind).toBe("auth_error");
     });
 
     it("404 → not_found", () => {
@@ -34,14 +34,14 @@ describe("classifyError", () => {
       expect(classifyError(err, { provider: "copilot" }).kind).toBe("rate_limited");
     });
 
-    it("500 → other", () => {
+    it("500 → overloaded", () => {
       const err = { statusCode: 500, message: "Internal Server Error" };
-      expect(classifyError(err, { provider: "copilot" }).kind).toBe("other");
+      expect(classifyError(err, { provider: "copilot" }).kind).toBe("overloaded");
     });
 
-    it("502 → other", () => {
+    it("502 → overloaded", () => {
       const err = { statusCode: 502, message: "Bad Gateway" };
-      expect(classifyError(err, { provider: "copilot" }).kind).toBe("other");
+      expect(classifyError(err, { provider: "copilot" }).kind).toBe("overloaded");
     });
 
     it("503 → overloaded", () => {
@@ -321,6 +321,41 @@ describe("edge cases", () => {
     const err = Object.assign(new Error("forbidden"), { response: { status: 401 } });
     const result = classifyError(err, { provider: "gemini" });
     expect(result.kind).toBe("auth_error");
+  });
+
+  it("preserves existing ClassifiedError instances", () => {
+    const classified = new ClassifiedError({
+      kind: "rate_limited",
+      provider: "kimi",
+      model: "kimi-k2.5",
+      retryable: true,
+      retryAfterMs: 12_000,
+      raw: new Error("Too many requests"),
+    });
+
+    expect(classifyError(classified, { provider: "copilot", model: "gpt-4.1" })).toBe(classified);
+  });
+
+  it("classifies empty response as non-retryable other", () => {
+    const result = classifyError(new Error("Provider returned empty response"), {
+      provider: "copilot",
+    });
+
+    expect(result.kind).toBe("other");
+    expect(result.retryable).toBe(false);
+  });
+
+  it("parses retry-after from nested response headers", () => {
+    const result = classifyError(
+      {
+        status: 429,
+        message: "Too many requests",
+        response: { headers: { "retry-after": "7" } },
+      },
+      { provider: "copilot" },
+    );
+
+    expect(result.retryAfterMs).toBe(7_000);
   });
 
   it("plain object with status property → classified by status", () => {

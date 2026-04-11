@@ -12,6 +12,7 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+import { classifyError } from "../error-classifier.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
 import type { ModelCard } from "../contracts/model-card.js";
 
@@ -250,7 +251,10 @@ export class GeminiProvider implements Provider {
 
       return text;
     } catch (error) {
-      throw this.handleError(error, "generate");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
   }
 
@@ -293,7 +297,10 @@ export class GeminiProvider implements Provider {
       // Signal completion
       yield { delta: "", done: true };
     } catch (error) {
-      throw this.handleError(error, "stream");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
   }
 
@@ -307,35 +314,5 @@ export class GeminiProvider implements Provider {
    */
   getModelCards(): ModelCard[] {
     return GEMINI_MODEL_CARDS;
-  }
-
-  private handleError(error: unknown, context: string): Error {
-    if (error instanceof Error) {
-      // Check for specific error types
-      if (error.message.includes("API key")) {
-        return new Error(
-          `GeminiProvider ${context} failed: Invalid or missing API key. ` +
-            "Check your GEMINI_API_KEY configuration.",
-        );
-      }
-
-      if (error.message.includes("rate limit")) {
-        return new Error(
-          `GeminiProvider ${context} failed: Rate limit exceeded. ` +
-            "Please wait before retrying.",
-        );
-      }
-
-      if (error.message.includes("model")) {
-        return new Error(
-          `GeminiProvider ${context} failed: Invalid model ID. ` +
-            "Check that the model name is correct and available.",
-        );
-      }
-
-      return new Error(`GeminiProvider ${context} failed: ${error.message}`);
-    }
-
-    return new Error(`GeminiProvider ${context} failed: Unknown error occurred`);
   }
 }

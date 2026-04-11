@@ -1,5 +1,6 @@
 import { CopilotClient, approveAll } from "@github/copilot-sdk";
-import type { CopilotSession, ModelInfo, SessionConfig, SessionEvent } from "@github/copilot-sdk";
+import type { CopilotSession, ModelInfo, SessionEvent } from "@github/copilot-sdk";
+import { classifyError } from "../error-classifier.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
 import type { ModelCard } from "../contracts/model-card.js";
 
@@ -258,36 +259,48 @@ export class CopilotProvider implements Provider {
 
   async generate(options: GenerateOptions): Promise<string> {
     const modelId = this.resolveModel(options.model);
-    const client = await this.ensureClient();
-
-    const session = await client.createSession({
-      model: modelId,
-      streaming: false,
-      onPermissionRequest: approveAll,
-    });
-
+    let session: CopilotSession | undefined;
     try {
+      const client = await this.ensureClient(modelId);
+
+      session = await client.createSession({
+        model: modelId,
+        streaming: false,
+        onPermissionRequest: approveAll,
+      });
+
       const result = await session.sendAndWait({ prompt: options.prompt });
-      return result?.data.content ?? "";
+      const content = result?.data.content ?? "";
+      if (!content) {
+        throw new Error("Copilot API returned empty response");
+      }
+      return content;
+    } catch (error) {
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     } finally {
-      await session.disconnect();
+      await session?.disconnect();
     }
   }
 
   async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     const modelId = this.resolveModel(options.model);
-    const client = await this.ensureClient();
-
-    const session = await client.createSession({
-      model: modelId,
-      streaming: true,
-      onPermissionRequest: approveAll,
-    });
-
+    let session: CopilotSession | undefined;
     try {
+      const client = await this.ensureClient(modelId);
+
+      session = await client.createSession({
+        model: modelId,
+        streaming: true,
+        onPermissionRequest: approveAll,
+      });
+
       const chunks: StreamChunk[] = [];
       let done = false;
       let resolveChunk: (() => void) | undefined;
+      let sessionError: unknown;
 
       session.on("assistant.message_delta", (event) => {
         chunks.push({ delta: event.data.deltaContent, done: false });
@@ -299,7 +312,8 @@ export class CopilotProvider implements Provider {
         resolveChunk?.();
       });
 
-      session.on("session.error", () => {
+      session.on("session.error", (event) => {
+        sessionError = this.extractSessionError(event);
         done = true;
         resolveChunk?.();
       });
@@ -321,11 +335,20 @@ export class CopilotProvider implements Provider {
         yield chunks.shift()!;
       }
 
+      if (sessionError !== undefined) {
+        throw sessionError;
+      }
+
       yield { delta: "", done: true };
 
       await sendPromise;
+    } catch (error) {
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     } finally {
-      await session.disconnect();
+      await session?.disconnect();
     }
   }
 
@@ -341,9 +364,15 @@ export class CopilotProvider implements Provider {
     return model?.modelId ?? this.defaultModel.modelId;
   }
 
-  private async ensureClient(): Promise<CopilotClient> {
+  private async ensureClient(modelId?: string): Promise<CopilotClient> {
     if (!this.#token) {
-      throw new Error("No GitHub token available. Call login() or provide token in constructor.");
+      throw classifyError(
+        new Error("No GitHub token available. Call login() or provide token in constructor."),
+        {
+          provider: this.name,
+          model: modelId,
+        },
+      );
     }
 
     if (!this.#client) {
@@ -360,6 +389,27 @@ export class CopilotProvider implements Provider {
     }
 
     return this.#client;
+  }
+
+  private extractSessionError(event: SessionEvent | undefined): unknown {
+    if (!event || typeof event !== "object" || !("data" in event)) {
+      return new Error("Copilot session error");
+    }
+
+    const data = event.data as Record<string, unknown> | undefined;
+    if (!data) {
+      return new Error("Copilot session error");
+    }
+
+    if (data.error !== undefined) {
+      return data.error;
+    }
+
+    if (typeof data.message === "string") {
+      return new Error(data.message);
+    }
+
+    return new Error("Copilot session error");
   }
 }
 

@@ -34,7 +34,7 @@ vi.mock("@github/copilot-sdk", () => {
 
 import { CopilotProvider, createCopilotProvider } from "../copilot/adapter.js";
 import { getGithubToken, hasGithubAuth } from "../copilot/auth.js";
-import { Registry, ProviderPriorities } from "../index.js";
+import { ClassifiedError, Registry, ProviderPriorities } from "../index.js";
 import * as auth from "../copilot/auth.js";
 
 describe("CopilotProvider", () => {
@@ -85,6 +85,43 @@ describe("CopilotProvider", () => {
       expect(models[0]!.id).toBe("gpt-4.1");
       expect(models[1]!.id).toBe("claude-sonnet-4");
       expect(mockStart).toHaveBeenCalled();
+    });
+  });
+
+  describe("generate", () => {
+    it("throws ClassifiedError when no token is available", async () => {
+      vi.stubEnv("DC_GITHUB_TOKEN", "");
+      vi.stubEnv("GITHUB_TOKEN", "");
+      vi.stubEnv("GH_TOKEN", "");
+
+      const provider = new CopilotProvider();
+      const request = provider.generate({ prompt: "Hello" });
+
+      await expect(request).rejects.toMatchObject({
+        kind: "auth_error",
+        provider: "copilot",
+        model: "gpt-4.1",
+        retryable: false,
+      });
+      await expect(request).rejects.toBeInstanceOf(ClassifiedError);
+    });
+  });
+
+  describe("stream", () => {
+    it("throws ClassifiedError when no token is available", async () => {
+      vi.stubEnv("DC_GITHUB_TOKEN", "");
+      vi.stubEnv("GITHUB_TOKEN", "");
+      vi.stubEnv("GH_TOKEN", "");
+
+      const provider = new CopilotProvider();
+      const stream = provider.stream({ prompt: "Hello" });
+
+      await expect(stream[Symbol.asyncIterator]().next()).rejects.toMatchObject({
+        kind: "auth_error",
+        provider: "copilot",
+        model: "gpt-4.1",
+        retryable: false,
+      });
     });
   });
 

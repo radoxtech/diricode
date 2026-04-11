@@ -14,7 +14,8 @@ export { ProviderPriorities } from "./types.js";
 
 export { ProviderAlreadyRegisteredError, ProviderNotFoundError, Registry } from "./registry.js";
 
-export type { ClassifiedError, ProviderErrorKind } from "./error-classifier.js";
+export { ClassifiedError } from "./error-classifier.js";
+export type { ProviderErrorKind } from "./error-classifier.js";
 
 export { DiriRouter } from "./diri-router.js";
 export type {

@@ -16,6 +16,7 @@
  */
 
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { classifyError } from "../error-classifier.js";
 import type {
   GenerateOptions,
   ModelConfig,
@@ -302,7 +303,10 @@ export class MinimaxProvider implements Provider {
 
       return text;
     } catch (error) {
-      throw this.handleError(error, "generate");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
   }
 
@@ -343,48 +347,11 @@ export class MinimaxProvider implements Provider {
 
       yield { delta: "", done: true };
     } catch (error) {
-      throw this.handleError(error, "stream");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
-  }
-
-  /**
-   * Converts API errors to descriptive Error instances.
-   *
-   * @param error - The error from MiniMax API or SDK
-   * @param context - The operation context ("generate" or "stream")
-   * @returns {Error} Standardized error with descriptive message
-   * @private
-   */
-  private handleError(error: unknown, context: string): Error {
-    if (error instanceof Error) {
-      if (
-        error.message.toLowerCase().includes("api key") ||
-        error.message.toLowerCase().includes("unauthorized") ||
-        error.message.toLowerCase().includes("401")
-      ) {
-        return new Error(
-          "Invalid or missing API key. Check your DC_MINIMAX_API_KEY configuration.",
-        );
-      }
-
-      if (
-        error.message.toLowerCase().includes("rate limit") ||
-        error.message.toLowerCase().includes("429")
-      ) {
-        return new Error("Rate limit exceeded. Please wait before retrying.");
-      }
-
-      if (
-        error.message.toLowerCase().includes("model") ||
-        error.message.toLowerCase().includes("invalid")
-      ) {
-        return new Error("Invalid model ID. Check that the model name is correct and available.");
-      }
-
-      return new Error(`MinimaxProvider ${context} failed: ${error.message}`);
-    }
-
-    return new Error(`MinimaxProvider ${context} failed: Unknown error occurred`);
   }
 }
 
