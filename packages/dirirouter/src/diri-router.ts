@@ -106,19 +106,21 @@ export class DiriRouter {
   }
 
   private async resolveSelectedModel(
-    selected: SelectedModelInfo | undefined,
-    request: DecisionRequest | undefined,
+    options: ChatOptions,
     failedModels: readonly string[] = [],
   ): Promise<SelectedModelInfo | undefined> {
-    if (failedModels.length === 0 && selected) {
-      return selected;
+    if (failedModels.length === 0 && options.selected) {
+      return options.selected;
     }
 
-    if (!request) {
+    if (!options.request) {
       return undefined;
     }
 
-    const decision = await this.#resolver.resolve(this.withFailedModels(request, failedModels));
+    const decision = await this.pick(
+      this.withFailedModels(options.request, failedModels),
+      options.chatId,
+    );
     if (decision.status !== "resolved" || !decision.selected) {
       return undefined;
     }
@@ -176,10 +178,7 @@ export class DiriRouter {
   async chat(options: ChatOptions): Promise<ChatResponse> {
     const attemptedSelections = new Set<string>();
     const failedModels: string[] = [];
-    const resolvedRequest = options.request
-      ? await this.resolveDecisionRequest(options.request, options.chatId)
-      : undefined;
-    let pickerSelected = await this.resolveSelectedModel(options.selected, resolvedRequest);
+    let pickerSelected = await this.resolveSelectedModel(options);
 
     while (pickerSelected && this.#registry.has(pickerSelected.provider)) {
       const pickerProvider = this.#registry.get(pickerSelected.provider);
@@ -203,11 +202,7 @@ export class DiriRouter {
       } catch (error) {
         if (this.shouldRepickAfterError(error, pickerProvider, modelConfig, options)) {
           failedModels.push(modelConfig.modelId);
-          const repicked = await this.resolveSelectedModel(
-            options.selected,
-            resolvedRequest,
-            failedModels,
-          );
+          const repicked = await this.resolveSelectedModel(options, failedModels);
           if (
             repicked &&
             !attemptedSelections.has(
@@ -240,10 +235,7 @@ export class DiriRouter {
   async *stream(options: ChatOptions): AsyncIterable<StreamChunk> {
     const attemptedSelections = new Set<string>();
     const failedModels: string[] = [];
-    const resolvedRequest = options.request
-      ? await this.resolveDecisionRequest(options.request, options.chatId)
-      : undefined;
-    let selected = await this.resolveSelectedModel(options.selected, resolvedRequest);
+    let selected = await this.resolveSelectedModel(options);
 
     while (selected && this.#registry.has(selected.provider)) {
       const provider = this.#registry.get(selected.provider);
@@ -273,11 +265,7 @@ export class DiriRouter {
 
         if (this.shouldRepickAfterError(error, provider, modelConfig, options)) {
           failedModels.push(modelConfig.modelId);
-          const repicked = await this.resolveSelectedModel(
-            options.selected,
-            resolvedRequest,
-            failedModels,
-          );
+          const repicked = await this.resolveSelectedModel(options, failedModels);
           if (
             repicked &&
             !attemptedSelections.has(

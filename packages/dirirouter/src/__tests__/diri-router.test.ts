@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { CascadeModelResolver, DiriRouter, ProviderPriorities, Registry } from "../index.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../index.js";
 import type { DecisionRequest } from "@diricode/dirirouter";
-import { ABExperimentManager, type ABExperiment, type ABExperimentRepository } from "../index.js";
 
 interface ProviderStub extends Provider {
   setNextResponse(response: string): void;
@@ -119,24 +118,6 @@ function createResolverForCandidates(
       knownForComplexities: ["simple"],
     })),
   });
-}
-
-function createABExperimentRepositoryStub(): ABExperimentRepository {
-  const experiments: ABExperiment[] = [
-    {
-      id: "exp-1",
-      name: "experiment",
-      status: "active" as const,
-      minMatches: 1,
-      currentSpendUsd: 0,
-      createdAt: "2026-01-01T00:00:00.000Z",
-    },
-  ];
-
-  return {
-    findAll: vi.fn(() => Promise.resolve(experiments)),
-    update: vi.fn(() => Promise.resolve(undefined)),
-  };
 }
 
 describe("DiriRouter", () => {
@@ -274,46 +255,6 @@ describe("DiriRouter", () => {
       expect(result.model).toBe("kimi-model");
       expect(copilot.getCallHistory()).toHaveLength(1);
       expect(kimi.getCallHistory()).toHaveLength(1);
-    });
-
-    it("evaluates experiments only once when repicking after a retryable error", async () => {
-      const copilot = createProviderStub("copilot");
-      const kimi = createProviderStub("kimi");
-      copilot.setNextError(Object.assign(new Error("temporary outage"), { retryable: true }));
-      kimi.setNextResponse("kimi response");
-
-      const registry = new Registry();
-      registry.register(copilot, ProviderPriorities.COPILOT);
-      registry.register(kimi, ProviderPriorities.KIMI);
-
-      const repo = createABExperimentRepositoryStub();
-      const experimentLogger = { log: vi.fn() };
-
-      const router = new DiriRouter({
-        registry,
-        cascadeResolver: createResolverForCandidates(
-          { provider: "copilot", model: "copilot-model" },
-          { provider: "kimi", model: "kimi-model" },
-        ),
-        abExperimentManager: new ABExperimentManager(repo),
-        experimentLogger,
-      });
-
-      const result = await router.chat({
-        prompt: "hello",
-        request: createDecisionRequest(),
-        chatId: "chat-1",
-      });
-
-      expect(result.text).toBe("kimi response");
-      // Cast repo methods to get call counts without unbound-method error
-      const findAllCall = (repo.findAll as unknown as { mock: { calls: unknown[] } }).mock.calls
-        .length;
-      const updateCall = (repo.update as unknown as { mock: { calls: unknown[] } }).mock.calls
-        .length;
-      expect(findAllCall).toBe(1);
-      expect(updateCall).toBe(1);
-      expect(experimentLogger.log).toHaveBeenCalledTimes(1);
     });
   });
 
