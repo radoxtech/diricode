@@ -94,7 +94,7 @@ export type SubscriptionHealth = z.infer<typeof SubscriptionHealthSchema>;
  */
 
 export const ModelScoreSchema = z.object({
-  modelId: z.string().describe("Model identifier (e.g., 'claude-opus-4.6', 'gpt-5.4')"),
+  modelId: z.string().describe("Model identifier (e.g., 'claude-3-opus', 'gpt-4o')"),
   subscriptionId: z.string().describe("Reference to Subscription.id"),
   taskType: z
     .string()

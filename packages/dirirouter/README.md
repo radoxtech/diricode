@@ -38,7 +38,7 @@ On startup, you'll see a table:
 ├────────────┬────────────┬────────┬──────────────────────────────────┤
 │ Provider   │ Status     │ Models │ Example Models                   │
 ├────────────┼────────────┼────────┼──────────────────────────────────┤
-│ gemini     │ ✓ Ready    │ 4      │ gemini-3.1-pro, gemini-3-pro     │
+│ gemini     │ ✓ Ready    │ 4      │ gemini-2.5-pro, gemini-2.5-flash │
 │ kimi       │ ✗ No key   │ 0      │ —                                │
 │ zai        │ ✓ Ready    │ 4      │ glm-5, glm-5-plus, +2 more        │
 │ minimax    │ ✗ No key   │ 0      │ —                                │
@@ -53,26 +53,26 @@ Open **http://localhost:3333** to see the model toggle panel. Models are grouped
 
 ### API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/models` | List all models with `enabled` status |
-| `PATCH` | `/api/models/toggle` | Toggle model on/off |
-| `POST` | `/api/pick` | Dry-run model picker |
-| `POST` | `/api/chat` | Chat with a specific model |
-| `GET` | `/api/status` | Server health + provider status |
+| Method  | Path                 | Description                           |
+| ------- | -------------------- | ------------------------------------- |
+| `GET`   | `/api/models`        | List all models with `enabled` status |
+| `PATCH` | `/api/models/toggle` | Toggle model on/off                   |
+| `POST`  | `/api/pick`          | Dry-run model picker                  |
+| `POST`  | `/api/chat`          | Chat with a specific model            |
+| `GET`   | `/api/status`        | Server health + provider status       |
 
 #### Toggle a model
 
 ```bash
-# Disable gpt-5.4
+# Disable gpt-4o
 curl -X PATCH http://localhost:3333/api/models/toggle \
   -H "Content-Type: application/json" \
-  -d '{"modelId": "gpt-5.4", "enabled": false}'
+  -d '{"modelId": "gpt-4o", "enabled": false}'
 
 # Re-enable it
 curl -X PATCH http://localhost:3333/api/models/toggle \
   -H "Content-Type: application/json" \
-  -d '{"modelId": "gpt-5.4", "enabled": true}'
+  -d '{"modelId": "gpt-4o", "enabled": true}'
 ```
 
 #### Test the picker
@@ -95,7 +95,7 @@ State is stored in `playground-state.json` in the cwd where you run the command:
 
 ```json
 {
-  "disabledModels": ["gpt-5.4"],
+  "disabledModels": ["gpt-4o"],
   "lastUpdated": "2026-04-04T12:00:00.000Z"
 }
 ```
@@ -104,13 +104,13 @@ Delete this file to reset all models to enabled.
 
 ### Provider API Keys
 
-| Provider | Env Var |
-|----------|---------|
-| Google Gemini | `GEMINI_API_KEY` |
-| Zhipu AI (GLM) | `DC_ZAI_API_KEY` |
-| Moonshot (Kimi) | `DC_KIMI_API_KEY` |
-| MiniMax | `DC_MINIMAX_API_KEY` |
-| GitHub Copilot | `GITHUB_TOKEN` / `GH_TOKEN` / `DC_GITHUB_TOKEN` |
+| Provider        | Env Var                                         |
+| --------------- | ----------------------------------------------- |
+| Google Gemini   | `GEMINI_API_KEY`                                |
+| Zhipu AI (GLM)  | `DC_ZAI_API_KEY`                                |
+| Moonshot (Kimi) | `DC_KIMI_API_KEY`                               |
+| MiniMax         | `DC_MINIMAX_API_KEY`                            |
+| GitHub Copilot  | `GITHUB_TOKEN` / `GH_TOKEN` / `DC_GITHUB_TOKEN` |
 
 ## Build & Test
 

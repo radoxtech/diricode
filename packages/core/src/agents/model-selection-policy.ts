@@ -16,96 +16,96 @@ export interface AgentModelConfig extends ResolvedModelTarget {
 type TierDomain = `${AgentTier}:${AgentDomain}`;
 
 export const DEFAULT_AGENT_MODEL_POLICY: Readonly<Record<TierDomain, AgentModelConfig>> = {
-  // Heavy tier
-  "heavy:coding": { provider: "copilot", model: "gpt-5.4", maxTokens: 8192, temperature: 0.2 },
+  // Heavy tier - use high-capability models
+  "heavy:coding": { provider: "copilot", model: "o1", maxTokens: 8192, temperature: 0.2 },
   "heavy:planning": {
     provider: "copilot",
-    model: "claude-opus-4.6",
+    model: "claude-3-opus",
     maxTokens: 8192,
     temperature: 0.3,
   },
-  "heavy:review": { provider: "copilot", model: "gpt-5.4", maxTokens: 8192, temperature: 0.2 },
-  "heavy:research": { provider: "copilot", model: "gpt-5.4", maxTokens: 8192, temperature: 0.4 },
+  "heavy:review": { provider: "copilot", model: "o1", maxTokens: 8192, temperature: 0.2 },
+  "heavy:research": { provider: "copilot", model: "o1", maxTokens: 8192, temperature: 0.4 },
   "heavy:utility": {
     provider: "copilot",
-    model: "gemini-3.1-pro",
+    model: "gemini-2.5-pro",
     maxTokens: 4096,
     temperature: 0.3,
   },
-  "heavy:devops": { provider: "copilot", model: "gpt-5.4", maxTokens: 8192, temperature: 0.2 },
+  "heavy:devops": { provider: "copilot", model: "o1", maxTokens: 8192, temperature: 0.2 },
 
-  // Medium tier
+  // Medium tier - balanced performance and cost
   "medium:coding": {
     provider: "copilot",
-    model: "gpt-5.4-mini",
+    model: "gpt-4o",
     maxTokens: 4096,
     temperature: 0.2,
   },
   "medium:planning": {
     provider: "copilot",
-    model: "gpt-5.4-mini",
+    model: "gpt-4o",
     maxTokens: 4096,
     temperature: 0.3,
   },
   "medium:review": {
     provider: "copilot",
-    model: "claude-sonnet-4.6",
+    model: "claude-3.5-sonnet",
     maxTokens: 4096,
     temperature: 0.2,
   },
   "medium:research": {
     provider: "copilot",
-    model: "gpt-5.4-mini",
+    model: "gpt-4o",
     maxTokens: 4096,
     temperature: 0.4,
   },
   "medium:utility": {
     provider: "copilot",
-    model: "claude-haiku-4.5",
+    model: "gpt-4o-mini",
     maxTokens: 2048,
     temperature: 0.3,
   },
   "medium:devops": {
     provider: "copilot",
-    model: "gpt-5.4-mini",
+    model: "gpt-4o",
     maxTokens: 4096,
     temperature: 0.2,
   },
 
-  // Light tier
+  // Light tier - fast, cost-effective models
   "light:coding": {
     provider: "copilot",
-    model: "claude-haiku-4.5",
+    model: "gpt-4o-mini",
     maxTokens: 2048,
     temperature: 0.2,
   },
   "light:planning": {
     provider: "copilot",
-    model: "claude-haiku-4.5",
+    model: "gpt-4o-mini",
     maxTokens: 2048,
     temperature: 0.3,
   },
   "light:review": {
     provider: "copilot",
-    model: "claude-haiku-4.5",
+    model: "gpt-4o-mini",
     maxTokens: 2048,
     temperature: 0.2,
   },
   "light:research": {
     provider: "copilot",
-    model: "claude-haiku-4.5",
+    model: "gpt-4o-mini",
     maxTokens: 2048,
     temperature: 0.4,
   },
   "light:utility": {
     provider: "copilot",
-    model: "claude-haiku-4.5",
+    model: "gpt-4o-mini",
     maxTokens: 2048,
     temperature: 0.3,
   },
   "light:devops": {
     provider: "copilot",
-    model: "claude-haiku-4.5",
+    model: "gpt-4o-mini",
     maxTokens: 2048,
     temperature: 0.2,
   },

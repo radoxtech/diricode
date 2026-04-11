@@ -82,66 +82,6 @@ const GEMINI_MODEL_CARDS: ModelCard[] = [
     pricing_tier: "standard",
     learned_from: 0,
   },
-  {
-    model: "gemini-3-flash-preview",
-    family: "gemini-flash",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: true,
-      max_context: 1_048_576,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["simple", "moderate", "complex"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
-  },
-  {
-    model: "gemini-3.1-flash-lite-preview",
-    family: "gemini-flash-lite",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: true,
-      max_context: 1_048_576,
-    },
-    reasoning_levels: ["low", "medium"],
-    known_for: {
-      roles: ["coder"],
-      complexities: ["simple"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
-  },
-  {
-    model: "gemini-3.1-pro-preview",
-    family: "gemini-pro",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: true,
-      max_context: 1_048_576,
-    },
-    reasoning_levels: ["low", "medium", "high", "xhigh"],
-    known_for: {
-      roles: ["architect", "reviewer", "orchestrator", "coder"],
-      complexities: ["moderate", "complex", "expert"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "standard",
-    learned_from: 0,
-  },
 ];
 
 /**
