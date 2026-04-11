@@ -333,7 +333,7 @@ describe("edge cases", () => {
       raw: new Error("Too many requests"),
     });
 
-    expect(classifyError(classified, { provider: "copilot", model: "gpt-4.1" })).toBe(classified);
+    expect(classifyError(classified, { provider: "copilot", model: "gpt-4o" })).toBe(classified);
   });
 
   it("classifies empty response as non-retryable other", () => {

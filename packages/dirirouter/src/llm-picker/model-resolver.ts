@@ -250,7 +250,7 @@ export class CascadeModelResolver implements ModelResolver {
     ];
     this.confidenceThreshold = options.confidenceThreshold ?? DEFAULT_CONFIDENCE_THRESHOLD;
     this.defaultProvider = options.defaultProvider ?? "anthropic";
-    this.defaultModel = options.defaultModel ?? "claude-sonnet-4.6";
+    this.defaultModel = options.defaultModel ?? "claude-3.5-sonnet";
     this.defaultPolicy = options.defaultPolicy ?? "default";
     this.hardRulesConfig = options.hardRulesConfig ?? DEFAULT_HARD_RULES_CONFIG;
     this.candidatePool =

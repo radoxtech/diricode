@@ -13,14 +13,14 @@ const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
  *  these feed the picker's metadata (family, capabilities, pricing tier). */
 const COPILOT_MODEL_CARDS: ModelCard[] = [
   {
-    model: "gpt-4.1",
+    model: "gpt-4o",
     family: "gpt-reasoning",
     capabilities: {
       tool_calling: true,
       streaming: true,
       json_mode: true,
       vision: true,
-      max_context: 200_000,
+      max_context: 128_000,
     },
     reasoning_levels: ["low", "medium", "high"],
     known_for: {
@@ -33,14 +33,14 @@ const COPILOT_MODEL_CARDS: ModelCard[] = [
     learned_from: 0,
   },
   {
-    model: "gpt-4.1-mini",
+    model: "gpt-4o-mini",
     family: "gpt-mini",
     capabilities: {
       tool_calling: true,
       streaming: true,
       json_mode: true,
       vision: true,
-      max_context: 200_000,
+      max_context: 128_000,
     },
     reasoning_levels: ["low", "medium"],
     known_for: {
@@ -53,8 +53,48 @@ const COPILOT_MODEL_CARDS: ModelCard[] = [
     learned_from: 0,
   },
   {
-    model: "gpt-4.1-nano",
-    family: "gpt-nano",
+    model: "o1",
+    family: "gpt-reasoning",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 200_000,
+    },
+    reasoning_levels: ["low", "medium", "high", "xhigh"],
+    known_for: {
+      roles: ["architect", "reviewer", "coder"],
+      complexities: ["moderate", "complex", "expert"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "premium",
+    learned_from: 0,
+  },
+  {
+    model: "o1-mini",
+    family: "gpt-reasoning",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 128_000,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "o3-mini",
+    family: "gpt-reasoning",
     capabilities: {
       tool_calling: true,
       streaming: true,
@@ -62,18 +102,18 @@ const COPILOT_MODEL_CARDS: ModelCard[] = [
       vision: false,
       max_context: 200_000,
     },
-    reasoning_levels: [],
+    reasoning_levels: ["low", "medium", "high", "xhigh"],
     known_for: {
-      roles: ["coder"],
-      complexities: ["simple"],
+      roles: ["architect", "reviewer", "coder"],
+      complexities: ["moderate", "complex", "expert"],
       specializations: [],
     },
     benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
+    pricing_tier: "standard",
     learned_from: 0,
   },
   {
-    model: "claude-sonnet-4",
+    model: "claude-3.5-sonnet",
     family: "claude-sonnet",
     capabilities: {
       tool_calling: true,
@@ -93,7 +133,7 @@ const COPILOT_MODEL_CARDS: ModelCard[] = [
     learned_from: 0,
   },
   {
-    model: "claude-opus-4",
+    model: "claude-3-opus",
     family: "claude-opus",
     capabilities: {
       tool_calling: true,
@@ -120,31 +160,11 @@ const COPILOT_MODEL_CARDS: ModelCard[] = [
       streaming: true,
       json_mode: true,
       vision: true,
-      max_context: 200_000,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["architect", "researcher", "coder"],
-      complexities: ["moderate", "complex"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "standard",
-    learned_from: 0,
-  },
-  {
-    model: "o4-mini",
-    family: "gpt-reasoning",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: true,
-      max_context: 200_000,
+      max_context: 1_048_576,
     },
     reasoning_levels: ["low", "medium", "high", "xhigh"],
     known_for: {
-      roles: ["architect", "reviewer", "coder"],
+      roles: ["architect", "researcher", "coder"],
       complexities: ["moderate", "complex", "expert"],
       specializations: [],
     },
@@ -185,7 +205,7 @@ export class CopilotProvider implements Provider {
   constructor(token?: string) {
     this.#token = token ?? getGithubToken();
     this.defaultModel = {
-      modelId: "gpt-4.1",
+      modelId: "gpt-4o",
     };
   }
 

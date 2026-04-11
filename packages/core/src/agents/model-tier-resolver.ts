@@ -20,7 +20,7 @@ export type ModelTier = AgentTier;
 
 /**
  * Model class identifier.
- * Examples: "claude-opus-4.6", "gpt-5.4", "sonnet-4.6", "haiku-4.5"
+ * Examples: "claude-3-opus", "gpt-4o", "claude-3.5-sonnet", "gemini-2.5-pro"
  */
 export type ModelClass = string;
 
@@ -158,13 +158,13 @@ function defaultAvailabilityChecker(_model: ModelClass): boolean {
  * @example
  * ```typescript
  * const resolver = new ModelTierResolver({
- *   heavy: { preferred: "claude-opus-4.6", fallback: ["gpt-5.4", "gemini-3.1-pro"] },
- *   medium: { preferred: "sonnet-4.6", fallback: ["kimi-2.5", "qwen3-coder-next"] },
- *   light: { preferred: "haiku-4.5", fallback: ["deepseek-v3.2"] },
+ *   heavy: { preferred: "claude-3-opus", fallback: ["o1", "gemini-2.5-pro"] },
+ *   medium: { preferred: "claude-3.5-sonnet", fallback: ["gpt-4o", "gemini-2.5-flash"] },
+ *   light: { preferred: "gpt-4o-mini", fallback: ["gemini-2.5-flash-lite"] },
  * });
  *
  * const result = resolver.resolve("heavy");
- * // → { model: "claude-opus-4.6", reason: "preferred", isDegraded: false, ... }
+ * // → { model: "claude-3-opus", reason: "preferred", isDegraded: false, ... }
  * ```
  *
  * @see CascadeModelResolver

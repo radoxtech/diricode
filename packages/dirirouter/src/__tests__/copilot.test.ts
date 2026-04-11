@@ -46,10 +46,10 @@ describe("CopilotProvider", () => {
   });
 
   describe("constructor", () => {
-    it("creates provider with default model gpt-4.1", () => {
+    it("creates provider with default model gpt-4o", () => {
       const provider = new CopilotProvider("test-token");
       expect(provider.name).toBe("copilot");
-      expect(provider.defaultModel.modelId).toBe("gpt-4.1");
+      expect(provider.defaultModel.modelId).toBe("gpt-4o");
     });
 
     it("accepts explicit token", () => {
@@ -76,16 +76,16 @@ describe("CopilotProvider", () => {
   describe("listModels", () => {
     it("returns models from SDK client", async () => {
       mockListModels.mockResolvedValue([
-        { id: "gpt-4.1", name: "GPT 4.1", capabilities: {} },
-        { id: "claude-sonnet-4", name: "Claude Sonnet 4", capabilities: {} },
+        { id: "gpt-4o", name: "GPT-4o", capabilities: {} },
+        { id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet", capabilities: {} },
       ]);
       const provider = new CopilotProvider("test-token");
       const models = await provider.listModels();
       expect(models).toHaveLength(2);
       if (!models[0]) throw new Error("Expected models[0] to exist");
       if (!models[1]) throw new Error("Expected models[1] to exist");
-      expect(models[0].id).toBe("gpt-4.1");
-      expect(models[1].id).toBe("claude-sonnet-4");
+      expect(models[0].id).toBe("gpt-4o");
+      expect(models[1].id).toBe("claude-3.5-sonnet");
       expect(mockStart).toHaveBeenCalled();
     });
   });
@@ -102,7 +102,7 @@ describe("CopilotProvider", () => {
       await expect(request).rejects.toMatchObject({
         kind: "auth_error",
         provider: "copilot",
-        model: "gpt-4.1",
+        model: "gpt-4o",
         retryable: false,
       });
       await expect(request).rejects.toBeInstanceOf(ClassifiedError);
@@ -121,7 +121,7 @@ describe("CopilotProvider", () => {
       await expect(stream[Symbol.asyncIterator]().next()).rejects.toMatchObject({
         kind: "auth_error",
         provider: "copilot",
-        model: "gpt-4.1",
+        model: "gpt-4o",
         retryable: false,
       });
     });

@@ -43,14 +43,14 @@ describe("DefaultModelTierResolver", () => {
   describe("policy table sanity checks", () => {
     it("heavy tier uses premium models", () => {
       const heavy = resolver.resolve(makeAgent(["heavy"], "planning"));
-      expect(heavy.model).toBe("claude-opus-4.6");
+      expect(heavy.model).toBe("claude-3-opus");
       expect(heavy.provider).toBe("copilot");
     });
 
-    it("light tier uses haiku across all domains", () => {
+    it("light tier uses gpt-4o-mini across all domains", () => {
       for (const domain of DOMAINS) {
         const result = resolver.resolve(makeAgent(["light"], domain));
-        expect(result.model).toBe("claude-haiku-4.5");
+        expect(result.model).toBe("gpt-4o-mini");
         expect(result.provider).toBe("copilot");
       }
     });
@@ -73,12 +73,12 @@ describe("DefaultModelTierResolver", () => {
 
     it("uses requested tier when allowed", () => {
       const result = resolver.resolve(makeAgent(["light", "medium", "heavy"], "coding"), "light");
-      expect(result.model).toBe("claude-haiku-4.5");
+      expect(result.model).toBe("gpt-4o-mini");
     });
 
     it("falls back to highest allowed tier when requested tier is not allowed", () => {
       const result = resolver.resolve(makeAgent(["medium", "light"], "coding"), "heavy");
-      expect(result.model).toBe("gpt-5.4-mini");
+      expect(result.model).toBe("gpt-4o");
     });
   });
 });
