@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ClassifiedError, classifyError } from "../index.js";
 import {
   MinimaxProvider,
   createMinimaxProvider,
@@ -58,6 +59,60 @@ describe("MinimaxProvider", () => {
     it("returns true when API key is present", () => {
       const provider = new MinimaxProvider(mockApiKey);
       expect(provider.isAvailable()).toBe(true);
+    });
+  });
+
+  describe("error classification contract", () => {
+    it("classifies empty response errors as non-retryable ClassifiedError", () => {
+      const err = new Error("MiniMax API returned empty response");
+      const classified = classifyError(err, { provider: "minimax", model: "MiniMax-M2.7" });
+
+      expect(classified).toBeInstanceOf(ClassifiedError);
+      expect(classified.kind).toBe("other");
+      expect(classified.retryable).toBe(false);
+      expect(classified.provider).toBe("minimax");
+      expect(classified.model).toBe("MiniMax-M2.7");
+    });
+
+    it("classifies rate limit errors with retryAfterMs", () => {
+      const err = Object.assign(new Error("Too many requests"), {
+        status: 429,
+        headers: { "retry-after": "8" },
+      });
+      const classified = classifyError(err, { provider: "minimax", model: "MiniMax-M2.5" });
+
+      expect(classified).toBeInstanceOf(ClassifiedError);
+      expect(classified.kind).toBe("rate_limited");
+      expect(classified.retryable).toBe(true);
+      expect(classified.retryAfterMs).toBe(8_000);
+      expect(classified.provider).toBe("minimax");
+    });
+
+    it("classifies auth errors as non-retryable", () => {
+      const err = Object.assign(new Error("Unauthorized"), { status: 401 });
+      const classified = classifyError(err, { provider: "minimax", model: "MiniMax-M2.7" });
+
+      expect(classified).toBeInstanceOf(ClassifiedError);
+      expect(classified.kind).toBe("auth_error");
+      expect(classified.retryable).toBe(false);
+    });
+
+    it("classifies quota exceeded errors as non-retryable", () => {
+      const err = new Error("Your quota has been exceeded for this month");
+      const classified = classifyError(err, { provider: "minimax", model: "MiniMax-M2.7" });
+
+      expect(classified).toBeInstanceOf(ClassifiedError);
+      expect(classified.kind).toBe("quota_exhausted");
+      expect(classified.retryable).toBe(false);
+    });
+
+    it("classifies server errors as retryable overloaded", () => {
+      const err = Object.assign(new Error("Bad Gateway"), { status: 502 });
+      const classified = classifyError(err, { provider: "minimax", model: "MiniMax-M2.7" });
+
+      expect(classified).toBeInstanceOf(ClassifiedError);
+      expect(classified.kind).toBe("overloaded");
+      expect(classified.retryable).toBe(true);
     });
   });
 
