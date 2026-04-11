@@ -67,6 +67,14 @@ export const IssueSchema = z.object({
 export type Issue = z.infer<typeof IssueSchema>;
 
 export { initDatabase } from "./lib/database.js";
+export type { DatabaseInstance } from "./lib/database.js";
+export {
+  EdgeStorage,
+  EdgeValidationError,
+  CycleDetectedError,
+  DuplicateEdgeError,
+} from "./lib/edges.js";
+export type { CreateEdgeInput, EdgeFilters } from "./lib/edges.js";
 export * from "./types/index.js";
 export * from "./legacy.js";
 export { NodeStorage } from "./lib/storage.js";
