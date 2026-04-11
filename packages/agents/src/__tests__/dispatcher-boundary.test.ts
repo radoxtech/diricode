@@ -9,16 +9,6 @@ import {
   enforceDispatcherBoundary,
 } from "@diricode/core";
 
-vi.mock("../sandbox.js", () => ({
-  executeInSandbox: vi.fn().mockResolvedValue({
-    success: true,
-    output: "Mocked success",
-    totalToolCalls: 1,
-    totalTokens: 100,
-    stopReason: "success",
-  }),
-}));
-
 describe("DC-CORE-015: Dispatcher Boundary Enforcement", () => {
   let registry: AgentRegistry;
   let dispatcher: ReturnType<typeof createDispatcher>;

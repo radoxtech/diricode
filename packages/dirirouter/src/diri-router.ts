@@ -15,6 +15,7 @@ export interface ExperimentLogger {
 
 export interface ChatOptions {
   readonly prompt: string;
+  readonly request?: DecisionRequest;
   readonly model?: ModelConfig;
   readonly selected?: SelectedModelInfo;
   readonly signal?: AbortSignal;
@@ -96,8 +97,28 @@ export class DiriRouter {
     return request;
   }
 
+  private async resolveSelectedModel(options: ChatOptions): Promise<SelectedModelInfo | undefined> {
+    if (options.selected) {
+      return options.selected;
+    }
+
+    if (!options.request) {
+      return undefined;
+    }
+
+    const decision = await this.pick(options.request, options.chatId);
+    if (decision.status !== "resolved" || !decision.selected) {
+      return undefined;
+    }
+
+    return {
+      provider: decision.selected.provider,
+      model: decision.selected.model,
+    };
+  }
+
   async chat(options: ChatOptions): Promise<ChatResponse> {
-    const pickerSelected = options.selected;
+    const pickerSelected = await this.resolveSelectedModel(options);
     const modelConfig = options.model ?? this.getModelConfig(pickerSelected);
 
     if (pickerSelected && this.#registry.has(pickerSelected.provider)) {
@@ -134,8 +155,9 @@ export class DiriRouter {
   }
 
   async *stream(options: ChatOptions): AsyncIterable<StreamChunk> {
-    const provider = this.getProvider(options.selected);
-    const modelConfig = options.model ?? this.getModelConfig(options.selected);
+    const selected = await this.resolveSelectedModel(options);
+    const provider = this.getProvider(selected);
+    const modelConfig = options.model ?? this.getModelConfig(selected);
 
     const generateOptions: GenerateOptions = {
       prompt: options.prompt,

@@ -410,34 +410,23 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
 
     if (config.diriRouter) {
       const decisionRequest = buildDecisionRequest(agent.metadata, intent.primary, requestedTier);
-      const decisionResponse = await config.diriRouter.pick(decisionRequest);
+      const chatResponse = await config.diriRouter.chat({
+        request: decisionRequest,
+        prompt: input,
+        chatId: decisionRequest.chatId,
+      });
 
-      if (decisionResponse.status === "resolved" && decisionResponse.selected) {
-        selectedProvider = decisionResponse.selected.provider;
-        selectedModel = decisionResponse.selected.model;
+      selectedProvider = chatResponse.provider;
+      selectedModel = chatResponse.model;
 
-        context.emit("dispatcher.model-resolved", {
-          agent: selected.agent.name,
-          tier: requestedTier,
-          model: selectedModel,
-          provider: selectedProvider,
-          selectionSource: "diri-router",
-          executionId,
-        });
-      } else {
-        const modelConfig = modelTierResolver.resolve(agent.metadata, requestedTier);
-        selectedProvider = modelConfig.provider;
-        selectedModel = modelConfig.model;
-
-        context.emit("dispatcher.model-resolved", {
-          agent: selected.agent.name,
-          tier: requestedTier,
-          model: selectedModel,
-          provider: selectedProvider,
-          selectionSource: "model-tier-resolver",
-          executionId,
-        });
-      }
+      context.emit("dispatcher.model-resolved", {
+        agent: selected.agent.name,
+        tier: requestedTier,
+        model: selectedModel,
+        provider: selectedProvider,
+        selectionSource: "diri-router",
+        executionId,
+      });
     } else {
       const modelConfig = modelTierResolver.resolve(agent.metadata, requestedTier);
       selectedProvider = modelConfig.provider;
@@ -538,8 +527,6 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
       ...childContext,
       sandboxConfig: sandboxConfig,
       requestedTier,
-      selectedProvider,
-      selectedModel,
     };
 
     let sandboxResult: SandboxExecutionResult | undefined;

@@ -300,25 +300,19 @@ describe("createDispatcher", () => {
   });
 
   describe("with DiriRouter", () => {
-    it("calls diriRouter.pick() when diriRouter is provided", async () => {
+    it("calls diriRouter.chat() with a DecisionRequest when diriRouter is provided", async () => {
       const registry = new AgentRegistry();
       registry.register(makeAgent("coder", ["write", "implement"]));
 
-      const mockPick = vi.fn().mockResolvedValue({
-        requestId: "test-request-id",
-        decisionId: "test-decision-id",
-        timestamp: new Date().toISOString(),
-        status: "resolved" as const,
-        selected: {
-          provider: "openai",
-          model: "gpt-4o",
-          score: 85,
-        },
+      const mockChat = vi.fn().mockResolvedValue({
+        text: "router response",
+        provider: "openai",
+        model: "gpt-4o",
       });
 
       const mockDiriRouter = {
-        pick: mockPick,
-        chat: vi.fn(),
+        pick: vi.fn(),
+        chat: mockChat,
         stream: vi.fn(),
         getProvider: vi.fn(),
         getModelConfig: vi.fn(),
@@ -335,36 +329,41 @@ describe("createDispatcher", () => {
       const { ctx } = makeContext();
       await dispatcher.execute("write some code", ctx);
 
-      expect(mockPick).toHaveBeenCalledTimes(1);
-      const pickCall = mockPick.mock.calls[0]?.[0] as
+      expect(mockChat).toHaveBeenCalledTimes(1);
+      expect(mockDiriRouter.pick).not.toHaveBeenCalled();
+      const chatCall = mockChat.mock.calls[0]?.[0] as
         | {
-            agent: { id: string };
-            task: { type: string };
+            prompt: string;
+            chatId: string;
+            request: {
+              agent: { id: string };
+              task: { type: string };
+              chatId: string;
+              requestId: string;
+              modelDimensions: { tier: string };
+            };
           }
         | undefined;
-      expect(pickCall?.agent.id).toBe("coder");
-      expect(pickCall?.task.type).toBe("coding");
+      expect(chatCall?.prompt).toBe("write some code");
+      expect(chatCall?.request.agent.id).toBe("coder");
+      expect(chatCall?.request.task.type).toBe("coding");
+      expect(chatCall?.request.chatId).toBe(chatCall?.chatId);
+      expect(chatCall?.request.modelDimensions.tier).toBe("medium");
     });
 
-    it("emits dispatcher.model-resolved with selectionSource=diri-router when DiriRouter returns resolved", async () => {
+    it("emits dispatcher.model-resolved with selectionSource=diri-router when DiriRouter chat succeeds", async () => {
       const registry = new AgentRegistry();
       registry.register(makeAgent("coder", ["write"]));
 
-      const mockPick = vi.fn().mockResolvedValue({
-        requestId: "test-request-id",
-        decisionId: "test-decision-id",
-        timestamp: new Date().toISOString(),
-        status: "resolved" as const,
-        selected: {
-          provider: "openai",
-          model: "gpt-4o",
-          score: 85,
-        },
+      const mockChat = vi.fn().mockResolvedValue({
+        text: "router response",
+        provider: "openai",
+        model: "gpt-4o",
       });
 
       const mockDiriRouter = {
-        pick: mockPick,
-        chat: vi.fn(),
+        pick: vi.fn(),
+        chat: mockChat,
         stream: vi.fn(),
         getProvider: vi.fn(),
         getModelConfig: vi.fn(),
@@ -389,20 +388,15 @@ describe("createDispatcher", () => {
       expect(payload.provider).toBe("openai");
     });
 
-    it("falls back to modelTierResolver when DiriRouter returns no_match", async () => {
+    it("propagates DiriRouter chat failures", async () => {
       const registry = new AgentRegistry();
       registry.register(makeAgent("coder", ["write"]));
 
-      const mockPick = vi.fn().mockResolvedValue({
-        requestId: "test-request-id",
-        decisionId: "test-decision-id",
-        timestamp: new Date().toISOString(),
-        status: "no_match" as const,
-      });
+      const mockChat = vi.fn().mockRejectedValue(new Error("router unavailable"));
 
       const mockDiriRouter = {
-        pick: mockPick,
-        chat: vi.fn(),
+        pick: vi.fn(),
+        chat: mockChat,
         stream: vi.fn(),
         getProvider: vi.fn(),
         getModelConfig: vi.fn(),
@@ -416,13 +410,10 @@ describe("createDispatcher", () => {
         diriRouter: mockDiriRouter as unknown as DiriRouter,
       });
 
-      const { ctx, emit } = makeContext();
-      await dispatcher.execute("write some code", ctx);
-
-      const modelResolvedCall = findEmitCall(emit, "dispatcher.model-resolved");
-      expect(modelResolvedCall).toBeDefined();
-      const payload = modelResolvedCall?.[1] as Record<string, unknown>;
-      expect(payload.selectionSource).toBe("model-tier-resolver");
+      const { ctx } = makeContext();
+      await expect(dispatcher.execute("write some code", ctx)).rejects.toThrow(
+        "router unavailable",
+      );
     });
   });
 });
