@@ -12,6 +12,11 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DiriRouter // Standalone</title>
   
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@500;700;800&display=swap" rel="stylesheet">
+  
   <!-- HTMX & SSE Extension -->
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
   <script src="https://unpkg.com/htmx-ext-sse@2.2.2"></script>
@@ -22,14 +27,16 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
 
   <style>
     :root {
-      --bg: #1a1a2e;
-      --fg: #f8fafc;
-      --border: #334155;
-      --accent: #38bdf8;
-      --error: #ef4444;
-      --success: #22c55e;
-      --font-sys: system-ui, -apple-system, sans-serif;
-      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --bg: #0b0c10;
+      --fg: #e2e8f0;
+      --border: #232736;
+      --accent: #00f2fe;
+      --accent-dim: rgba(0, 242, 254, 0.15);
+      --bg-panel: #12141c;
+      --error: #ff2a5f;
+      --success: #39ff14;
+      --font-sys: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
     }
     
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -48,9 +55,19 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
     header {
       padding: 1rem 1.5rem;
       border-bottom: 1px solid var(--border);
-      background: #0f0f1a;
+      background: #0f1015;
       display: flex;
       justify-content: space-between;
+    }
+    
+    h1 {
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    h1 span {
+      font-weight: 500;
+      color: var(--accent);
     }
 
     main {
@@ -74,14 +91,49 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
     }
     
     .panel-right {
-      background-color: #0f0f1a;
+      background-color: var(--bg-panel);
       font-family: var(--font-mono);
       display: flex;
       flex-direction: column;
       gap: 1rem;
     }
 
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    
+    .tab-btn {
+      background: transparent;
+      color: #64748b;
+      border: none;
+      padding: 0.75rem 0;
+      font-family: var(--font-sys);
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      border-radius: 0;
+    }
+    
+    .tab-btn:hover {
+      color: var(--fg);
+    }
+    
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
     .section-title {
+      font-family: var(--font-sys);
+      font-weight: 700;
       font-size: 0.85rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -100,20 +152,22 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
     
     label {
       display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
+      font-family: var(--font-sys);
+      font-size: 0.85rem;
+      font-weight: 700;
       margin-bottom: 0.25rem;
       color: #cbd5e1;
     }
     
     input[type="text"], input[type="number"], select, textarea {
       width: 100%;
-      background: #1e1e38;
+      background: #151821;
       border: 1px solid var(--border);
       color: var(--fg);
       font-family: var(--font-mono);
-      padding: 0.5rem;
+      padding: 0.6rem;
       border-radius: 4px;
+      transition: border-color 0.2s;
     }
     
     input:focus, select:focus, textarea:focus {
@@ -127,7 +181,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 0.5rem;
-      background: #1e1e38;
+      background: #151821;
       padding: 0.75rem;
       border: 1px solid var(--border);
       border-radius: 4px;
@@ -137,92 +191,198 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      font-family: var(--font-sys);
       font-size: 0.85rem;
       cursor: pointer;
+      color: #94a3b8;
+      transition: color 0.2s;
+    }
+    
+    .checkbox-label:hover {
+      color: var(--fg);
     }
 
-    .slider-container { display: flex; align-items: center; gap: 1rem; }
-    input[type="range"] { flex: 1; }
+    .scrollable-menu {
+      max-height: 150px;
+      overflow-y: auto;
+      background: #151821;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.5rem;
+    }
     
+    .scrollable-menu .checkbox-label {
+      padding: 0.35rem 0.5rem;
+      border-radius: 3px;
+      margin-bottom: 0.25rem;
+    }
+    
+    .scrollable-menu .checkbox-label:hover {
+      background: #1e2230;
+    }
+    
+    .scrollable-menu .checkbox-label:last-child {
+      margin-bottom: 0;
+    }
+    
+    .scrollable-menu::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .scrollable-menu::-webkit-scrollbar-track {
+      background: #151821;
+      border-radius: 4px;
+    }
+    
+    .scrollable-menu::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    
+    .scrollable-menu::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
     .actions {
       display: flex;
       gap: 1rem;
       margin-top: 1.5rem;
       padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
+      border-top: 1px dashed var(--border);
     }
     
     button {
-      background: #1e1e38;
+      background: #151821;
       color: var(--fg);
       border: 1px solid var(--border);
-      padding: 0.5rem 1rem;
-      font-family: var(--font-mono);
-      font-weight: 600;
+      padding: 0.6rem 1.2rem;
+      font-family: var(--font-sys);
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
       cursor: pointer;
       border-radius: 4px;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      border-color: var(--fg);
     }
     
     button.primary {
       background: var(--accent);
-      color: #0f0f1a;
+      color: #000;
       border-color: var(--accent);
+    }
+    
+    button.primary:hover {
+      background: #00d2de;
+      border-color: #00d2de;
     }
     
     .badges { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .badge {
-      padding: 0.25rem 0.5rem;
+      padding: 0.3rem 0.6rem;
       border-radius: 4px;
+      font-family: var(--font-mono);
       font-size: 0.75rem;
       border: 1px solid var(--border);
-      background: #1e1e38;
+      background: #151821;
     }
     .badge.available { border-color: var(--success); color: var(--success); }
     .badge.unavailable { border-color: var(--error); color: var(--error); }
 
     .error-box {
-      background: rgba(239, 68, 68, 0.1);
+      background: rgba(255, 42, 95, 0.1);
       border: 1px solid var(--error);
       color: #fca5a5;
       padding: 1rem;
       border-radius: 4px;
       display: none;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
     }
     
     .results-box {
-      background: #1e1e38;
+      background: #151821;
       border: 1px solid var(--border);
       padding: 1rem;
       border-radius: 4px;
       overflow-y: auto;
       flex: 1;
       white-space: pre-wrap;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+
+    /* Decision Trace */
+    .trace-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      margin-bottom: 0.6rem;
+      color: #94a3b8;
+    }
+    
+    .trace-arrow {
+      color: var(--accent);
+      font-weight: bold;
+    }
+    
+    .trace-highlight {
+      color: var(--fg);
+      background: var(--accent-dim);
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      border: 1px solid rgba(0,242,254,0.3);
+    }
+    
+    .trace-final {
+      color: var(--success);
+      font-weight: 700;
+      background: rgba(57, 255, 20, 0.1);
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      border: 1px solid rgba(57, 255, 20, 0.3);
     }
 
     /* Model Toggles UI */
     .model-provider-group {
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      background: #151821;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
     }
 
     .model-provider-name {
+      font-family: var(--font-sys);
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       color: var(--accent);
-      margin-bottom: 0.4rem;
+      padding: 0.6rem 0.8rem;
+      background: #1a1d27;
+      border-bottom: 1px solid var(--border);
     }
 
     .model-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.3rem 0.5rem;
-      border-radius: 3px;
+      padding: 0.5rem 0.8rem;
       transition: background 0.15s;
     }
+    
+    .model-row + .model-row {
+      border-top: 1px dashed var(--border);
+    }
 
-    .model-row:hover { background: #1e1e38; }
+    .model-row:hover { background: rgba(255,255,255,0.02); }
 
     .model-row.disabled .model-id {
       color: #475569;
@@ -239,8 +399,8 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
     .toggle-switch {
       position: relative;
       display: inline-block;
-      width: 32px;
-      height: 18px;
+      width: 36px;
+      height: 20px;
       flex-shrink: 0;
     }
 
@@ -249,8 +409,8 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
     .toggle-track {
       position: absolute;
       inset: 0;
-      background: #334155;
-      border-radius: 9px;
+      background: var(--border);
+      border-radius: 10px;
       cursor: pointer;
       transition: background 0.2s;
     }
@@ -260,8 +420,8 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
     .toggle-track::before {
       content: "";
       position: absolute;
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       left: 3px;
       top: 3px;
       background: #fff;
@@ -269,7 +429,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       transition: transform 0.2s;
     }
 
-    .toggle-switch input:checked + .toggle-track::before { transform: translateX(14px); }
+    .toggle-switch input:checked + .toggle-track::before { transform: translateX(16px); }
     .toggle-switch input:disabled + .toggle-track { opacity: 0.4; cursor: not-allowed; }
   </style>
 </head>
@@ -359,48 +519,42 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
 
         <div class="form-row">
           <div class="form-col">
-            <label>Min Context Window</label>
-            <input type="number" name="constraints.minContextWindow" placeholder="e.g. 128000">
-          </div>
-          <div class="form-col">
-            <label>Max Cost USD (per 1k)</label>
-            <input type="number" step="0.01" name="constraints.maxCostUsd" placeholder="e.g. 0.50">
+            <label>Context Tier</label>
+            <select name="constraints.contextTier">
+              <option value="">any</option>
+              <option value="standard">standard (≤200k)</option>
+              <option value="extended">extended (200k–800k)</option>
+              <option value="massive">massive (800k+)</option>
+            </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Preferred Providers</label>
-          <div class="checkbox-grid" id="pref-providers-grid">
+          <label>Preferred Providers <span style="font-weight:400;color:#94a3b8">(available only)</span></label>
+          <div class="scrollable-menu" id="pref-providers-grid">
             <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Excluded Providers</label>
-          <div class="checkbox-grid" id="excl-providers-grid">
+          <label>Excluded Providers <span style="font-weight:400;color:#94a3b8">(available only)</span></label>
+          <div class="scrollable-menu" id="excl-providers-grid">
             <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Preferred Models</label>
-          <div class="checkbox-grid" id="pref-models-grid">
+          <label>Preferred Models <span style="font-weight:400;color:#94a3b8">(by family)</span></label>
+          <div class="scrollable-menu" id="pref-models-grid">
             <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Excluded Models</label>
-          <div class="checkbox-grid" id="excl-models-grid">
+          <label>Excluded Models <span style="font-weight:400;color:#94a3b8">(by family)</span></label>
+          <div class="scrollable-menu" id="excl-models-grid">
             <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
           </div>
-        </div>
-
-        <div class="section-title">Generate Options</div>
-
-        <div class="form-group">
-          <label>Max Tokens</label>
-          <input type="number" name="maxTokens" value="2048">
         </div>
 
         <div class="actions">
@@ -498,15 +652,19 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
                 \`<div class="badge \${p.available ? 'available' : 'unavailable'}">\${p.name} (\${p.envVar})</div>\`
               ).join('');
               
-              // Render provider checkboxes
-              const provHtml = providers.map(p => 
-                \`<label class="checkbox-label"><input type="checkbox" name="constraints.preferredProviders[]" value="\${p.name}"> \${p.name}</label>\`
-              ).join('');
+              const availableProviders = providers.filter(p => p.available);
+              const provHtml = availableProviders.length > 0
+                ? availableProviders.map(p => 
+                    \`<label class="checkbox-label"><input type="checkbox" name="constraints.preferredProviders[]" value="\${p.name}"> \${p.name}</label>\`
+                  ).join('')
+                : '<span style="color:#64748b;font-size:0.8rem;">No available providers</span>';
               document.getElementById('pref-providers-grid').innerHTML = provHtml;
               
-              const exclProvHtml = providers.map(p => 
-                \`<label class="checkbox-label"><input type="checkbox" name="constraints.excludedProviders[]" value="\${p.name}"> \${p.name}</label>\`
-              ).join('');
+              const exclProvHtml = availableProviders.length > 0
+                ? availableProviders.map(p => 
+                    \`<label class="checkbox-label"><input type="checkbox" name="constraints.excludedProviders[]" value="\${p.name}"> \${p.name}</label>\`
+                  ).join('')
+                : '<span style="color:#64748b;font-size:0.8rem;">No available providers</span>';
               document.getElementById('excl-providers-grid').innerHTML = exclProvHtml;
             }
             
@@ -527,15 +685,19 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
               }
               this.modelsByProvider = grouped;
               
-              // Render preferred/excluded models for form constraints
-              const modHtml = modelCards.map(m => 
-                \`<label class="checkbox-label"><input type="checkbox" name="constraints.preferredModels[]" value="\${m.id}"> \${m.id}</label>\`
-              ).join('');
+              const uniqueFamilies = [...new Set(modelCards.map(m => m.family))].sort();
+              const modHtml = uniqueFamilies.length > 0
+                ? uniqueFamilies.map(family => 
+                    \`<label class="checkbox-label"><input type="checkbox" name="constraints.preferredModels[]" value="\${family}"> \${family}</label>\`
+                  ).join('')
+                : '<span style="color:#64748b;font-size:0.8rem;">No models available</span>';
               document.getElementById('pref-models-grid').innerHTML = modHtml;
               
-              const exclModHtml = modelCards.map(m => 
-                \`<label class="checkbox-label"><input type="checkbox" name="constraints.excludedModels[]" value="\${m.id}"> \${m.id}</label>\`
-              ).join('');
+              const exclModHtml = uniqueFamilies.length > 0
+                ? uniqueFamilies.map(family => 
+                    \`<label class="checkbox-label"><input type="checkbox" name="constraints.excludedModels[]" value="\${family}"> \${family}</label>\`
+                  ).join('')
+                : '<span style="color:#64748b;font-size:0.8rem;">No models available</span>';
               document.getElementById('excl-models-grid').innerHTML = exclModHtml;
             }
           } catch(e) {
@@ -576,8 +738,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
         getFormData() {
           const form = document.getElementById('req-form');
           const formData = new FormData(form);
-          const minContextWindowStr = formData.get('constraints.minContextWindow');
-          const maxCostUsdStr = formData.get('constraints.maxCostUsd');
+          const contextTierStr = formData.get('constraints.contextTier');
 
           const specRaw = formData.get('agent.specializations');
           const specializations = specRaw 
@@ -601,11 +762,9 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
               excludedProviders: formData.getAll('constraints.excludedProviders[]'),
               preferredModels: formData.getAll('constraints.preferredModels[]'),
               excludedModels: formData.getAll('constraints.excludedModels[]'),
-              minContextWindow: minContextWindowStr ? parseInt(minContextWindowStr, 10) : undefined,
-              maxCostUsd: maxCostUsdStr ? parseFloat(maxCostUsdStr) : undefined
+              contextTier: contextTierStr || undefined
             },
-            prompt: formData.get('prompt'),
-            maxTokens: parseInt(formData.get('maxTokens'), 10)
+            prompt: formData.get('prompt')
           };
         },
 

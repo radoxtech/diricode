@@ -25,10 +25,139 @@ import type {
   ProviderAdapter,
   StreamChunk,
 } from "../types.js";
+import type { ModelCard } from "../contracts/model-card.js";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
+
+const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
+  quality: { by_complexity_role: {}, by_specialization: {} },
+  speed: { tokens_per_second_avg: 0, feedback_count: 0 },
+};
+
+const MINIMAX_MODEL_CARDS: ModelCard[] = [
+  {
+    model: "MiniMax-M2.7",
+    family: "minimax-m2",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 204_800,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "MiniMax-M2.7-highspeed",
+    family: "minimax-m2",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 204_800,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "MiniMax-M2.5",
+    family: "minimax-m2",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 204_800,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "MiniMax-M2.5-highspeed",
+    family: "minimax-m2",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 204_800,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "MiniMax-M2.1",
+    family: "minimax-m2",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 204_800,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "MiniMax-M2",
+    family: "minimax-m2",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 196_608,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder"],
+      complexities: ["simple"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+];
 
 /** Default base URL for MiniMax OpenAI-compatible API (global endpoint) */
 const DEFAULT_MINIMAX_BASE_URL = "https://api.minimax.io/v1";
@@ -133,6 +262,10 @@ export class MinimaxProvider implements Provider {
    */
   isAvailable(): boolean {
     return this.#apiKey.length > 0;
+  }
+
+  getModelCards(): ModelCard[] {
+    return MINIMAX_MODEL_CARDS;
   }
 
   /**
@@ -278,7 +411,7 @@ const MINIMAX_MODELS: ModelDescriptor[] = [
   {
     apiModel: "MiniMax-M2.7",
     contextWindow: 204_800,
-    maxOutput: 16_384,
+    maxOutput: 131_072,
     canReason: true,
     toolCall: true,
     vision: false,
@@ -288,7 +421,7 @@ const MINIMAX_MODELS: ModelDescriptor[] = [
   {
     apiModel: "MiniMax-M2.7-highspeed",
     contextWindow: 204_800,
-    maxOutput: 16_384,
+    maxOutput: 131_072,
     canReason: true,
     toolCall: true,
     vision: false,
@@ -298,8 +431,8 @@ const MINIMAX_MODELS: ModelDescriptor[] = [
   {
     apiModel: "MiniMax-M2.5",
     contextWindow: 204_800,
-    maxOutput: 16_384,
-    canReason: false,
+    maxOutput: 131_072,
+    canReason: true,
     toolCall: true,
     vision: false,
     attachment: false,
@@ -308,8 +441,8 @@ const MINIMAX_MODELS: ModelDescriptor[] = [
   {
     apiModel: "MiniMax-M2.5-highspeed",
     contextWindow: 204_800,
-    maxOutput: 16_384,
-    canReason: false,
+    maxOutput: 131_072,
+    canReason: true,
     toolCall: true,
     vision: false,
     attachment: false,
@@ -318,8 +451,8 @@ const MINIMAX_MODELS: ModelDescriptor[] = [
   {
     apiModel: "MiniMax-M2.1",
     contextWindow: 204_800,
-    maxOutput: 16_384,
-    canReason: false,
+    maxOutput: 131_072,
+    canReason: true,
     toolCall: true,
     vision: false,
     attachment: false,
@@ -328,8 +461,8 @@ const MINIMAX_MODELS: ModelDescriptor[] = [
   {
     apiModel: "MiniMax-M2.1-highspeed",
     contextWindow: 204_800,
-    maxOutput: 16_384,
-    canReason: false,
+    maxOutput: 131_072,
+    canReason: true,
     toolCall: true,
     vision: false,
     attachment: false,
@@ -337,9 +470,9 @@ const MINIMAX_MODELS: ModelDescriptor[] = [
   },
   {
     apiModel: "MiniMax-M2",
-    contextWindow: 204_800,
-    maxOutput: 16_384,
-    canReason: false,
+    contextWindow: 196_608,
+    maxOutput: 128_000,
+    canReason: true,
     toolCall: true,
     vision: false,
     attachment: false,

@@ -35,7 +35,7 @@ export function createChatRouter(
       return c.json({ error: "Validation failed", issues: parsed.error.issues }, 400);
     }
 
-    const { prompt, provider, model, maxTokens, temperature } = parsed.data;
+    const { prompt, provider, model, temperature } = parsed.data;
 
     if (provider !== undefined && !registry.has(provider)) {
       const envVar = PROVIDER_ENV_VARS[provider] ?? `${provider.toUpperCase()}_API_KEY`;
@@ -87,11 +87,10 @@ export function createChatRouter(
           });
 
           const modelConfig =
-            maxTokens !== undefined || temperature !== undefined
+            temperature !== undefined
               ? {
                   modelId: resolvedModel,
-                  ...(maxTokens !== undefined && { maxTokens }),
-                  ...(temperature !== undefined && { temperature }),
+                  temperature,
                 }
               : selected
                 ? { modelId: resolvedModel }

@@ -1,12 +1,10 @@
 export { CopilotProvider, createCopilotProvider } from "./adapter.js";
-export {
-  DEFAULT_COPILOT_MODEL,
-  GITHUB_MODELS,
-  getGithubModelInfo,
-  isKnownModel,
-} from "./models.js";
+export { COPILOT_CLIENT_ID } from "./adapter.js";
+export type { CopilotLoginResult, CopilotModelInfo } from "./adapter.js";
 export {
   getGithubToken,
+  storeGithubToken,
+  clearGithubToken,
   hasGithubAuth,
   getGithubTokenFromKeychain,
   getGithubTokenSource,
@@ -21,8 +19,6 @@ export {
 } from "./keychain.js";
 export { validateGithubToken, InvalidTokenError } from "./validator.js";
 export type { GithubUser } from "./validator.js";
-export { fetchAvailableModels, clearModelsCache } from "./models-fetcher.js";
-export type { CatalogModel } from "./models-fetcher.js";
 export {
   initiateGithubDeviceFlow,
   pollGithubDeviceToken,

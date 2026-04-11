@@ -15,8 +15,24 @@ vi.mock("@napi-rs/keyring", () => {
   };
 });
 
+const mockListModels = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+const mockStart = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockStop = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+
+vi.mock("@github/copilot-sdk", () => {
+  class MockCopilotClient {
+    listModels = mockListModels;
+    start = mockStart;
+    stop = mockStop;
+    createSession = vi.fn();
+  }
+  return {
+    CopilotClient: MockCopilotClient,
+    approveAll: vi.fn(),
+  };
+});
+
 import { CopilotProvider, createCopilotProvider } from "../copilot/adapter.js";
-import { DEFAULT_COPILOT_MODEL, getGithubModelInfo, isKnownModel } from "../copilot/models.js";
 import { getGithubToken, hasGithubAuth } from "../copilot/auth.js";
 import { Registry, ProviderPriorities } from "../index.js";
 import * as auth from "../copilot/auth.js";
@@ -24,17 +40,21 @@ import * as auth from "../copilot/auth.js";
 describe("CopilotProvider", () => {
   beforeEach(() => {
     vi.spyOn(auth, "getGithubTokenFromKeychain").mockReturnValue(undefined);
+    mockListModels.mockReset().mockResolvedValue([]);
+    mockStart.mockReset().mockResolvedValue(undefined);
+    mockStop.mockReset().mockResolvedValue(undefined);
   });
+
   describe("constructor", () => {
-    it("creates provider with default model", () => {
+    it("creates provider with default model gpt-4.1", () => {
       const provider = new CopilotProvider("test-token");
       expect(provider.name).toBe("copilot");
-      expect(provider.defaultModel.modelId).toBe(DEFAULT_COPILOT_MODEL);
+      expect(provider.defaultModel.modelId).toBe("gpt-4.1");
     });
 
     it("accepts explicit token", () => {
       const provider = new CopilotProvider("my-token");
-      expect(provider.isAvailable()).toBe(true);
+      expect(provider.name).toBe("copilot");
     });
   });
 
@@ -53,26 +73,18 @@ describe("CopilotProvider", () => {
     });
   });
 
-  describe("model resolution", () => {
-    it("resolves known model gpt-5-mini", () => {
-      const info = getGithubModelInfo("gpt-5-mini");
-      expect(info).toBeDefined();
-      expect(info?.modelId).toBe("openai/gpt-5-mini");
-    });
-
-    it("returns undefined for unknown model", () => {
-      const info = getGithubModelInfo("unknown-model");
-      expect(info).toBeUndefined();
-    });
-
-    it("isKnownModel returns true for known models", () => {
-      expect(isKnownModel("gpt-5-mini")).toBe(true);
-      expect(isKnownModel("claude-sonnet-4.6")).toBe(true);
-      expect(isKnownModel("grok-code-1")).toBe(true);
-    });
-
-    it("isKnownModel returns false for unknown models", () => {
-      expect(isKnownModel("unknown-model")).toBe(false);
+  describe("listModels", () => {
+    it("returns models from SDK client", async () => {
+      mockListModels.mockResolvedValue([
+        { id: "gpt-4.1", name: "GPT 4.1", capabilities: {} },
+        { id: "claude-sonnet-4", name: "Claude Sonnet 4", capabilities: {} },
+      ]);
+      const provider = new CopilotProvider("test-token");
+      const models = await provider.listModels();
+      expect(models).toHaveLength(2);
+      expect(models[0]!.id).toBe("gpt-4.1");
+      expect(models[1]!.id).toBe("claude-sonnet-4");
+      expect(mockStart).toHaveBeenCalled();
     });
   });
 

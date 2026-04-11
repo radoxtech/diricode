@@ -17,6 +17,14 @@ export function getGithubTokenFromKeychain(): string | undefined {
   return token ?? undefined;
 }
 
+export function storeGithubToken(token: string): void {
+  getKeychainService().set(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT, token);
+}
+
+export function clearGithubToken(): void {
+  getKeychainService().delete(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
+}
+
 export function getGithubToken(): string | undefined {
   for (const envVar of GITHUB_TOKEN_ENV_VARS) {
     const value = process.env[envVar];

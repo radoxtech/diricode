@@ -61,15 +61,10 @@ cli
   });
 
 cli
-  .command("login", "Authenticate with GitHub and configure your default model")
-  .option("--token <token>", "GitHub Personal Access Token (non-interactive)")
-  .option("--model <model>", "Default model to use (non-interactive)")
-  .action(async (options: Record<string, unknown>) => {
+  .command("login [provider]", "Authenticate with a provider (copilot, kimi, gemini, zai, minimax)")
+  .action(async (provider: string | undefined, options: Record<string, unknown>) => {
     try {
-      await runLogin({
-        token: options.token as string | undefined,
-        model: options.model as string | undefined,
-      });
+      await runLogin({ provider });
     } catch (err) {
       if (err instanceof Error) {
         // eslint-disable-next-line no-console

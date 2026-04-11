@@ -64,7 +64,7 @@ describe("KimiProvider", () => {
     it("has correct default model configuration", () => {
       const provider = new KimiProvider();
       expect(provider.defaultModel).toEqual({
-        modelId: "moonshot-v1-8k",
+        modelId: "kimi-k2.5",
         temperature: 0.3,
         maxTokens: 4096,
       });

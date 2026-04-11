@@ -8,11 +8,14 @@ import type {
   ModelRouter,
   RouterClassification,
 } from "./types.js";
+import { contextTierMinTokens, contextWindowToTier } from "./types.js";
 import type {
   ModelCard,
   ModelCapabilities,
   PickerSubscription,
 } from "@diricode/dirirouter/contracts";
+import type { ModelCardRegistry } from "../picker/model-card-registry.js";
+import type { SubscriptionRegistry } from "../picker/subscription-registry.js";
 import {
   DEFAULT_HARD_RULES_CONFIG,
   getPricingTierRejectionReason,
@@ -75,6 +78,7 @@ const DEFAULT_CONFIDENCE_THRESHOLD = 0.6;
 export interface ResolverCandidate {
   readonly provider: string;
   readonly model: string;
+  readonly family: string;
   readonly pricingTier: PricingTier;
   readonly contextWindow?: number;
   readonly estimatedCostUsd?: number;
@@ -92,6 +96,7 @@ export function resolverCandidateFromContracts(
   return {
     provider: subscription.provider,
     model: subscription.model,
+    family: modelCard.family,
     pricingTier: modelCard.pricing_tier,
     contextWindow: subscription.context_window,
     estimatedCostUsd: subscription.cost_per_1k_input + subscription.cost_per_1k_output,
@@ -170,128 +175,51 @@ function deriveModelAttributesFromCard(modelCard: ModelCard): ModelAttribute[] {
   return [...attributes];
 }
 
-const DEFAULT_CANDIDATE_POOL: readonly ResolverCandidate[] = [
-  {
-    provider: "openai",
-    model: "gpt-5-mini",
-    pricingTier: "budget",
-    contextWindow: 128000,
-    estimatedCostUsd: 0.08,
-    trusted: true,
-    modelAttributes: ["reasoning", "speed", "agentic"],
-    capabilities: ["tool-calling", "streaming", "json-mode"],
-    knownForRoles: ["coder", "researcher"],
-    knownForComplexities: ["simple", "moderate"],
-  },
-  {
-    provider: "openai",
-    model: "gpt-5.4-mini",
-    pricingTier: "budget",
-    contextWindow: 128000,
-    estimatedCostUsd: 0.12,
-    trusted: true,
-    modelAttributes: ["reasoning", "speed", "agentic"],
-    capabilities: ["tool-calling", "streaming", "json-mode"],
-    knownForRoles: ["coder", "researcher"],
-    knownForComplexities: ["simple", "moderate"],
-  },
-  {
-    provider: "anthropic",
-    model: "claude-haiku-4.5",
-    pricingTier: "budget",
-    contextWindow: 200000,
-    estimatedCostUsd: 0.15,
-    trusted: true,
-    modelAttributes: ["speed", "agentic"],
-    capabilities: ["tool-calling", "streaming", "vision"],
-    knownForRoles: ["coder", "researcher"],
-    knownForComplexities: ["simple", "moderate"],
-  },
-  {
-    provider: "google",
-    model: "gemini-3-flash",
-    pricingTier: "budget",
-    contextWindow: 1000000,
-    estimatedCostUsd: 0.1,
-    trusted: false,
-    modelAttributes: ["speed", "bulk", "agentic"],
-    capabilities: ["tool-calling", "streaming", "json-mode", "vision"],
-    knownForRoles: ["coder", "researcher"],
-    knownForComplexities: ["simple", "moderate"],
-  },
-  {
-    provider: "xai",
-    model: "grok-code-fast-1",
-    pricingTier: "budget",
-    contextWindow: 128000,
-    estimatedCostUsd: 0.09,
-    trusted: false,
-    modelAttributes: ["speed", "agentic"],
-    capabilities: ["tool-calling", "streaming"],
-    knownForRoles: ["coder"],
-    knownForComplexities: ["simple", "moderate"],
-  },
-  {
-    provider: "qwen",
-    model: "qwen2.5",
-    pricingTier: "budget",
-    contextWindow: 128000,
-    estimatedCostUsd: 0.06,
-    trusted: false,
-    modelAttributes: ["speed", "bulk", "agentic"],
-    capabilities: ["tool-calling", "streaming", "json-mode"],
-    knownForRoles: ["coder", "researcher"],
-    knownForComplexities: ["simple", "moderate"],
-  },
-  {
-    provider: "openai",
-    model: "gpt-5.4",
-    pricingTier: "standard",
-    contextWindow: 128000,
-    estimatedCostUsd: 0.7,
-    trusted: true,
-    modelAttributes: ["reasoning", "agentic", "quality"],
-    capabilities: ["tool-calling", "streaming", "json-mode"],
-    knownForRoles: ["architect", "reviewer", "orchestrator", "coder"],
-    knownForComplexities: ["moderate", "complex"],
-  },
-  {
-    provider: "anthropic",
-    model: "claude-sonnet-4.6",
-    pricingTier: "standard",
-    contextWindow: 200000,
-    estimatedCostUsd: 0.8,
-    trusted: true,
-    modelAttributes: ["reasoning", "agentic", "quality"],
-    capabilities: ["tool-calling", "streaming", "json-mode", "vision"],
-    knownForRoles: ["architect", "reviewer", "orchestrator", "coder"],
-    knownForComplexities: ["moderate", "complex"],
-  },
-  {
-    provider: "google",
-    model: "gemini-3.1-pro",
-    pricingTier: "standard",
-    contextWindow: 1000000,
-    estimatedCostUsd: 0.75,
-    trusted: false,
-    modelAttributes: ["reasoning", "bulk", "quality", "agentic"],
-    capabilities: ["tool-calling", "streaming", "json-mode", "vision"],
-    knownForRoles: ["architect", "researcher", "orchestrator"],
-    knownForComplexities: ["moderate", "complex"],
-  },
-  {
-    provider: "anthropic",
-    model: "claude-opus-4.6",
-    pricingTier: "premium",
-    contextWindow: 200000,
-    estimatedCostUsd: 2.5,
-    trusted: true,
-    modelAttributes: ["reasoning", "quality", "creative", "agentic"],
-    capabilities: ["tool-calling", "streaming", "json-mode", "vision"],
-    knownForRoles: ["architect", "reviewer", "orchestrator"],
-    knownForComplexities: ["expert", "complex"],
-  },
-];
+/**
+ * Builds the resolver candidate pool from the ModelCardRegistry and
+ * SubscriptionRegistry.  For each registered model-card that also has a
+ * matching subscription, a {@link ResolverCandidate} is produced via
+ * {@link resolverCandidateFromContracts}.
+ *
+ * Model-cards without a subscription are still included with sensible
+ * defaults so that the resolver can at least consider them.
+ */
+function buildCandidatePoolFromRegistries(
+  mcr?: ModelCardRegistry,
+  sr?: SubscriptionRegistry,
+): readonly ResolverCandidate[] {
+  if (mcr === undefined) return [];
+
+  const cards = mcr.list();
+  const candidates: ResolverCandidate[] = [];
+
+  for (const card of cards) {
+    const subs = sr?.findByModel(card.model) ?? [];
+
+    if (subs.length > 0) {
+      for (const sub of subs) {
+        candidates.push(resolverCandidateFromContracts(card, sub));
+      }
+    } else {
+      // Model card exists but no subscription yet – include with defaults
+      // so the resolver can still score it.
+      candidates.push({
+        provider: card.family,
+        model: card.model,
+        family: card.family,
+        pricingTier: card.pricing_tier,
+        contextWindow: card.capabilities.max_context ?? undefined,
+        trusted: false,
+        modelAttributes: deriveModelAttributesFromCard(card),
+        capabilities: capabilitiesToList(card.capabilities),
+        knownForRoles: card.known_for.roles,
+        knownForComplexities: card.known_for.complexities,
+      });
+    }
+  }
+
+  return candidates;
+}
 
 export interface CascadeModelResolverOptions {
   readonly confidenceThreshold?: number;
@@ -300,6 +228,8 @@ export interface CascadeModelResolverOptions {
   readonly defaultPolicy?: string;
   readonly hardRulesConfig?: HardRulesConfig;
   readonly candidatePool?: readonly ResolverCandidate[];
+  readonly modelCardRegistry?: ModelCardRegistry;
+  readonly subscriptionRegistry?: SubscriptionRegistry;
 }
 
 export class CascadeModelResolver implements ModelResolver {
@@ -323,7 +253,9 @@ export class CascadeModelResolver implements ModelResolver {
     this.defaultModel = options.defaultModel ?? "claude-sonnet-4.6";
     this.defaultPolicy = options.defaultPolicy ?? "default";
     this.hardRulesConfig = options.hardRulesConfig ?? DEFAULT_HARD_RULES_CONFIG;
-    this.candidatePool = options.candidatePool ?? DEFAULT_CANDIDATE_POOL;
+    this.candidatePool =
+      options.candidatePool ??
+      buildCandidatePoolFromRegistries(options.modelCardRegistry, options.subscriptionRegistry);
   }
 
   async resolve(request: DecisionRequest): Promise<DecisionResponse> {
@@ -520,6 +452,7 @@ export class CascadeModelResolver implements ModelResolver {
       candidates.push({
         provider: this.defaultProvider,
         model: this.defaultModel,
+        family: "default",
         pricingTier: "standard",
       });
     }
@@ -535,7 +468,10 @@ export class CascadeModelResolver implements ModelResolver {
       return `excluded by constraints: provider ${descriptor.provider} is excluded`;
     }
 
-    if (request.constraints?.excludedModels?.includes(descriptor.model) === true) {
+    if (
+      request.constraints?.excludedModels?.includes(descriptor.model) === true ||
+      request.constraints?.excludedModels?.includes(descriptor.family) === true
+    ) {
       return `excluded by constraints: model ${descriptor.model} is excluded`;
     }
 
@@ -543,20 +479,11 @@ export class CascadeModelResolver implements ModelResolver {
       return `excluded by fallback: model ${descriptor.model} previously failed`;
     }
 
-    if (
-      request.constraints?.maxCostUsd !== undefined &&
-      descriptor.estimatedCostUsd !== undefined &&
-      descriptor.estimatedCostUsd > request.constraints.maxCostUsd
-    ) {
-      return `excluded by constraints: estimated cost ${String(descriptor.estimatedCostUsd)} exceeds maxCostUsd ${String(request.constraints.maxCostUsd)}`;
-    }
-
-    if (
-      request.constraints?.minContextWindow !== undefined &&
-      descriptor.contextWindow !== undefined &&
-      descriptor.contextWindow < request.constraints.minContextWindow
-    ) {
-      return `excluded by constraints: context window ${String(descriptor.contextWindow)} is below minimum ${String(request.constraints.minContextWindow)}`;
+    if (request.constraints?.contextTier !== undefined && descriptor.contextWindow !== undefined) {
+      const requiredMin = contextTierMinTokens(request.constraints.contextTier);
+      if (descriptor.contextWindow < requiredMin) {
+        return `excluded by constraints: context window ${String(descriptor.contextWindow)} is below ${request.constraints.contextTier} tier minimum ${String(requiredMin)}`;
+      }
     }
 
     if (
@@ -617,7 +544,10 @@ export class CascadeModelResolver implements ModelResolver {
       score += 10;
     }
 
-    if (request.constraints?.preferredModels?.includes(descriptor.model) === true) {
+    if (
+      request.constraints?.preferredModels?.includes(descriptor.model) === true ||
+      request.constraints?.preferredModels?.includes(descriptor.family) === true
+    ) {
       score += 10;
     }
 
@@ -629,21 +559,20 @@ export class CascadeModelResolver implements ModelResolver {
       score += 5;
     }
 
-    // Context window tier scoring — ADR-055 Addendum
-    // Models must meet the minimum context window for the requested tier,
-    // and are rewarded for exceeding it.
-    const TIER_MIN_CONTEXT: Record<string, number> = {
-      low: 200_000,
-      medium: 200_000,
-      heavy: 800_000,
-    };
-    const minRequired = TIER_MIN_CONTEXT[request.modelDimensions.tier];
-    if (descriptor.contextWindow !== undefined && minRequired !== undefined) {
-      if (descriptor.contextWindow < minRequired) {
-        score -= 50; // heavy penalty for insufficient context window
+    if (descriptor.contextWindow !== undefined) {
+      const candidateTier = contextWindowToTier(descriptor.contextWindow);
+      const requestedTierMin = contextTierMinTokens(request.constraints?.contextTier ?? "standard");
+      if (descriptor.contextWindow < requestedTierMin) {
+        score -= 50;
       } else {
-        // bonus for exceeding minimum (capped at +20)
-        score += Math.min(20, (descriptor.contextWindow - minRequired) / 100_000);
+        const tierOrder = { standard: 0, extended: 1, massive: 2 } as const;
+        const requestedTierOrdinal = tierOrder[request.constraints?.contextTier ?? "standard"];
+        const candidateTierOrdinal = tierOrder[candidateTier];
+        score += Math.min(
+          20,
+          (candidateTierOrdinal - requestedTierOrdinal) * 10 +
+            Math.min(10, (descriptor.contextWindow - requestedTierMin) / 100_000),
+        );
       }
     }
 

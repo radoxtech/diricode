@@ -35,6 +35,41 @@ export const FallbackTypeSchema = z.enum(["largeContext", "largeOutput", "error"
 export type FallbackType = z.infer<typeof FallbackTypeSchema>;
 
 /**
+ * Context tier used to express context window requirements.
+ *
+ * - `standard`  — up to 200 000 tokens
+ * - `extended`  — 200 000 – 800 000 tokens
+ * - `massive`   — 800 000+ tokens
+ *
+ * Replaces the raw `minContextWindow` number in DecisionConstraints.
+ */
+export const ContextTierSchema = z.enum(["standard", "extended", "massive"]);
+export type ContextTier = z.infer<typeof ContextTierSchema>;
+
+/**
+ * Maps a raw context window size (in tokens) to its {@link ContextTier}.
+ */
+export function contextWindowToTier(contextWindow: number): ContextTier {
+  if (contextWindow >= 800_000) return "massive";
+  if (contextWindow >= 200_000) return "extended";
+  return "standard";
+}
+
+/**
+ * Returns the minimum context window (in tokens) required by the given tier.
+ */
+export function contextTierMinTokens(tier: ContextTier): number {
+  switch (tier) {
+    case "massive":
+      return 800_000;
+    case "extended":
+      return 200_000;
+    case "standard":
+      return 0;
+  }
+}
+
+/**
  * Container for all model selection dimensions.
  * Updated: `family`+`tags` replaced by `modelAttributes`.
  */
@@ -109,9 +144,7 @@ export type TaskInfo = z.infer<typeof TaskInfoSchema>;
  * Optional hard and soft constraints used to filter/rank candidates.
  */
 export const DecisionConstraintsSchema = z.object({
-  maxCostUsd: z.number().nonnegative().optional(),
-  maxLatencyMs: z.number().int().nonnegative().optional(),
-  minContextWindow: z.number().int().nonnegative().optional(),
+  contextTier: ContextTierSchema.optional(),
   requiredCapabilities: z.array(z.string()).optional(),
   excludedProviders: z.array(z.string()).optional(),
   excludedModels: z.array(z.string()).optional(),
@@ -125,7 +158,7 @@ export type DecisionConstraints = z.infer<typeof DecisionConstraintsSchema>;
  * @see ADR-049
  */
 export const DecisionRequestSchema = z.object({
-  chatId: z.string().min(1),
+  chatId: z.string().uuid(),
   requestId: z.string().uuid(),
   agent: AgentInfoSchema,
   task: TaskInfoSchema,
@@ -229,7 +262,7 @@ export type FeedbackOutcome = z.infer<typeof FeedbackOutcomeSchema>;
  * Used for reinforcement learning based on Model x Tier x TaskTag.
  */
 export const FeedbackSubmissionSchema = z.object({
-  chatId: z.string().min(1),
+  chatId: z.string().uuid(),
   requestId: z.string().uuid(),
   model: z.string().min(1),
   modelTier: ModelTierSchema,

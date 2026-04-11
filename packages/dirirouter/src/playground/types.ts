@@ -20,6 +20,7 @@ import type {
   ModelTier,
   ModelAttribute,
   FallbackType,
+  ContextTier,
 } from "@diricode/dirirouter/llm-picker/types.js";
 import {
   ModelTierSchema,
@@ -29,6 +30,7 @@ import {
   AgentInfoSchema,
   TaskInfoSchema,
   DecisionConstraintsSchema,
+  ContextTierSchema,
 } from "@diricode/dirirouter/llm-picker/types.js";
 import type { DiriRouter } from "@diricode/dirirouter/diri-router.js";
 import type { Registry } from "@diricode/dirirouter/registry.js";
@@ -163,8 +165,6 @@ export interface ChatRequest {
   provider?: string;
   /** Model identifier for direct mode. */
   model?: string;
-  /** Maximum tokens to generate. */
-  maxTokens?: number;
   /** Sampling temperature in [0, 2]. */
   temperature?: number;
 }
@@ -176,14 +176,12 @@ export interface ChatRequest {
  * - `prompt` is a non-empty string
  * - `provider` is an optional string
  * - `model` is an optional string
- * - `maxTokens` is a positive integer if provided
  * - `temperature` is in range [0, 2] if provided
  */
 export const ChatRequestSchema: z.ZodType<ChatRequest> = z.object({
   prompt: z.string().min(1, "Prompt cannot be empty"),
   provider: z.string().optional(),
   model: z.string().optional(),
-  maxTokens: z.number().int().positive().optional(),
   temperature: z.number().min(0).max(2).optional(),
 });
 
@@ -204,10 +202,16 @@ void _chatRequestTypeCheck;
  * Re-export of `ModelTier` for playground consumers.
  * @see @diricode/dirirouter/llm-picker/types
  */
-export type { ModelTier, ModelAttribute, FallbackType };
+export type { ModelTier, ModelAttribute, FallbackType, ContextTier };
 
 /**
  * Re-export of relevant Zod schemas for playground consumers.
  * @see @diricode/dirirouter/llm-picker/types
  */
-export { ModelTierSchema, ModelAttributeSchema, FallbackTypeSchema, ModelDimensionsSchema };
+export {
+  ModelTierSchema,
+  ModelAttributeSchema,
+  FallbackTypeSchema,
+  ModelDimensionsSchema,
+  ContextTierSchema,
+};

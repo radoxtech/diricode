@@ -1,5 +1,114 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
+import type { ModelCard } from "../contracts/model-card.js";
+
+const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
+  quality: { by_complexity_role: {}, by_specialization: {} },
+  speed: { tokens_per_second_avg: 0, feedback_count: 0 },
+};
+
+const KIMI_MODEL_CARDS: ModelCard[] = [
+  {
+    model: "kimi-k2.5",
+    family: "kimi",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 262_144,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher", "architect"],
+      complexities: ["moderate", "complex", "expert"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "kimi-k2-0905-preview",
+    family: "kimi",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 262_144,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "kimi-k2-thinking",
+    family: "kimi-thinking",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 262_144,
+    },
+    reasoning_levels: ["low", "medium", "high", "xhigh"],
+    known_for: {
+      roles: ["architect", "reviewer", "coder"],
+      complexities: ["complex", "expert"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "kimi-k2-thinking-turbo",
+    family: "kimi-thinking",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 262_144,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "kimi-k2-turbo-preview",
+    family: "kimi",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 262_144,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+];
 import {
   getKimiApiKey,
   hasKimiAuth,
@@ -7,7 +116,7 @@ import {
   validateKimiApiKey,
 } from "../kimi/auth.js";
 
-const DEFAULT_KIMI_BASE_URL = "https://api.moonshot.cn/v1";
+const DEFAULT_KIMI_BASE_URL = "https://api.moonshot.ai/v1";
 
 export interface KimiProviderConfig {
   apiKey?: string;
@@ -18,7 +127,7 @@ export class KimiProvider implements Provider {
   readonly name = "kimi";
 
   readonly defaultModel: ModelConfig = {
-    modelId: "moonshot-v1-8k",
+    modelId: "kimi-k2.5",
     temperature: 0.3,
     maxTokens: 4096,
   };
@@ -78,6 +187,10 @@ export class KimiProvider implements Provider {
         Authorization: `Bearer ${apiKey}`,
       },
     });
+  }
+
+  getModelCards(): ModelCard[] {
+    return KIMI_MODEL_CARDS;
   }
 
   async generate(options: GenerateOptions): Promise<string> {

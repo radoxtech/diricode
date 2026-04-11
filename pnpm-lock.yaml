@@ -134,9 +134,9 @@ importers:
       '@diricode/core':
         specifier: workspace:*
         version: link:../core
-      '@github/models':
-        specifier: 0.0.1-beta.2
-        version: 0.0.1-beta.2(zod@3.25.76)
+      '@github/copilot-sdk':
+        specifier: ^0.2.2
+        version: 0.2.2
       '@google/genai':
         specifier: ^1.0.0
         version: 1.46.0
@@ -434,30 +434,14 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/openai-compatible@3.0.0-beta.15':
-    resolution: {integrity: sha512-WEbaPppNYUDHjyY1/wvROfZLnhQ49oXXgfkCgRGo9z6Gpx+adKTRXxHnJEo3GRFEMS+cWy8Elfi3TLmiiho2HQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
   '@ai-sdk/provider-utils@4.0.21':
     resolution: {integrity: sha512-MtFUYI1/8mgDvRmaBDjbLJPFFrMG777AvSgyIFQtZHIMzm88R/12vYBBpnk7pfiWLFE1DSZzY4WDYzGbKAcmiw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/provider-utils@5.0.0-beta.11':
-    resolution: {integrity: sha512-F7CZQWRT2KORKCji8eA2hgz4ry9fAP8xUThqaefWgjVIn2rY1RP/Ban5tOhsweCSaB046T1Da9UEnAq4TECc+A==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
   '@ai-sdk/provider@3.0.8':
     resolution: {integrity: sha512-oGMAgGoQdBXbZqNG0Ze56CHjDZ1IDYOwGYxYjO5KLSlz5HiNQ9udIXsPZ61VWaHGZ5XW/jyjmr6t2xz2jGVwbQ==}
-    engines: {node: '>=18'}
-
-  '@ai-sdk/provider@4.0.0-beta.7':
-    resolution: {integrity: sha512-q3mORIV5vzhMQ2ge1zw1hpnLm+21CxTimB1YPiPQEuBiKjUZ5Ds1SBaIukeapNT04JH+ddmdxzcj3cyIYxKWDQ==}
     engines: {node: '>=18'}
 
   '@alloc/quick-lru@5.2.0':
@@ -802,9 +786,49 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@github/models@0.0.1-beta.2':
-    resolution: {integrity: sha512-x/FhB/ZE/BUydyBoo+dDtob6ujr5+KG/+chlFF0zJqI4HllMHYGzOsVp0sHGiQGNY67itYijWlycehZ6Dnr2rw==}
-    engines: {node: '>=20'}
+  '@github/copilot-darwin-arm64@1.0.24':
+    resolution: {integrity: sha512-lejn6KV+09rZEICX3nRx9a58DQFQ2kK3NJ3EICfVLngUCWIUmwn1BLezjeTQc9YNasHltA1hulvfsWqX+VjlMw==}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@github/copilot-darwin-x64@1.0.24':
+    resolution: {integrity: sha512-r2F3keTvr4Bunz3V+waRAvsHgqsVQGyIZFBebsNPWxBX1eh3IXgtBqxCR7vXTFyZonQ8VaiJH3YYEfAhyKsk9g==}
+    cpu: [x64]
+    os: [darwin]
+    hasBin: true
+
+  '@github/copilot-linux-arm64@1.0.24':
+    resolution: {integrity: sha512-B3oANXKKKLhnKYozXa/W+DxfCQAHJCs0QKR5rBwNrwJbf656twNgALSxWTSJk+1rEP6MrHCswUAcwjwZL7Q+FQ==}
+    cpu: [arm64]
+    os: [linux]
+    hasBin: true
+
+  '@github/copilot-linux-x64@1.0.24':
+    resolution: {integrity: sha512-NGTldizY54B+4Sfhu/GWoEQNMwqqUNgMwbSgBshFv+Hqy1EwuvNWKVov1Y0Vzhp4qAHc6ZxBk/OPIW8Ato9FUg==}
+    cpu: [x64]
+    os: [linux]
+    hasBin: true
+
+  '@github/copilot-sdk@0.2.2':
+    resolution: {integrity: sha512-VZCqS08YlUM90bUKJ7VLeIxgTTEHtfXBo84T1IUMNvXRREX2csjPH6Z+CPw3S2468RcCLvzBXcc9LtJJTLIWFw==}
+    engines: {node: '>=20.0.0'}
+
+  '@github/copilot-win32-arm64@1.0.24':
+    resolution: {integrity: sha512-/pd/kgef7/HIIg1SQq4q8fext39pDSC44jHB10KkhfgG1WaDFhQbc/aSSMQfxeldkRbQh6VANp8WtGQdwtMCBA==}
+    cpu: [arm64]
+    os: [win32]
+    hasBin: true
+
+  '@github/copilot-win32-x64@1.0.24':
+    resolution: {integrity: sha512-RDvOiSvyEJwELqErwANJTrdRuMIHkwPE4QK7Le7WsmaSKxiuS4H1Pa8Yxnd2FWrMsCHEbase23GJlymbnGYLXQ==}
+    cpu: [x64]
+    os: [win32]
+    hasBin: true
+
+  '@github/copilot@1.0.24':
+    resolution: {integrity: sha512-/nZ2GwhaGq0HeI3W+6LE0JGw25/bipC6tYVa+oQ5tIvAafBazuNt10CXkeaor+u9oBWLZtPbdTyAzE2tjy9NpQ==}
+    hasBin: true
 
   '@google/genai@1.46.0':
     resolution: {integrity: sha512-ewPMN5JkKfgU5/kdco9ZhXBHDPhVqZpMQqIFQhwsHLf8kyZfx1cNpw1pHo1eV6PGEW7EhIBFi3aYZraFndAXqg==}
@@ -2900,6 +2924,10 @@ packages:
       jsdom:
         optional: true
 
+  vscode-jsonrpc@8.2.1:
+    resolution: {integrity: sha512-kdjOSJ2lLIn7r1rtrMbbNCHjyMPfRnowdKjBQ+mGq6NAW5QY2bEZC/khaC5OR8svbbjvLEaIXkOq45e2X9BIbQ==}
+    engines: {node: '>=14.0.0'}
+
   w3c-xmlserializer@5.0.0:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
@@ -2972,6 +3000,9 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+
   zustand@4.5.7:
     resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
     engines: {node: '>=12.7.0'}
@@ -3020,12 +3051,6 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.21(zod@3.25.76)
       zod: 3.25.76
 
-  '@ai-sdk/openai-compatible@3.0.0-beta.15(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.0-beta.7
-      '@ai-sdk/provider-utils': 5.0.0-beta.11(zod@3.25.76)
-      zod: 3.25.76
-
   '@ai-sdk/provider-utils@4.0.21(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 3.0.8
@@ -3033,18 +3058,7 @@ snapshots:
       eventsource-parser: 3.0.6
       zod: 3.25.76
 
-  '@ai-sdk/provider-utils@5.0.0-beta.11(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.0-beta.7
-      '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.0.6
-      zod: 3.25.76
-
   '@ai-sdk/provider@3.0.8':
-    dependencies:
-      json-schema: 0.4.0
-
-  '@ai-sdk/provider@4.0.0-beta.7':
     dependencies:
       json-schema: 0.4.0
 
@@ -3322,13 +3336,38 @@ snapshots:
 
   '@exodus/bytes@1.15.0': {}
 
-  '@github/models@0.0.1-beta.2(zod@3.25.76)':
+  '@github/copilot-darwin-arm64@1.0.24':
+    optional: true
+
+  '@github/copilot-darwin-x64@1.0.24':
+    optional: true
+
+  '@github/copilot-linux-arm64@1.0.24':
+    optional: true
+
+  '@github/copilot-linux-x64@1.0.24':
+    optional: true
+
+  '@github/copilot-sdk@0.2.2':
     dependencies:
-      '@ai-sdk/openai-compatible': 3.0.0-beta.15(zod@3.25.76)
-      '@ai-sdk/provider': 4.0.0-beta.7
-      '@ai-sdk/provider-utils': 5.0.0-beta.11(zod@3.25.76)
-    transitivePeerDependencies:
-      - zod
+      '@github/copilot': 1.0.24
+      vscode-jsonrpc: 8.2.1
+      zod: 4.3.6
+
+  '@github/copilot-win32-arm64@1.0.24':
+    optional: true
+
+  '@github/copilot-win32-x64@1.0.24':
+    optional: true
+
+  '@github/copilot@1.0.24':
+    optionalDependencies:
+      '@github/copilot-darwin-arm64': 1.0.24
+      '@github/copilot-darwin-x64': 1.0.24
+      '@github/copilot-linux-arm64': 1.0.24
+      '@github/copilot-linux-x64': 1.0.24
+      '@github/copilot-win32-arm64': 1.0.24
+      '@github/copilot-win32-x64': 1.0.24
 
   '@google/genai@1.46.0':
     dependencies:
@@ -5450,6 +5489,8 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
+  vscode-jsonrpc@8.2.1: {}
+
   w3c-xmlserializer@5.0.0:
     dependencies:
       xml-name-validator: 5.0.0
@@ -5496,6 +5537,8 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   zod@3.25.76: {}
+
+  zod@4.3.6: {}
 
   zustand@4.5.7(@types/react@19.2.14)(react@19.2.4):
     dependencies:

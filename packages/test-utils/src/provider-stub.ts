@@ -34,6 +34,9 @@ export function createProviderStub(options: ProviderStubOptions = {}): ProviderS
     isAvailable() {
       return available;
     },
+    getModelCards() {
+      return [];
+    },
     setAvailable(value: boolean) {
       available = value;
     },

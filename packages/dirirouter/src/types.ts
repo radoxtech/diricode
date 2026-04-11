@@ -5,6 +5,8 @@
  * uniform streaming/generation interface to the rest of DiriCode.
  */
 
+import type { ModelCard } from "./contracts/model-card.js";
+
 // ---------------------------------------------------------------------------
 // Priority
 // ---------------------------------------------------------------------------
@@ -105,6 +107,16 @@ export interface Provider {
    * @returns An async iterable of {@link StreamChunk} values.
    */
   stream(options: GenerateOptions): AsyncIterable<StreamChunk>;
+
+  /**
+   * Returns the static list of ModelCards this provider supports.
+   *
+   * Each provider is the golden source for its own model metadata.
+   * Cards are registered into the ModelCardRegistry at bootstrap.
+   *
+   * @returns Array of ModelCards (may be empty if provider is not available).
+   */
+  getModelCards(): ModelCard[];
 }
 
 // ---------------------------------------------------------------------------

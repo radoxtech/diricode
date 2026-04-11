@@ -26,6 +26,7 @@ function createProviderStub(name: string): ProviderStub {
     name,
     defaultModel,
     isAvailable: () => true,
+    getModelCards: () => [],
     setNextResponse(response: string) {
       nextResponse = response;
       nextStreamChunks = null;

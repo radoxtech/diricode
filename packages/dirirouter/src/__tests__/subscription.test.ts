@@ -19,6 +19,7 @@ function makeCard(model: string): ModelCard {
       vision: false,
       max_context: 8000,
     },
+    reasoning_levels: [],
     known_for: {
       roles: ["coder"],
       complexities: ["simple"],

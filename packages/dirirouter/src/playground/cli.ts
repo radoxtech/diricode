@@ -16,7 +16,10 @@ if (existsSync(envPath)) {
     const eqIndex = trimmed.indexOf("=");
     if (eqIndex < 0) continue;
     const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim().replace(/^["']|["']$/g, "");
+    const value = trimmed
+      .slice(eqIndex + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
     if (key && !(key in process.env)) {
       process.env[key] = value;
     }
@@ -54,9 +57,8 @@ function renderStartupTable(params: {
   port: string;
   providerStatuses: BootstrapResult["providerStatuses"];
   modelCardRegistry: BootstrapResult["modelCardRegistry"];
-  subscriptionRegistry: BootstrapResult["subscriptionRegistry"];
 }): string {
-  const { host, port, providerStatuses, modelCardRegistry, subscriptionRegistry } = params;
+  const { host, port, providerStatuses, modelCardRegistry } = params;
 
   const allModels = modelCardRegistry.list();
   const totalModels = allModels.length;
@@ -64,9 +66,8 @@ function renderStartupTable(params: {
   const enabledCount = totalModels - disabledModels.length;
 
   const rows: Row[] = providerStatuses.map((p) => {
-    const providerModels = subscriptionRegistry.findByProvider(p.name);
-    const count = providerModels.length;
-    const examples = providerModels.slice(0, 2).map((sub) => sub.model).join(", ");
+    const count = p.modelCount;
+    const examples = p.modelNames.slice(0, 2).join(", ");
     const exampleStr = count > 2 ? examples + `, +${String(count - 2)} more` : examples || "—";
     const statusStr = p.available ? `${C.green}✓ Ready${C.reset}` : `${C.red}✗ No key${C.reset}`;
     return [p.name, statusStr, String(count), exampleStr] as const;
@@ -74,7 +75,14 @@ function renderStartupTable(params: {
 
   const HEADERS: Row = ["Provider", "Status", "Models", "Example Models"];
   const colWidths = HEADERS.map((h, i) =>
-    Math.max(h.length, i === 0 ? 10 : 0, i === 1 ? 10 : 0, i === 2 ? 6 : 0, i === 3 ? 20 : 0, ...rows.map((r) => visibleLen(r[i as 0 | 1 | 2 | 3]))),
+    Math.max(
+      h.length,
+      i === 0 ? 10 : 0,
+      i === 1 ? 10 : 0,
+      i === 2 ? 6 : 0,
+      i === 3 ? 20 : 0,
+      ...rows.map((r) => visibleLen(r[i as 0 | 1 | 2 | 3])),
+    ),
   ) as [number, number, number, number];
 
   const borderLine = (left: string, mid: string, right: string, fill: string): string =>
@@ -110,7 +118,8 @@ function renderStartupTable(params: {
   const stats = `${C.dim}Available models: ${String(enabledCount)} of ${String(totalModels)} total${C.reset}`;
 
   const lines: string[] = [
-    "", top,
+    "",
+    top,
     centreBox(title),
     centreBox(url),
     blankRow,
@@ -138,12 +147,14 @@ async function main(): Promise<void> {
   const server = (globalThis as any).Bun.serve({ port, hostname: host, fetch: app.fetch });
 
   // eslint-disable-next-line no-console
-  console.log(renderStartupTable({
-    host, port: portStr,
-    providerStatuses: result.providerStatuses,
-    modelCardRegistry: result.modelCardRegistry,
-    subscriptionRegistry: result.subscriptionRegistry,
-  }));
+  console.log(
+    renderStartupTable({
+      host,
+      port: portStr,
+      providerStatuses: result.providerStatuses,
+      modelCardRegistry: result.modelCardRegistry,
+    }),
+  );
 
   const shutdown = (): void => {
     // eslint-disable-next-line no-console

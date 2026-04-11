@@ -14,6 +14,95 @@
 
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
+import type { ModelCard } from "../contracts/model-card.js";
+
+const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
+  quality: { by_complexity_role: {}, by_specialization: {} },
+  speed: { tokens_per_second_avg: 0, feedback_count: 0 },
+};
+
+const ZAI_MODEL_CARDS: ModelCard[] = [
+  {
+    model: "glm-5",
+    family: "glm",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 128_000,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "glm-5-plus",
+    family: "glm-plus",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 128_000,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["architect", "reviewer", "coder"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "glm-5-turbo",
+    family: "glm-turbo",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 128_000,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "glm-5-turbo-plus",
+    family: "glm-turbo-plus",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 128_000,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+];
 
 /** Default base URL for Z.ai GLM Coding Plan API */
 const DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/coding/paas/v4";
@@ -82,9 +171,7 @@ export class ZaiProvider implements Provider {
   constructor(config: ZaiProviderConfig | string) {
     const rawApiKey = typeof config === "string" ? config : config.apiKey;
     const baseURL =
-      typeof config === "string"
-        ? DEFAULT_ZAI_BASE_URL
-        : (config.baseURL ?? DEFAULT_ZAI_BASE_URL);
+      typeof config === "string" ? DEFAULT_ZAI_BASE_URL : (config.baseURL ?? DEFAULT_ZAI_BASE_URL);
 
     const envApiKey = process.env.DC_ZAI_API_KEY ?? "";
     const resolvedApiKey = rawApiKey.trim() || envApiKey;
@@ -114,6 +201,10 @@ export class ZaiProvider implements Provider {
    */
   isAvailable(): boolean {
     return this.#apiKey.length > 0;
+  }
+
+  getModelCards(): ModelCard[] {
+    return ZAI_MODEL_CARDS;
   }
 
   /**

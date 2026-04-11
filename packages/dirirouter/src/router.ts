@@ -73,6 +73,10 @@ export class ProviderRouter implements Provider {
     return this.#getCandidateProviders().some(({ provider }) => provider.isAvailable());
   }
 
+  getModelCards(): import("./contracts/model-card.js").ModelCard[] {
+    return this.#getCandidateProviders().flatMap(({ provider }) => provider.getModelCards());
+  }
+
   async generate(options: GenerateOptions): Promise<string> {
     const attempts: ProviderAttemptRecord[] = [];
     const providers = this.#getCandidateProviders();

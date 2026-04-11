@@ -6,6 +6,7 @@ export {
   ModelCardSchema,
   PricingTierSchema,
   QualityBenchmarkSchema,
+  ReasoningLevelSchema,
   SpeedBenchmarkSchema,
 } from "./model-card.js";
 
@@ -17,6 +18,7 @@ export type {
   ModelCard,
   PricingTier,
   QualityBenchmark,
+  ReasoningLevel,
   SpeedBenchmark,
 } from "./model-card.js";
 

@@ -13,6 +13,135 @@
 
 import { GoogleGenAI } from "@google/genai";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
+import type { ModelCard } from "../contracts/model-card.js";
+
+const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
+  quality: { by_complexity_role: {}, by_specialization: {} },
+  speed: { tokens_per_second_avg: 0, feedback_count: 0 },
+};
+
+const GEMINI_MODEL_CARDS: ModelCard[] = [
+  {
+    model: "gemini-2.5-flash",
+    family: "gemini-flash",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 1_048_576,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "gemini-2.5-flash-lite",
+    family: "gemini-flash-lite",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 1_048_576,
+    },
+    reasoning_levels: ["low", "medium"],
+    known_for: {
+      roles: ["coder"],
+      complexities: ["simple"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "gemini-2.5-pro",
+    family: "gemini-pro",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 1_048_576,
+    },
+    reasoning_levels: ["low", "medium", "high", "xhigh"],
+    known_for: {
+      roles: ["architect", "reviewer", "orchestrator", "coder"],
+      complexities: ["moderate", "complex", "expert"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "gemini-3-flash-preview",
+    family: "gemini-flash",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 1_048_576,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["simple", "moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "gemini-3.1-flash-lite-preview",
+    family: "gemini-flash-lite",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 1_048_576,
+    },
+    reasoning_levels: ["low", "medium"],
+    known_for: {
+      roles: ["coder"],
+      complexities: ["simple"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "gemini-3.1-pro-preview",
+    family: "gemini-pro",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 1_048_576,
+    },
+    reasoning_levels: ["low", "medium", "high", "xhigh"],
+    known_for: {
+      roles: ["architect", "reviewer", "orchestrator", "coder"],
+      complexities: ["moderate", "complex", "expert"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+];
 
 /**
  * Configuration options for the GeminiProvider.
@@ -176,6 +305,10 @@ export class GeminiProvider implements Provider {
    * @returns {Error} Standardized error with descriptive message
    * @private
    */
+  getModelCards(): ModelCard[] {
+    return GEMINI_MODEL_CARDS;
+  }
+
   private handleError(error: unknown, context: string): Error {
     if (error instanceof Error) {
       // Check for specific error types
