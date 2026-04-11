@@ -62,7 +62,7 @@ cli
 
 cli
   .command("login [provider]", "Authenticate with a provider (copilot, kimi, gemini, zai, minimax)")
-  .action(async (provider: string | undefined, options: Record<string, unknown>) => {
+  .action(async (provider: string | undefined, _options: Record<string, unknown>) => {
     try {
       await runLogin({ provider });
     } catch (err) {

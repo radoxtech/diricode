@@ -1,11 +1,9 @@
-import { password, select } from "@inquirer/prompts";
+import { password } from "@inquirer/prompts";
 import { KeychainService } from "@diricode/dirirouter";
 import {
   CopilotProvider,
   hasGithubAuth,
-  getGithubToken,
   validateGithubToken,
-  InvalidTokenError,
   initiateGithubDeviceFlow,
   pollGithubDeviceToken,
   GithubOAuthError,
@@ -50,10 +48,12 @@ async function loginCopilot(): Promise<void> {
     if (models.length === 0) {
       throw new Error("Copilot API returned no models. Check your GitHub subscription.");
     }
-    process.stdout.write(`\n✓ Logged in to GitHub Copilot | ${models.length} models available\n`);
+    process.stdout.write(
+      `\n✓ Logged in to GitHub Copilot | ${String(models.length)} models available\n`,
+    );
   } catch (err) {
     if (err instanceof GithubOAuthError) {
-      throw new Error(`OAuth failed: ${err.message}`);
+      throw new Error(`OAuth failed: ${err.message}`, { cause: err });
     }
     throw err;
   }
@@ -96,7 +96,7 @@ export const LOGIN_PROVIDERS: LoginProvider[] = [
     envVars: ["GEMINI_API_KEY"],
     isLoggedIn: () => Boolean(process.env.GEMINI_API_KEY?.trim()),
     login: async () => {
-      const apiKey = await password({ message: "Enter your Gemini API key:", mask: true });
+      const _apiKey = await password({ message: "Enter your Gemini API key:", mask: true });
       process.stdout.write(`\nSet GEMINI_API_KEY environment variable to use Gemini.\n`);
       process.stdout.write(`Note: Gemini API key is stored in environment only.\n`);
     },
@@ -108,7 +108,7 @@ export const LOGIN_PROVIDERS: LoginProvider[] = [
     envVars: ["DC_ZAI_API_KEY"],
     isLoggedIn: () => Boolean(process.env.DC_ZAI_API_KEY?.trim()),
     login: async () => {
-      const apiKey = await password({ message: "Enter your Z.ai API key:", mask: true });
+      const _apiKey = await password({ message: "Enter your Z.ai API key:", mask: true });
       process.stdout.write(`\nSet DC_ZAI_API_KEY environment variable to use Z.ai.\n`);
     },
     description: "Z.ai GLM via API key",
@@ -119,7 +119,7 @@ export const LOGIN_PROVIDERS: LoginProvider[] = [
     envVars: ["DC_MINIMAX_API_KEY"],
     isLoggedIn: () => Boolean(process.env.DC_MINIMAX_API_KEY?.trim()),
     login: async () => {
-      const apiKey = await password({ message: "Enter your MiniMax API key:", mask: true });
+      const _apiKey = await password({ message: "Enter your MiniMax API key:", mask: true });
       process.stdout.write(`\nSet DC_MINIMAX_API_KEY environment variable to use MiniMax.\n`);
     },
     description: "MiniMax via API key",
