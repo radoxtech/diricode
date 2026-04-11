@@ -32,37 +32,31 @@ Issue titles use **bracket prefixes** to indicate hierarchy level. All brackets 
 
 | Bracket Prefix  | Level   | Scope                                      | Example                                               |
 | --------------- | ------- | ------------------------------------------ | ----------------------------------------------------- |
-| \`[Meta-Epic]\` | Level 1 | Strategic goal (quarter/year span)         | \`[Meta-Epic] Authentication & Authorization System\` |
-| \`[Epic]\`      | Level 2 | Feature/capability (sprint/milestone span) | \`[Epic] User Registration Flow\`                     |
-| \`[Sub-Epic]\`  | Level 3 | Decomposed feature area                    | \`[Sub-Epic] Email Verification\`                     |
-| \`[Task]\`      | Level 4 | Atomic work unit                           | \`[Task] Add email validation regex\`                 |
-| _(no prefix)_   | Task    | Implicit/standalone task                   | \`Fix typo in README\`                                |
+| `[Epic]`      | Level 1 | Feature/capability (sprint/milestone span) | `[Epic] User Registration Flow`                     |
+| `[Task]`      | Level 2 | Atomic work unit                           | `[Task] Add email validation regex`                 |
+| _(no prefix)_   | Task    | Implicit/standalone task                   | `Fix typo in README`                                |
 
 ### Rules
 
-- **Meta-Epic:** Represents strategic business objectives
-- **Epic:** Represents complete, shippable features
-- **Sub-Epic:** Represents decomposed parts of an Epic
+- **Epic:** Represents complete, shippable features or capabilities
 - **Task:** Represents atomic, completable work items
 - **Implicit Task:** Any issue without bracket prefix is treated as a Task
 
 ### Format Examples
 
 ✅ Valid:
-\`\`\`
-[Meta-Epic] Platform Scalability Initiative
+```
 [Epic] Real-time Notifications System
-[Sub-Epic] Push Notification Backend
 [Task] Implement Firebase Cloud Messaging integration
 Fix: Handle null timestamps in user service
-\`\`\`
+```
 
 ❌ Invalid:
-\`\`\`
+```
 [meta-epic] lowercase prefix # Use correct case
 [Meta Epic] space in bracket # No spaces inside brackets
 Task: Use [Task] not Task: # Bracket goes first
-\`\`\`
+```
 
 ---
 
@@ -211,11 +205,9 @@ PR titles mirror issue titles using the bracket format:
 
 | Level     | Format                                    | Example                                    |
 | --------- | ----------------------------------------- | ------------------------------------------ |
-| Meta-Epic | \`[Meta-Epic] <Description> - #<number>\` | \`[Meta-Epic] Authentication System - #1\` |
-| Epic      | \`[Epic] <Description> - #<number>\`      | \`[Epic] User Registration Flow - #2\`     |
-| Sub-Epic  | \`[Sub-Epic] <Description> - #<number>\`  | \`[Sub-Epic] Email Verification - #3\`     |
-| Task      | \`[Task] <Description> - #<number>\`      | \`[Task] Add email validation - #4\`       |
-| Implicit  | \`<Description> - #<number>\`             | \`Fix typo in README - #5\`                |
+| Epic      | `[Epic] <Description> - #<number>`      | `[Epic] User Registration Flow - #2`     |
+| Task      | `[Task] <Description> - #<number>`      | `[Task] Add email validation - #4`       |
+| Implicit  | `<Description> - #<number>`             | `Fix typo in README - #5`                |
 
 ### Rules
 
@@ -254,10 +246,8 @@ level:<hierarchy-level>
 
 | Label               | Use                             |
 | ------------------- | ------------------------------- |
-| \`level:meta-epic\` | Strategic business objectives   |
-| \`level:epic\`      | Shippable features/capabilities |
-| \`level:sub-epic\`  | Decomposed feature areas        |
-| \`level:task\`      | Atomic work items               |
+| `level:epic`      | Shippable features/capabilities |
+| `level:task`      | Atomic work items               |
 
 ### Pattern 2: Category Labels
 
@@ -404,7 +394,7 @@ Where:
 
 ### Creation Context
 
-Worktrees are typically created by commands like \`/start-work\`:
+Worktrees are typically created by commands like `/start`:
 
 \`\`\`bash
 
@@ -426,7 +416,7 @@ git worktree add "../${REPO_NAME}-#${ISSUE_NUM}" "$BRANCH_NAME"
 - **Hierarchy Structure:** See epic-hierarchy.md
 - **Label Definitions:** See labels-and-setup.md
 - **Workflow Details:** See github-workflow-export/03-gh-workflow.md
-- **Start Work Command:** See github-workflow-export/01-start-work.md
+- **Start Work Command:** See `.ai/commands/start.md`
 
 ---
 

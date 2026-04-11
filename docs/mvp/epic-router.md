@@ -1,3 +1,5 @@
+> ⚠️ **DEPRECATED** — Router foundations have been unified into DiriRouter (ADR-055). See [epic-diri-router.md](epic-diri-router.md).
+
 # Epic: Provider Router (@diricode/providers)
 
 > ⚠️ **SUPERSEDED by [epic-diri-router.md](./epic-diri-router.md)**  

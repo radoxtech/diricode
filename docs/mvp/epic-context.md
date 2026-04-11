@@ -1,5 +1,7 @@
 # Epic: Context Management (MVP-1 → MVP-3)
 
+> **Note**: This module is now called **Prompt Composer** (`packages/prompt-composer/`). Epic #631.
+
 > Package: `@diricode/core`  
 > Iteration: **MVP-1 (basic) → MVP-2 (pipeline) → MVP-3 (composer full)**  
 > Issue IDs: **DC-CTX-001..DC-CTX-009**

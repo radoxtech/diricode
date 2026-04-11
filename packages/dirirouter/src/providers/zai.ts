@@ -13,8 +13,17 @@
  */
 
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
+import { classifyError } from "../error-classifier.js";
 import type { ModelCard } from "../contracts/model-card.js";
+import type {
+  GenerateOptions,
+  ModelConfig,
+  ModelDescriptor,
+  ModelQuota,
+  Provider,
+  ProviderAdapter,
+  StreamChunk,
+} from "../types.js";
 
 const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
   quality: { by_complexity_role: {}, by_specialization: {} },
@@ -132,7 +141,7 @@ export class ZaiProvider implements Provider {
 
   /**
    * Default model configuration.
-   * Uses glm-5-turbo for cost-effective, fast responses optimized for coding.
+   * Uses glm-5-turbo for optimal balance of speed and quality for coding tasks.
    */
   readonly defaultModel: ModelConfig = {
     modelId: "glm-5-turbo",
@@ -241,7 +250,10 @@ export class ZaiProvider implements Provider {
 
       return text;
     } catch (error) {
-      throw this.handleError(error, "generate");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
   }
 
@@ -282,46 +294,160 @@ export class ZaiProvider implements Provider {
 
       yield { delta: "", done: true };
     } catch (error) {
-      throw this.handleError(error, "stream");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
   }
+}
 
-  /**
-   * Converts API errors to descriptive Error instances.
-   *
-   * @param error - The error from Z.ai API or SDK
-   * @param context - The operation context ("generate" or "stream")
-   * @returns {Error} Standardized error with descriptive message
-   * @private
-   */
-  private handleError(error: unknown, context: string): Error {
-    if (error instanceof Error) {
-      if (
-        error.message.toLowerCase().includes("api key") ||
-        error.message.toLowerCase().includes("unauthorized") ||
-        error.message.toLowerCase().includes("401")
-      ) {
-        return new Error("Invalid or missing API key. Check your DC_ZAI_API_KEY configuration.");
-      }
+// ---------------------------------------------------------------------------
+// ProviderAdapter — LLM Picker static metadata
+// ---------------------------------------------------------------------------
 
-      if (
-        error.message.toLowerCase().includes("rate limit") ||
-        error.message.toLowerCase().includes("429")
-      ) {
-        return new Error("Rate limit exceeded. Please wait before retrying.");
-      }
+const ZAI_MODELS: ModelDescriptor[] = [
+  {
+    apiModel: "glm-5",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 2,
+  },
+  {
+    apiModel: "glm-5-turbo",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-5.1",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 2,
+  },
+  {
+    apiModel: "glm-5v-turbo",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: true,
+    attachment: true,
+    quotaMultiplier: 2,
+  },
+  {
+    apiModel: "glm-4.7",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.7-flash",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.7-flashx",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.6",
+    contextWindow: 200_000,
+    maxOutput: 131_072,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.6v",
+    contextWindow: 128_000,
+    maxOutput: 32_768,
+    canReason: true,
+    toolCall: true,
+    vision: true,
+    attachment: true,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.5",
+    contextWindow: 131_072,
+    maxOutput: 98_304,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.5-flash",
+    contextWindow: 131_072,
+    maxOutput: 98_304,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.5-air",
+    contextWindow: 131_072,
+    maxOutput: 98_304,
+    canReason: true,
+    toolCall: true,
+    vision: false,
+    attachment: false,
+    quotaMultiplier: 1,
+  },
+  {
+    apiModel: "glm-4.5v",
+    contextWindow: 64_000,
+    maxOutput: 16_384,
+    canReason: true,
+    toolCall: true,
+    vision: true,
+    attachment: true,
+    quotaMultiplier: 1,
+  },
+];
 
-      if (
-        error.message.toLowerCase().includes("model") ||
-        error.message.toLowerCase().includes("invalid")
-      ) {
-        return new Error("Invalid model ID. Check that the model name is correct and available.");
-      }
+export class ZaiProviderAdapter implements ProviderAdapter {
+  readonly providerId = "zai";
 
-      return new Error(`ZaiProvider ${context} failed: ${error.message}`);
-    }
+  listModels(): ModelDescriptor[] {
+    return ZAI_MODELS;
+  }
 
-    return new Error(`ZaiProvider ${context} failed: Unknown error occurred`);
+  getQuota(): ModelQuota[] | null {
+    return null;
   }
 }
 

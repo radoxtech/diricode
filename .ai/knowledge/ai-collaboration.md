@@ -21,7 +21,7 @@ These actions may be performed autonomously by AI agents without human approval:
 | Action                           | Notes                                         |
 | -------------------------------- | --------------------------------------------- |
 | Create branches                  | Feature branches following naming conventions |
-| Create issues/tasks              | Must reference a parent epic or Meta-Epic     |
+| Create issues/tasks              | Must reference a parent epic                  |
 | Create pull requests             | From feature branches only                    |
 | Update issue status              | Moving between workflow states                |
 | Move items on project board      | Within established workflow columns           |
@@ -44,7 +44,7 @@ These actions are **prohibited** for AI agents without exception:
 | Merge PRs to main/develop                  | Human gate is NON-NEGOTIABLE            |
 | Delete remote branches without PR merge    | Risk of data loss                       |
 | Force push to any branch                   | Rewrites history, breaks collaboration  |
-| Create Meta-Epics                          | Requires human strategic approval       |
+| Create Meta-Epics                          | Strategic-level scope — human approval only |
 | Approve PRs                                | Review approval requires human judgment |
 | Modify protected branches directly         | Bypasses safety controls                |
 | Change project settings                    | Affects all contributors                |
@@ -64,7 +64,7 @@ These responsibilities belong exclusively to humans:
 | Approve epic creation proposals         | Scope and strategic alignment decisions            |
 | Merge to main branch                    | Final quality gate — no exceptions                 |
 | Resolve conflicting epic priorities     | Requires understanding of business context         |
-| Make scope decisions at Meta-Epic level | Strategic planning is human territory              |
+| Make scope decisions at epic level | Strategic planning is human territory              |
 | Approve architectural decisions         | Long-term impact requires human judgment           |
 | Resolve merge conflicts manually        | When AI detects conflict and escalates             |
 
@@ -78,15 +78,15 @@ The AI and human collaborate iteratively on epic breakdown using a propose-revie
 
 AI analyzes requirements and proposes epic breakdown:
 
-- Presents sub-epic titles, acceptance criteria, effort estimates
+- Presents task titles, acceptance criteria, effort estimates
 - Flags dependencies, risks, unclear requirements
-- Format: comment on the Meta-Epic issue with breakdown table
+- Format: comment on the epic issue with breakdown table
 
 ### Phase 2: Human Review
 
 Human reviews the AI proposal:
 
-- Approves, rejects, or modifies sub-epic scope
+- Approves, rejects, or modifies task scope
 - Confirms priorities and sequencing
 - Resolves ambiguities flagged by AI
 - Result: written approval comment on issue
@@ -95,17 +95,17 @@ Human reviews the AI proposal:
 
 AI executes approved breakdown:
 
-- Creates sub-epic issues with approved titles and acceptance criteria
-- Links sub-epics to parent Meta-Epic
+- Creates task issues with approved titles and acceptance criteria
+- Links tasks to parent epic
 - Sets initial sprint fields and labels
-- Posts creation summary on Meta-Epic thread
+- Posts creation summary on epic thread
 
-### Phase 4: Sub-Epic Decomposition
+### Phase 4: Task Decomposition
 
-When a sub-epic needs further breakdown:
+When a task needs further breakdown:
 
-1. AI suggests task decomposition, human confirms scope
-2. AI creates task issues under approved sub-epic
+1. AI suggests sub-task decomposition, human confirms scope
+2. AI creates task issues under approved epic
 3. AI starts implementation (one task at a time, per issue)
 4. AI reports progress via issue comments
 
@@ -350,7 +350,7 @@ git branch --show-current        # Should be the feature branch, NOT main
 Is this a GitHub operation?
 ├─ YES: Does it modify main/develop?
 │         ├─ YES: STOP. Human must do this.
-│         └─ NO:  Does it create a Meta-Epic?
+│         └─ NO:  Does it create a new epic?
 │                   ├─ YES: STOP. Human must approve first.
 │                   └─ NO:  Does it require credentials/secrets?
 │                             ├─ YES: STOP. Absolute prohibition.
@@ -365,7 +365,7 @@ Is this a GitHub operation?
 
 - `00-github-ops-agent.md` — GitHub Operations Agent configuration and capabilities
 - `04-worktree-isolation-rules.md` — Worktree safety rules for AI operations
-- `02-finish-work.md` — PR creation and merge workflow
+- `../commands/finish.md` — PR creation and merge workflow
 - `AGENTS.md` — Issue-first development rule and agent boundaries
 
 ---

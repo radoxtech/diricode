@@ -195,7 +195,7 @@ DiriCode uses worktree-per-issue isolation. When executing:
 
 ## Cross-References
 
-- **Creating worktrees** → `commands/start-work.md`
-- **Closing worktrees** → `commands/finish-work.md`
+- **Creating worktrees** → `commands/start.md`
+- **Closing worktrees** → `commands/finish.md`
 - **Epic hierarchy** → `knowledge/epic-hierarchy.md`
 - **Naming conventions** → `knowledge/naming-conventions.md`

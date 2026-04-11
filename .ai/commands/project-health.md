@@ -46,10 +46,8 @@ Do issues have required structural labels?
 
 | Issue Type | Required Labels |
 |------------|-----------------|
-| `level:meta-epic` | `level:meta-epic` |
-| `level:epic` | `level:epic` |
-| `level:sub-epic` | `level:sub-epic` |
-| `level:task` | `level:task` + `component:*` + `area:*` |
+| `level:epic` | `level:epic` + `module:*` |
+| `level:task` | `level:task` + `module:*` + `area:*` |
 
 ### 5. Dependency Hygiene (15 pts)
 
@@ -138,15 +136,11 @@ For blocked `level:task` issues, verify dependency metadata exists.
 The documented hierarchy in `.ai/knowledge/epic-hierarchy.md`:
 
 ```
-Meta-Epic (level:meta-epic)
-└── Epic (level:epic)
-    └── Sub-Epic (level:sub-epic)
-        └── Task (level:task)
+Epic (level:epic)
+└── Task (level:task)
 ```
 
-**Current live state:**
-- Issues #1-17: `level:epic` (17 epics)
-- Issues #18-137: `level:task` (120 tasks)
+Two-level hierarchy established during 2026-04 remediation. 22+ epics track children via child list comments. ~273 open issues total.
 
 Report any drift between documented and live models.
 
@@ -174,4 +168,4 @@ Include sections for: Project coverage, Sprint coverage, Epic hierarchy, Depende
 ---
 
 **Last Updated:** 2026-03-20
-**Version:** 5.0.0 (4-level hierarchy)
+**Version:** 6.0.0 (2-level hierarchy)
