@@ -429,8 +429,6 @@ export function createDispatcher(config: DispatcherConfig): Agent & {
       });
     } else {
       const modelConfig = modelTierResolver.resolve(agent.metadata, requestedTier);
-      selectedProvider = modelConfig.provider;
-      selectedModel = modelConfig.model;
 
       context.emit("dispatcher.model-resolved", {
         agent: selected.agent.name,

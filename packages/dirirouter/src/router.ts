@@ -1,6 +1,7 @@
 import { classifyError, type ClassifiedError, type ProviderErrorKind } from "./error-classifier.js";
 import type { Registry } from "./registry.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "./types.js";
+import type { ModelCard } from "./contracts/model-card.js";
 
 export const MAX_RETRIES = 3;
 export const MAX_RETRIES_AFTER_FALLBACK = 2;
@@ -73,7 +74,7 @@ export class ProviderRouter implements Provider {
     return this.#getCandidateProviders().some(({ provider }) => provider.isAvailable());
   }
 
-  getModelCards(): import("./contracts/model-card.js").ModelCard[] {
+  getModelCards(): ModelCard[] {
     return this.#getCandidateProviders().flatMap(({ provider }) => provider.getModelCards());
   }
 

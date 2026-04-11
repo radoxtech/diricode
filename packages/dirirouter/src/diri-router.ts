@@ -65,6 +65,14 @@ export class DiriRouter {
   }
 
   async pick(request: DecisionRequest, chatId?: string): Promise<DecisionResponse> {
+    const resolvedRequest = await this.resolveDecisionRequest(request, chatId);
+    return this.#resolver.resolve(resolvedRequest);
+  }
+
+  private async resolveDecisionRequest(
+    request: DecisionRequest,
+    chatId?: string,
+  ): Promise<DecisionRequest> {
     const taskDescriptor: TaskDescriptor = {
       id: request.requestId,
       type: request.task.type,
@@ -77,12 +85,11 @@ export class DiriRouter {
         this.#experimentLogger.log(chatId, experimentResult);
       }
       if (experimentResult.kind === "branch") {
-        const variant = this.selectVariant(experimentResult);
-        const modifiedRequest = this.applyVariant(request, variant);
-        return this.#resolver.resolve(modifiedRequest);
+        return this.applyVariant(request, this.selectVariant(experimentResult));
       }
     }
-    return this.#resolver.resolve(request);
+
+    return request;
   }
 
   private selectVariant(_result: {
@@ -99,21 +106,19 @@ export class DiriRouter {
   }
 
   private async resolveSelectedModel(
-    options: ChatOptions,
+    selected: SelectedModelInfo | undefined,
+    request: DecisionRequest | undefined,
     failedModels: readonly string[] = [],
   ): Promise<SelectedModelInfo | undefined> {
-    if (failedModels.length === 0 && options.selected) {
-      return options.selected;
+    if (failedModels.length === 0 && selected) {
+      return selected;
     }
 
-    if (!options.request) {
+    if (!request) {
       return undefined;
     }
 
-    const decision = await this.pick(
-      this.withFailedModels(options.request, failedModels),
-      options.chatId,
-    );
+    const decision = await this.#resolver.resolve(this.withFailedModels(request, failedModels));
     if (decision.status !== "resolved" || !decision.selected) {
       return undefined;
     }
@@ -171,7 +176,10 @@ export class DiriRouter {
   async chat(options: ChatOptions): Promise<ChatResponse> {
     const attemptedSelections = new Set<string>();
     const failedModels: string[] = [];
-    let pickerSelected = await this.resolveSelectedModel(options);
+    const resolvedRequest = options.request
+      ? await this.resolveDecisionRequest(options.request, options.chatId)
+      : undefined;
+    let pickerSelected = await this.resolveSelectedModel(options.selected, resolvedRequest);
 
     while (pickerSelected && this.#registry.has(pickerSelected.provider)) {
       const pickerProvider = this.#registry.get(pickerSelected.provider);
@@ -195,7 +203,11 @@ export class DiriRouter {
       } catch (error) {
         if (this.shouldRepickAfterError(error, pickerProvider, modelConfig, options)) {
           failedModels.push(modelConfig.modelId);
-          const repicked = await this.resolveSelectedModel(options, failedModels);
+          const repicked = await this.resolveSelectedModel(
+            options.selected,
+            resolvedRequest,
+            failedModels,
+          );
           if (
             repicked &&
             !attemptedSelections.has(
@@ -228,7 +240,10 @@ export class DiriRouter {
   async *stream(options: ChatOptions): AsyncIterable<StreamChunk> {
     const attemptedSelections = new Set<string>();
     const failedModels: string[] = [];
-    let selected = await this.resolveSelectedModel(options);
+    const resolvedRequest = options.request
+      ? await this.resolveDecisionRequest(options.request, options.chatId)
+      : undefined;
+    let selected = await this.resolveSelectedModel(options.selected, resolvedRequest);
 
     while (selected && this.#registry.has(selected.provider)) {
       const provider = this.#registry.get(selected.provider);
@@ -258,7 +273,11 @@ export class DiriRouter {
 
         if (this.shouldRepickAfterError(error, provider, modelConfig, options)) {
           failedModels.push(modelConfig.modelId);
-          const repicked = await this.resolveSelectedModel(options, failedModels);
+          const repicked = await this.resolveSelectedModel(
+            options.selected,
+            resolvedRequest,
+            failedModels,
+          );
           if (
             repicked &&
             !attemptedSelections.has(

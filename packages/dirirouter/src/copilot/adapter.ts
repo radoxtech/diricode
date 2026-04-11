@@ -321,22 +321,42 @@ export class CopilotProvider implements Provider {
       // send() fires the request; we consume response via event handlers above
       const sendPromise = session.send({ prompt: options.prompt });
 
-      while (!done) {
-        if (chunks.length > 0) {
-          yield chunks.shift()!;
-        } else {
+      // Process chunks: first consume pending chunks from event handlers,
+      // then wait for more or exit when done
+      const hasMoreChunksOrNotDone = (): boolean => chunks.length > 0 || !done;
+      while (hasMoreChunksOrNotDone()) {
+        // Wait for chunks if none available and not done yet
+        const shouldWait = (): boolean => chunks.length === 0 && !done;
+        while (shouldWait()) {
           await new Promise<void>((resolve) => {
             resolveChunk = resolve;
           });
         }
-      }
 
-      while (chunks.length > 0) {
-        yield chunks.shift()!;
+        // Drain all available chunks
+        while (chunks.length > 0) {
+          const chunk = chunks.shift();
+          if (!chunk) throw new Error("Invariant violation: chunk should not be undefined");
+          yield chunk;
+        }
       }
 
       if (sessionError !== undefined) {
-        throw sessionError;
+        let errorToThrow: Error;
+        if (sessionError instanceof Error) {
+          errorToThrow = sessionError;
+        } else if (typeof sessionError === "string") {
+          errorToThrow = new Error(sessionError);
+        } else if (typeof sessionError === "object" && sessionError !== null) {
+          try {
+            errorToThrow = new Error(JSON.stringify(sessionError));
+          } catch {
+            errorToThrow = new Error("Unknown session error");
+          }
+        } else {
+          errorToThrow = new Error(typeof sessionError);
+        }
+        throw errorToThrow;
       }
 
       yield { delta: "", done: true };

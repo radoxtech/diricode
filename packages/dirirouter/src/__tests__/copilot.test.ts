@@ -82,8 +82,10 @@ describe("CopilotProvider", () => {
       const provider = new CopilotProvider("test-token");
       const models = await provider.listModels();
       expect(models).toHaveLength(2);
-      expect(models[0]!.id).toBe("gpt-4.1");
-      expect(models[1]!.id).toBe("claude-sonnet-4");
+      if (!models[0]) throw new Error("Expected models[0] to exist");
+      if (!models[1]) throw new Error("Expected models[1] to exist");
+      expect(models[0].id).toBe("gpt-4.1");
+      expect(models[1].id).toBe("claude-sonnet-4");
       expect(mockStart).toHaveBeenCalled();
     });
   });

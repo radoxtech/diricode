@@ -94,30 +94,38 @@ export class ModelsCatalog {
     const familyMap = new Map<string, CatalogModel[]>();
     const modelMap = new Map<string, CatalogModel[]>();
 
-    for (const [providerId, provider] of Object.entries(data)) {
-      if (!provider || typeof provider !== "object" || !provider.models) continue;
+    for (const [providerId, providerData] of Object.entries(data)) {
+      const provider = providerData as ModelsDevProvider | undefined;
+
+      if (!provider || typeof provider.models !== "object") {
+        continue;
+      }
 
       providerMap.set(providerId, provider);
 
-      for (const model of Object.values(provider.models)) {
-        if (!model || typeof model !== "object" || !model.id) continue;
+      for (const modelData of Object.values(provider.models)) {
+        const model = modelData as ModelsDevModel | undefined;
+
+        if (!model || typeof model.id !== "string") {
+          continue;
+        }
 
         const entry: CatalogModel = {
           providerId,
-          providerName: provider.name ?? providerId,
+          providerName: provider.name,
           model,
         };
 
-        const familyKey = model.family ?? model.id;
+        const familyKey = model.family;
         const familyList = familyMap.get(familyKey);
-        if (familyList) {
+        if (familyList !== undefined) {
           familyList.push(entry);
         } else {
           familyMap.set(familyKey, [entry]);
         }
 
         const modelList = modelMap.get(model.id);
-        if (modelList) {
+        if (modelList !== undefined) {
           modelList.push(entry);
         } else {
           modelMap.set(model.id, [entry]);
@@ -140,7 +148,9 @@ export class ModelsCatalog {
     const signals = [controller.signal];
     if (options?.signal) signals.push(options.signal);
 
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
 
     try {
       const response = await fetch(API_URL, {
@@ -150,7 +160,7 @@ export class ModelsCatalog {
 
       if (!response.ok) {
         throw new ModelsDevFetchError(
-          `models.dev returned HTTP ${response.status}: ${response.statusText}`,
+          `models.dev returned HTTP ${String(response.status)}: ${response.statusText}`,
         );
       }
 
@@ -159,13 +169,13 @@ export class ModelsCatalog {
     } catch (error) {
       if (error instanceof ModelsDevFetchError) throw error;
       if (error instanceof DOMException && error.name === "AbortError") {
-        throw new ModelsDevFetchError(`models.dev request timed out after ${timeoutMs}ms`);
+        throw new ModelsDevFetchError(`models.dev request timed out after ${String(timeoutMs)}ms`);
       }
       throw new ModelsDevFetchError(
         `Failed to fetch models.dev: ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {
-      clearTimeout(timeout);
+      clearTimeout(timeoutId);
     }
   }
 
@@ -208,7 +218,7 @@ export class ModelsCatalog {
 
     return Object.values(provider.models).map((m) => ({
       providerId,
-      providerName: provider.name ?? providerId,
+      providerName: provider.name,
       model: m,
     }));
   }
@@ -224,7 +234,7 @@ export class ModelsCatalog {
 
         results.push({
           providerId,
-          providerName: provider.name ?? providerId,
+          providerName: provider.name,
           model,
         });
       }

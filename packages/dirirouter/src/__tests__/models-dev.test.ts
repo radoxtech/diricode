@@ -83,11 +83,12 @@ describe("ModelsCatalog", () => {
     });
 
     it("skips malformed provider entries", () => {
+      if (!FIXTURE["test-provider"]) throw new Error("Expected FIXTURE test-provider to exist");
       const data = {
-        good: FIXTURE["test-provider"]!,
+        good: FIXTURE["test-provider"],
         bad: null as unknown as (typeof FIXTURE)[string],
       };
-      const catalog = ModelsCatalog.fromJSON(data);
+      const catalog = ModelsCatalog.fromJSON(data as Record<string, (typeof FIXTURE)[string]>);
       expect(catalog.providerIds()).toEqual(["good"]);
     });
   });
@@ -98,7 +99,8 @@ describe("ModelsCatalog", () => {
     it("returns a provider by ID", () => {
       const p = catalog.provider("test-provider");
       expect(p).toBeDefined();
-      expect(p!.name).toBe("Test Provider");
+      if (!p) throw new Error("Expected provider to be defined");
+      expect(p.name).toBe("Test Provider");
     });
 
     it("returns undefined for unknown provider", () => {
@@ -118,8 +120,9 @@ describe("ModelsCatalog", () => {
     it("looks up a specific model in a specific provider", () => {
       const entry = catalog.model("test-provider", "model-a");
       expect(entry).toBeDefined();
-      expect(entry!.model.name).toBe("Model A");
-      expect(entry!.providerId).toBe("test-provider");
+      if (!entry) throw new Error("Expected entry to be defined");
+      expect(entry.model.name).toBe("Model A");
+      expect(entry.providerId).toBe("test-provider");
     });
 
     it("returns undefined for wrong provider/model combo", () => {
@@ -162,7 +165,8 @@ describe("ModelsCatalog", () => {
 
       const betas = catalog.byFamily("beta");
       expect(betas).toHaveLength(1);
-      expect(betas[0]!.model.id).toBe("model-c");
+      if (!betas[0]) throw new Error("Expected betas[0] to exist");
+      expect(betas[0].model.id).toBe("model-c");
     });
 
     it("returns empty for unknown family", () => {
@@ -182,13 +186,15 @@ describe("ModelsCatalog", () => {
     it("filters by toolCall", () => {
       const result = catalog.query({ toolCall: false });
       expect(result).toHaveLength(1);
-      expect(result[0]!.model.id).toBe("model-c");
+      if (!result[0]) throw new Error("Expected result[0] to exist");
+      expect(result[0].model.id).toBe("model-c");
     });
 
     it("filters by vision (attachment)", () => {
       const result = catalog.query({ vision: true });
       expect(result).toHaveLength(1);
-      expect(result[0]!.model.id).toBe("model-b");
+      if (!result[0]) throw new Error("Expected result[0] to exist");
+      expect(result[0].model.id).toBe("model-b");
     });
 
     it("filters by minContext", () => {
@@ -200,7 +206,8 @@ describe("ModelsCatalog", () => {
     it("filters by maxContext", () => {
       const result = catalog.query({ maxContext: 50_000 });
       expect(result).toHaveLength(1);
-      expect(result[0]!.model.id).toBe("model-b");
+      if (!result[0]) throw new Error("Expected result[0] to exist");
+      expect(result[0].model.id).toBe("model-b");
     });
 
     it("filters by family", () => {
@@ -211,13 +218,15 @@ describe("ModelsCatalog", () => {
     it("filters by providerId", () => {
       const result = catalog.query({ providerId: "other-provider" });
       expect(result).toHaveLength(1);
-      expect(result[0]!.providerId).toBe("other-provider");
+      if (!result[0]) throw new Error("Expected result[0] to exist");
+      expect(result[0].providerId).toBe("other-provider");
     });
 
     it("filters by openWeights", () => {
       const result = catalog.query({ openWeights: true });
       expect(result).toHaveLength(1);
-      expect(result[0]!.model.id).toBe("model-c");
+      if (!result[0]) throw new Error("Expected result[0] to exist");
+      expect(result[0].model.id).toBe("model-c");
     });
 
     it("combines multiple filters", () => {
