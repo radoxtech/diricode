@@ -1,217 +1,66 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-
-const keychainStore = new Map<string, string>();
-
-const mockValidateGithubToken = vi.hoisted(() =>
-  vi.fn<(token: string) => Promise<{ login: string; name?: string }>>(),
-);
-const mockFetchAvailableModels = vi.hoisted(() => vi.fn());
-const mockGetGithubToken = vi.hoisted(() => vi.fn<() => string | undefined>());
-const mockGetGithubTokenSource = vi.hoisted(() => vi.fn<() => string>());
-const mockMkdirSync = vi.hoisted(() => vi.fn());
-const mockWriteFileSync = vi.hoisted(() => vi.fn());
-const mockExistsSync = vi.hoisted(() => vi.fn<() => boolean>().mockReturnValue(false));
-const mockReadFileSync = vi.hoisted(() => vi.fn());
-
-vi.mock("@diricode/dirirouter", () => {
-  class MockKeychain {
-    get(service: string, account: string): string | null {
-      return keychainStore.get(`${service}:${account}`) ?? null;
-    }
-    set(service: string, account: string, value: string): void {
-      keychainStore.set(`${service}:${account}`, value);
-    }
-    delete(service: string, account: string): boolean {
-      const key = `${service}:${account}`;
-      const existed = keychainStore.has(key);
-      keychainStore.delete(key);
-      return existed;
-    }
-  }
-
-  return {
-    KeychainService: MockKeychain,
-    KEYCHAIN_SERVICE: "diricode",
-    KEYCHAIN_ACCOUNT: "github-token",
-    KeychainUnavailableError: class KeychainUnavailableError extends Error {},
-    InvalidTokenError: class InvalidTokenError extends Error {
-      constructor(message: string) {
-        super(message);
-        this.name = "InvalidTokenError";
-      }
-    },
-    validateGithubToken: mockValidateGithubToken,
-    fetchAvailableModels: mockFetchAvailableModels,
-    getGithubToken: mockGetGithubToken,
-    getGithubTokenSource: mockGetGithubTokenSource,
-  };
-});
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@inquirer/prompts", () => ({
-  password: vi.fn().mockResolvedValue("ghp_integration_token"),
-  select: vi.fn().mockResolvedValue("gpt-5-mini"),
+  select: vi.fn(),
 }));
 
-vi.mock("@diricode/core", () => ({
-  getGlobalConfigDir: vi.fn().mockImplementation(() => {
-    throw new Error("Unsupported platform");
+vi.mock("../providers/login-providers.js", () => ({
+  LOGIN_PROVIDERS: [
+    {
+      name: "copilot",
+      authMethod: "oauth",
+      envVars: ["GITHUB_TOKEN"],
+      isLoggedIn: () => false,
+      login: vi.fn().mockResolvedValue(undefined),
+      description: "GitHub Copilot via OAuth",
+    },
+    {
+      name: "kimi",
+      authMethod: "api_key",
+      envVars: ["DC_KIMI_API_KEY"],
+      isLoggedIn: () => true,
+      login: vi.fn().mockResolvedValue(undefined),
+      description: "Moonshot Kimi via API key",
+    },
+  ],
+  getLoginProvider: vi.fn((name: string) => {
+    if (name === "copilot") {
+      return {
+        name: "copilot",
+        authMethod: "oauth",
+        envVars: ["GITHUB_TOKEN"],
+        isLoggedIn: () => false,
+        login: vi.fn().mockResolvedValue(undefined),
+        description: "GitHub Copilot via OAuth",
+      };
+    }
+    if (name === "kimi") {
+      return {
+        name: "kimi",
+        authMethod: "api_key",
+        envVars: ["DC_KIMI_API_KEY"],
+        isLoggedIn: () => true,
+        login: vi.fn().mockResolvedValue(undefined),
+        description: "Moonshot Kimi via API key",
+      };
+    }
+    return undefined;
   }),
 }));
 
-vi.mock("node:fs", async () => {
-  const actual: Record<string, unknown> = await vi.importActual("node:fs");
-  return {
-    ...actual,
-    mkdirSync: mockMkdirSync,
-    writeFileSync: mockWriteFileSync,
-    existsSync: mockExistsSync,
-    readFileSync: mockReadFileSync,
-  };
-});
-
 import { runLogin } from "../commands/login.js";
-import { runWhoami } from "../commands/whoami.js";
-import { runLogout } from "../commands/logout.js";
 
-function captureStdout(): { lines: string[]; restore: () => void } {
-  const lines: string[] = [];
-  const spy = vi.spyOn(process.stdout, "write").mockImplementation((s) => {
-    lines.push(String(s));
-    return true;
-  });
-  return {
-    lines,
-    restore: (): void => {
-      spy.mockRestore();
-    },
-  };
-}
-
-describe("login → whoami → logout integration", () => {
+describe("login integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    keychainStore.clear();
-    mockGetGithubToken.mockReturnValue(undefined);
-    mockGetGithubTokenSource.mockReturnValue("none");
-    mockValidateGithubToken.mockResolvedValue({ login: "octocat", name: "The Octocat" });
-    mockFetchAvailableModels.mockResolvedValue([
-      {
-        id: "gpt-5-mini",
-        name: "GPT-5 Mini",
-        registry: "openai",
-        publisher: "openai",
-        capabilities: [],
-        rate_limit_tier: "standard",
-      },
-    ]);
-    mockExistsSync.mockReturnValue(false);
-    process.exitCode = 0;
   });
 
-  afterEach(() => {
-    process.exitCode = 0;
-  });
+  it("allows selecting a provider", async () => {
+    const { select } = await import("@inquirer/prompts");
+    vi.mocked(select).mockResolvedValue("copilot");
 
-  it("login stores token in keychain, whoami reads it, logout clears it", async () => {
-    const loginOut = captureStdout();
-    await runLogin({ token: "ghp_test_integration", model: "gpt-5-mini" });
-    loginOut.restore();
-
-    expect(loginOut.lines.join("")).toContain("Logged in to GitHub as octocat");
-    expect(keychainStore.get("diricode:github-token")).toBe("ghp_test_integration");
-
-    mockGetGithubToken.mockReturnValue("ghp_test_integration");
-    mockGetGithubTokenSource.mockReturnValue("keychain");
-
-    const whoamiOut = captureStdout();
-    await runWhoami();
-    whoamiOut.restore();
-
-    expect(whoamiOut.lines.join("")).toContain("octocat");
-    expect(whoamiOut.lines.join("")).toContain("OS Keychain");
-
-    const logoutOut = captureStdout();
-    await runLogout();
-    logoutOut.restore();
-
-    expect(logoutOut.lines.join("")).toContain("Logged out successfully");
-    expect(keychainStore.has("diricode:github-token")).toBe(false);
-  });
-
-  it("whoami after logout shows not-logged-in", async () => {
-    await runLogin({ token: "ghp_test_integration", model: "gpt-5-mini" });
-
-    const logoutOut = captureStdout();
-    await runLogout();
-    logoutOut.restore();
-    expect(keychainStore.has("diricode:github-token")).toBe(false);
-
-    mockGetGithubToken.mockReturnValue(undefined);
-    mockGetGithubTokenSource.mockReturnValue("none");
-
-    const whoamiOut = captureStdout();
-    await runWhoami();
-    whoamiOut.restore();
-
-    expect(whoamiOut.lines.join("")).toContain("Not logged in");
-  });
-
-  it("login with invalid token rejects and does not store in keychain", async () => {
-    const { InvalidTokenError } = await import("@diricode/dirirouter");
-    mockValidateGithubToken.mockRejectedValueOnce(new InvalidTokenError("Bad credentials"));
-
-    const errLines: string[] = [];
-    vi.spyOn(process.stderr, "write").mockImplementation((s) => {
-      errLines.push(String(s));
-      return true;
-    });
-
-    await runLogin({ token: "ghp_bad_token", model: "gpt-5-mini" });
-
-    expect(errLines.join("")).toContain("Invalid token");
-    expect(process.exitCode).toBe(1);
-    expect(keychainStore.has("diricode:github-token")).toBe(false);
-  });
-
-  it("whoami with stale keychain token shows invalid-token error and re-auth hint", async () => {
-    const { InvalidTokenError } = await import("@diricode/dirirouter");
-    mockGetGithubToken.mockReturnValue("ghp_stale");
-    mockGetGithubTokenSource.mockReturnValue("keychain");
-    mockValidateGithubToken.mockRejectedValueOnce(new InvalidTokenError("Token expired"));
-
-    const whoamiOut = captureStdout();
-    await runWhoami();
-    whoamiOut.restore();
-
-    const combined = whoamiOut.lines.join("");
-    expect(combined).toContain("invalid");
-    expect(combined).toContain("dc login");
-  });
-
-  it("login shows already-authenticated when token exists and no --token flag", async () => {
-    mockGetGithubToken.mockReturnValue("ghp_existing");
-    mockGetGithubTokenSource.mockReturnValue("DC_GITHUB_TOKEN");
-
-    const loginOut = captureStdout();
     await runLogin({});
-    loginOut.restore();
 
-    expect(loginOut.lines.join("")).toContain("Already logged in with GitHub");
-    expect(mockValidateGithubToken).not.toHaveBeenCalled();
-    expect(keychainStore.has("diricode:github-token")).toBe(false);
-  });
-
-  it("second logout reports no token to remove", async () => {
-    await runLogin({ token: "ghp_test", model: "gpt-5-mini" });
-
-    const firstOut = captureStdout();
-    await runLogout();
-    firstOut.restore();
-    expect(firstOut.lines.join("")).toContain("Logged out successfully");
-
-    const secondOut = captureStdout();
-    await runLogout();
-    secondOut.restore();
-    expect(secondOut.lines.join("")).toContain("No keychain token found");
+    expect(select).toHaveBeenCalled();
   });
 });

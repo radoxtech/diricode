@@ -1,5 +1,6 @@
 import type { DecisionRequest, DecisionResponse } from "@diricode/dirirouter";
 import { CascadeModelResolver } from "@diricode/dirirouter";
+import { classifyError } from "./error-classifier.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "./types.js";
 import { ProviderRouter } from "./router.js";
 import type { Registry } from "./registry.js";
@@ -15,6 +16,7 @@ export interface ExperimentLogger {
 
 export interface ChatOptions {
   readonly prompt: string;
+  readonly request?: DecisionRequest;
   readonly model?: ModelConfig;
   readonly selected?: SelectedModelInfo;
   readonly signal?: AbortSignal;
@@ -63,6 +65,14 @@ export class DiriRouter {
   }
 
   async pick(request: DecisionRequest, chatId?: string): Promise<DecisionResponse> {
+    const resolvedRequest = await this.resolveDecisionRequest(request, chatId);
+    return this.#resolver.resolve(resolvedRequest);
+  }
+
+  private async resolveDecisionRequest(
+    request: DecisionRequest,
+    chatId?: string,
+  ): Promise<DecisionRequest> {
     const taskDescriptor: TaskDescriptor = {
       id: request.requestId,
       type: request.task.type,
@@ -75,12 +85,11 @@ export class DiriRouter {
         this.#experimentLogger.log(chatId, experimentResult);
       }
       if (experimentResult.kind === "branch") {
-        const variant = this.selectVariant(experimentResult);
-        const modifiedRequest = this.applyVariant(request, variant);
-        return this.#resolver.resolve(modifiedRequest);
+        return this.applyVariant(request, this.selectVariant(experimentResult));
       }
     }
-    return this.#resolver.resolve(request);
+
+    return request;
   }
 
   private selectVariant(_result: {
@@ -96,34 +105,129 @@ export class DiriRouter {
     return request;
   }
 
-  async chat(options: ChatOptions): Promise<ChatResponse> {
-    const pickerSelected = options.selected;
-    const modelConfig = options.model ?? this.getModelConfig(pickerSelected);
+  private async resolveSelectedModel(
+    selected: SelectedModelInfo | undefined,
+    request: DecisionRequest | undefined,
+    failedModels: readonly string[] = [],
+  ): Promise<SelectedModelInfo | undefined> {
+    if (failedModels.length === 0 && selected) {
+      return selected;
+    }
 
-    if (pickerSelected && this.#registry.has(pickerSelected.provider)) {
+    if (!request) {
+      return undefined;
+    }
+
+    const decision = await this.#resolver.resolve(this.withFailedModels(request, failedModels));
+    if (decision.status !== "resolved" || !decision.selected) {
+      return undefined;
+    }
+
+    return {
+      provider: decision.selected.provider,
+      model: decision.selected.model,
+    };
+  }
+
+  private withFailedModels(
+    request: DecisionRequest,
+    failedModels: readonly string[],
+  ): DecisionRequest {
+    if (failedModels.length === 0) {
+      return request;
+    }
+
+    return {
+      ...request,
+      failedModels: [...new Set([...(request.failedModels ?? []), ...failedModels])],
+    };
+  }
+
+  private createGenerateOptions(options: ChatOptions, model: ModelConfig): GenerateOptions {
+    return {
+      prompt: options.prompt,
+      model,
+      signal: options.signal,
+    };
+  }
+
+  private shouldRepickAfterError(
+    error: unknown,
+    provider: Provider,
+    model: ModelConfig,
+    options: ChatOptions,
+  ): boolean {
+    if (options.request === undefined || options.model !== undefined) {
+      return false;
+    }
+
+    const explicitRetryable = getRetryableFlag(error);
+    if (explicitRetryable !== undefined) {
+      return explicitRetryable;
+    }
+
+    return classifyError(error, { provider: provider.name, model: model.modelId }).retryable;
+  }
+
+  private getSelectionKey(provider: string, model: string): string {
+    return `${provider}:${model}`;
+  }
+
+  async chat(options: ChatOptions): Promise<ChatResponse> {
+    const attemptedSelections = new Set<string>();
+    const failedModels: string[] = [];
+    const resolvedRequest = options.request
+      ? await this.resolveDecisionRequest(options.request, options.chatId)
+      : undefined;
+    let pickerSelected = await this.resolveSelectedModel(options.selected, resolvedRequest);
+
+    while (pickerSelected && this.#registry.has(pickerSelected.provider)) {
+      const pickerProvider = this.#registry.get(pickerSelected.provider);
+      const modelConfig = options.model ?? this.getModelConfig(pickerSelected);
+      const selectionKey = this.getSelectionKey(pickerSelected.provider, modelConfig.modelId);
+
+      if (attemptedSelections.has(selectionKey)) {
+        break;
+      }
+
+      attemptedSelections.add(selectionKey);
+
       try {
-        const pickerProvider = this.#registry.get(pickerSelected.provider);
-        const generateOptions: GenerateOptions = {
-          prompt: options.prompt,
-          model: modelConfig,
-          signal: options.signal,
-        };
+        const generateOptions = this.createGenerateOptions(options, modelConfig);
         const text = await pickerProvider.generate(generateOptions);
         return {
           text,
           provider: pickerProvider.name,
           model: modelConfig.modelId,
         };
-      } catch {
-        // primary failed, fall through to registry fallback
+      } catch (error) {
+        if (this.shouldRepickAfterError(error, pickerProvider, modelConfig, options)) {
+          failedModels.push(modelConfig.modelId);
+          const repicked = await this.resolveSelectedModel(
+            options.selected,
+            resolvedRequest,
+            failedModels,
+          );
+          if (
+            repicked &&
+            !attemptedSelections.has(
+              this.getSelectionKey(repicked.provider, options.model?.modelId ?? repicked.model),
+            )
+          ) {
+            pickerSelected = repicked;
+            continue;
+          }
+        }
+
+        break;
       }
     }
 
-    const fallbackText = await this.#router.generate({
-      prompt: options.prompt,
-      model: modelConfig,
-      signal: options.signal,
-    });
+    const modelConfig = options.model ?? this.getModelConfig(pickerSelected);
+
+    const fallbackText = await this.#router.generate(
+      this.createGenerateOptions(options, modelConfig),
+    );
     // In actual production implementation we would pass `failedModels` to #resolver.resolve
     // when requesting a new fallback candidate. For now DiriRouter uses ProviderRouter as a fallback.
     return {
@@ -134,16 +238,63 @@ export class DiriRouter {
   }
 
   async *stream(options: ChatOptions): AsyncIterable<StreamChunk> {
-    const provider = this.getProvider(options.selected);
-    const modelConfig = options.model ?? this.getModelConfig(options.selected);
+    const attemptedSelections = new Set<string>();
+    const failedModels: string[] = [];
+    const resolvedRequest = options.request
+      ? await this.resolveDecisionRequest(options.request, options.chatId)
+      : undefined;
+    let selected = await this.resolveSelectedModel(options.selected, resolvedRequest);
 
-    const generateOptions: GenerateOptions = {
-      prompt: options.prompt,
-      model: modelConfig,
-      signal: options.signal,
-    };
+    while (selected && this.#registry.has(selected.provider)) {
+      const provider = this.#registry.get(selected.provider);
+      const modelConfig = options.model ?? this.getModelConfig(selected);
+      const selectionKey = this.getSelectionKey(selected.provider, modelConfig.modelId);
 
-    yield* provider.stream(generateOptions);
+      if (attemptedSelections.has(selectionKey)) {
+        break;
+      }
+
+      attemptedSelections.add(selectionKey);
+
+      let emittedChunk = false;
+
+      try {
+        for await (const chunk of provider.stream(
+          this.createGenerateOptions(options, modelConfig),
+        )) {
+          emittedChunk = true;
+          yield chunk;
+        }
+        return;
+      } catch (error) {
+        if (emittedChunk) {
+          throw error;
+        }
+
+        if (this.shouldRepickAfterError(error, provider, modelConfig, options)) {
+          failedModels.push(modelConfig.modelId);
+          const repicked = await this.resolveSelectedModel(
+            options.selected,
+            resolvedRequest,
+            failedModels,
+          );
+          if (
+            repicked &&
+            !attemptedSelections.has(
+              this.getSelectionKey(repicked.provider, options.model?.modelId ?? repicked.model),
+            )
+          ) {
+            selected = repicked;
+            continue;
+          }
+        }
+
+        break;
+      }
+    }
+
+    const modelConfig = options.model ?? this.getModelConfig(selected);
+    yield* this.#router.stream(this.createGenerateOptions(options, modelConfig));
   }
 
   getProvider(selected?: SelectedModelInfo): Provider {
@@ -173,4 +324,13 @@ function throwNoRegistry(): never {
   throw new Error(
     "DiriRouter requires a Registry. Provide one via options.registry or ensure ProviderRouter is constructed with a valid Registry.",
   );
+}
+
+function getRetryableFlag(error: unknown): boolean | undefined {
+  if (error === null || error === undefined || typeof error !== "object") {
+    return undefined;
+  }
+
+  const retryable = (error as { retryable?: unknown }).retryable;
+  return typeof retryable === "boolean" ? retryable : undefined;
 }

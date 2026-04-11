@@ -22,7 +22,7 @@ export type ProviderErrorKind =
   | "other";
 
 /** Structured error output from the classifier. */
-export interface ClassifiedError {
+export class ClassifiedError extends Error {
   /** One of the 7 normalized error kinds. */
   readonly kind: ProviderErrorKind;
   /** Provider name (e.g. "copilot", "gemini"). */
@@ -35,6 +35,24 @@ export interface ClassifiedError {
   readonly retryAfterMs: number;
   /** Original raw error for observability/debugging. */
   readonly raw: unknown;
+
+  constructor(params: {
+    kind: ProviderErrorKind;
+    provider: string;
+    model: string;
+    retryable: boolean;
+    retryAfterMs: number;
+    raw: unknown;
+  }) {
+    super(extractErrorMessage(params.raw));
+    this.name = "ClassifiedError";
+    this.kind = params.kind;
+    this.provider = params.provider;
+    this.model = params.model;
+    this.retryable = params.retryable;
+    this.retryAfterMs = params.retryAfterMs;
+    this.raw = params.raw;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -56,19 +74,34 @@ export function classifyError(
   error: unknown,
   context: { provider: string; model?: string },
 ): ClassifiedError {
+  if (isClassifiedError(error)) {
+    return error;
+  }
+
+  if (isClassifiedErrorLike(error)) {
+    return new ClassifiedError({
+      kind: error.kind,
+      provider: error.provider,
+      model: error.model,
+      retryable: error.retryable,
+      retryAfterMs: error.retryAfterMs,
+      raw: error.raw,
+    });
+  }
+
   const status = extractStatusCode(error);
   const msgLower = getErrorMessageLower(error);
 
   const kind = classifyKind(status, msgLower);
 
-  return {
+  return new ClassifiedError({
     kind,
     provider: context.provider,
     model: context.model ?? "",
-    retryable: deriveRetryable(kind),
+    retryable: deriveRetryable(kind, error),
     retryAfterMs: parseRetryAfter(error),
     raw: error,
-  };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -176,7 +209,11 @@ export function parseRetryAfter(error: unknown): number {
  * @param kind - The normalized error kind.
  * @returns `true` if the request may be retried.
  */
-export function deriveRetryable(kind: ProviderErrorKind): boolean {
+export function deriveRetryable(kind: ProviderErrorKind, error?: unknown): boolean {
+  if (kind === "other" && isEmptyResponseError(error)) {
+    return false;
+  }
+
   switch (kind) {
     case "rate_limited":
     case "overloaded":
@@ -212,21 +249,21 @@ function classifyKind(status: number | undefined, msgLower: string): ProviderErr
   // 2. context_overflow — HTTP 413, or context/token patterns
   if (
     status === 413 ||
-    msgLower.includes('context') ||
-    /\btoken/.test(msgLower) ||
+    msgLower.includes("context") ||
+    /token.*(limit|exceed|overflow|length)/.test(msgLower) ||
     /maximum.*context/.test(msgLower) ||
     /too.*large/.test(msgLower) ||
     /exceeds.*token/.test(msgLower) ||
-    msgLower.includes('context_length_exceeded') ||
+    msgLower.includes("context_length_exceeded") ||
     /max.*token/.test(msgLower)
   ) {
     return "context_overflow";
   }
 
-  // 3. overloaded — HTTP 503/529, or overload/capacity message patterns
+  // 3. overloaded — HTTP 5xx/529, or overload/capacity message patterns
   if (
-    status === 503 ||
     status === 529 ||
+    (status !== undefined && status >= 500 && status < 600) ||
     msgLower.includes("overloaded") ||
     msgLower.includes("service unavailable") ||
     msgLower.includes("capacity")
@@ -234,11 +271,8 @@ function classifyKind(status: number | undefined, msgLower: string): ProviderErr
     return "overloaded";
   }
 
-  // 4/5. 403 is ambiguous — quota_exhausted vs auth_error; disambiguate by message
+  // 4/5. 403 is treated as auth failure for provider routing.
   if (status === 403) {
-    if (isQuotaMessage(msgLower)) {
-      return "quota_exhausted";
-    }
     return "auth_error";
   }
 
@@ -282,11 +316,44 @@ function isQuotaMessage(msgLower: string): boolean {
 function isAuthMessage(msgLower: string): boolean {
   return (
     msgLower.includes("api key") ||
+    msgLower.includes("github token") ||
+    msgLower.includes("no token available") ||
     msgLower.includes("unauthorized") ||
     msgLower.includes("forbidden") ||
     msgLower.includes("authentication") ||
     /invalid.*key/.test(msgLower) ||
     /access.*denied/.test(msgLower)
+  );
+}
+
+function isEmptyResponseError(error: unknown): boolean {
+  return getErrorMessageLower(error).includes("empty response");
+}
+
+function isClassifiedError(error: unknown): error is ClassifiedError {
+  return error instanceof ClassifiedError;
+}
+
+function isClassifiedErrorLike(error: unknown): error is {
+  kind: ProviderErrorKind;
+  provider: string;
+  model: string;
+  retryable: boolean;
+  retryAfterMs: number;
+  raw: unknown;
+} {
+  if (error === null || error === undefined || typeof error !== "object") {
+    return false;
+  }
+
+  const obj = error as Record<string, unknown>;
+  return (
+    typeof obj.kind === "string" &&
+    typeof obj.provider === "string" &&
+    typeof obj.model === "string" &&
+    typeof obj.retryable === "boolean" &&
+    typeof obj.retryAfterMs === "number" &&
+    "raw" in obj
   );
 }
 
@@ -365,12 +432,22 @@ function extractHeaders(error: unknown): Record<string, string> | Headers | unde
   }
   const obj = error as Record<string, unknown>;
   const h = obj.headers;
-  if (h === undefined || h === null) {
-    return undefined;
-  }
-  if (typeof h === "object") {
+  if (h !== undefined && h !== null && typeof h === "object") {
     return h as Record<string, string> | Headers;
   }
+
+  if (typeof obj.response === "object" && obj.response !== null) {
+    const response = obj.response as Record<string, unknown>;
+    const responseHeaders = response.headers;
+    if (
+      responseHeaders !== undefined &&
+      responseHeaders !== null &&
+      typeof responseHeaders === "object"
+    ) {
+      return responseHeaders as Record<string, string> | Headers;
+    }
+  }
+
   return undefined;
 }
 

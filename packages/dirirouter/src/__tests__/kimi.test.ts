@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { KimiProvider } from "../providers/kimi.js";
+import { ClassifiedError, KimiProvider } from "../index.js";
 import * as auth from "../kimi/auth.js";
 
 vi.mock("../kimi/auth.js", async () => {
@@ -64,7 +64,7 @@ describe("KimiProvider", () => {
     it("has correct default model configuration", () => {
       const provider = new KimiProvider();
       expect(provider.defaultModel).toEqual({
-        modelId: "moonshot-v1-8k",
+        modelId: "kimi-k2.5",
         temperature: 0.3,
         maxTokens: 4096,
       });
@@ -109,9 +109,14 @@ describe("KimiProvider", () => {
       vi.mocked(auth.getKimiApiKey).mockReturnValue(undefined);
 
       const provider = new KimiProvider();
-      await expect(provider.generate({ prompt: "Hello" })).rejects.toThrow(
-        "KimiProvider requires an API key",
-      );
+      const request = provider.generate({ prompt: "Hello" });
+      await expect(request).rejects.toMatchObject({
+        kind: "auth_error",
+        provider: "kimi",
+        model: "kimi-k2.5",
+        retryable: false,
+      });
+      await expect(request).rejects.toBeInstanceOf(ClassifiedError);
     });
   });
 
@@ -128,9 +133,12 @@ describe("KimiProvider", () => {
 
       const provider = new KimiProvider();
       const stream = provider.stream({ prompt: "Hello" });
-      await expect(stream[Symbol.asyncIterator]().next()).rejects.toThrow(
-        "KimiProvider requires an API key",
-      );
+      await expect(stream[Symbol.asyncIterator]().next()).rejects.toMatchObject({
+        kind: "auth_error",
+        provider: "kimi",
+        model: "kimi-k2.5",
+        retryable: false,
+      });
     });
   });
 });

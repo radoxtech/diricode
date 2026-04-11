@@ -1,5 +1,115 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { classifyError } from "../error-classifier.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
+import type { ModelCard } from "../contracts/model-card.js";
+
+const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
+  quality: { by_complexity_role: {}, by_specialization: {} },
+  speed: { tokens_per_second_avg: 0, feedback_count: 0 },
+};
+
+const KIMI_MODEL_CARDS: ModelCard[] = [
+  {
+    model: "kimi-k2.5",
+    family: "kimi",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 262_144,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher", "architect"],
+      complexities: ["moderate", "complex", "expert"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "kimi-k2-0905-preview",
+    family: "kimi",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 262_144,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "kimi-k2-thinking",
+    family: "kimi-thinking",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 262_144,
+    },
+    reasoning_levels: ["low", "medium", "high", "xhigh"],
+    known_for: {
+      roles: ["architect", "reviewer", "coder"],
+      complexities: ["complex", "expert"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "kimi-k2-thinking-turbo",
+    family: "kimi-thinking",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 262_144,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "kimi-k2-turbo-preview",
+    family: "kimi",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 262_144,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+];
 import {
   getKimiApiKey,
   hasKimiAuth,
@@ -7,7 +117,7 @@ import {
   validateKimiApiKey,
 } from "../kimi/auth.js";
 
-const DEFAULT_KIMI_BASE_URL = "https://api.moonshot.cn/v1";
+const DEFAULT_KIMI_BASE_URL = "https://api.moonshot.ai/v1";
 
 export interface KimiProviderConfig {
   apiKey?: string;
@@ -18,7 +128,7 @@ export class KimiProvider implements Provider {
   readonly name = "kimi";
 
   readonly defaultModel: ModelConfig = {
-    modelId: "moonshot-v1-8k",
+    modelId: "kimi-k2.5",
     temperature: 0.3,
     maxTokens: 4096,
   };
@@ -80,16 +190,20 @@ export class KimiProvider implements Provider {
     });
   }
 
-  async generate(options: GenerateOptions): Promise<string> {
-    this.#ensureInitialized();
+  getModelCards(): ModelCard[] {
+    return KIMI_MODEL_CARDS;
+  }
 
+  async generate(options: GenerateOptions): Promise<string> {
     const modelId = options.model?.modelId ?? this.defaultModel.modelId;
 
-    if (this.#provider === null) {
-      throw new Error("KimiProvider not initialized");
-    }
-
     try {
+      this.#ensureInitialized();
+
+      if (this.#provider === null) {
+        throw new Error("KimiProvider not initialized");
+      }
+
       const { generateText } = await import("ai");
       const { text } = await generateText({
         model: this.#provider.chatModel(modelId),
@@ -105,20 +219,23 @@ export class KimiProvider implements Provider {
 
       return text;
     } catch (error) {
-      throw this.#handleError(error, "generate");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
   }
 
   async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-    this.#ensureInitialized();
-
     const modelId = options.model?.modelId ?? this.defaultModel.modelId;
 
-    if (this.#provider === null) {
-      throw new Error("KimiProvider not initialized");
-    }
-
     try {
+      this.#ensureInitialized();
+
+      if (this.#provider === null) {
+        throw new Error("KimiProvider not initialized");
+      }
+
       const { streamText } = await import("ai");
       const result = streamText({
         model: this.#provider.chatModel(modelId),
@@ -136,34 +253,11 @@ export class KimiProvider implements Provider {
 
       yield { delta: "", done: true };
     } catch (error) {
-      throw this.#handleError(error, "stream");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
-  }
-
-  #handleError(error: unknown, context: string): Error {
-    if (error instanceof Error) {
-      if (
-        error.message.toLowerCase().includes("api key") ||
-        error.message.toLowerCase().includes("unauthorized") ||
-        error.message.toLowerCase().includes("401")
-      ) {
-        return new Error(
-          "Invalid or missing Kimi API key. " +
-            "Check your DC_KIMI_API_KEY environment variable or use KimiProvider.login(apiKey).",
-        );
-      }
-
-      if (
-        error.message.toLowerCase().includes("rate limit") ||
-        error.message.toLowerCase().includes("429")
-      ) {
-        return new Error("Rate limit exceeded. Please wait before retrying.");
-      }
-
-      return new Error(`KimiProvider ${context} failed: ${error.message}`);
-    }
-
-    return new Error(`KimiProvider ${context} failed: Unknown error occurred`);
   }
 }
 

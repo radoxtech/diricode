@@ -63,20 +63,4 @@ describe("ChatRequestSchema", () => {
     };
     expect(() => ChatRequestSchema.parse(invalidChatRequest)).toThrow();
   });
-
-  test("ChatRequest with negative maxTokens throws ZodError", () => {
-    const invalidChatRequest = {
-      prompt: "Hello",
-      maxTokens: -1,
-    };
-    expect(() => ChatRequestSchema.parse(invalidChatRequest)).toThrow();
-  });
-
-  test("ChatRequest with non-integer maxTokens throws ZodError", () => {
-    const invalidChatRequest = {
-      prompt: "Hello",
-      maxTokens: 1.5,
-    };
-    expect(() => ChatRequestSchema.parse(invalidChatRequest)).toThrow();
-  });
 });

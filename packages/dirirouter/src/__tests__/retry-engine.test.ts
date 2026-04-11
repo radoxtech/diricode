@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ClassifiedError, RetryConfig, RetryResult } from "../index.js";
+import { ClassifiedError } from "../index.js";
+import type { RetryConfig, RetryResult } from "../index.js";
 import {
   BASE_DELAY_MS,
   MAX_RETRIES,
@@ -13,15 +14,17 @@ import {
 // ---------------------------------------------------------------------------
 
 function makeClassifiedError(overrides: Partial<ClassifiedError> = {}): ClassifiedError {
-  return {
-    kind: "other",
-    provider: "test",
-    model: "",
-    retryable: true,
-    retryAfterMs: 0,
-    raw: new Error("test error"),
-    ...overrides,
-  };
+  return Object.assign(
+    new ClassifiedError({
+      kind: "other",
+      provider: "test",
+      model: "",
+      retryable: true,
+      retryAfterMs: 0,
+      raw: new Error("test error"),
+    }),
+    overrides,
+  );
 }
 
 function makeClassifier(retryable: boolean, retryAfterMs = 0): (error: unknown) => ClassifiedError {

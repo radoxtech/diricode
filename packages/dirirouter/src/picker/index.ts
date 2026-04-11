@@ -7,6 +7,7 @@ export type {
   SpeedBenchmark,
   Benchmarks,
   PricingTier,
+  ReasoningLevel,
 } from "./model-card.js";
 
 export {
@@ -18,6 +19,7 @@ export {
   SpeedBenchmarkSchema,
   BenchmarksSchema,
   PricingTierSchema,
+  ReasoningLevelSchema,
 } from "./model-card.js";
 
 export type { RateLimit, PickerSubscription } from "./subscription.js";
@@ -35,5 +37,3 @@ export {
   SubscriptionAlreadyRegisteredError,
   SubscriptionRegistry,
 } from "./subscription-registry.js";
-
-export { getSeedModelCards, getSeedSubscriptions, seedAllRegistries } from "./seed-models.js";

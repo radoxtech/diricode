@@ -14,7 +14,8 @@ export { ProviderPriorities } from "./types.js";
 
 export { ProviderAlreadyRegisteredError, ProviderNotFoundError, Registry } from "./registry.js";
 
-export type { ClassifiedError, ProviderErrorKind } from "./error-classifier.js";
+export { ClassifiedError } from "./error-classifier.js";
+export type { ProviderErrorKind } from "./error-classifier.js";
 
 export { DiriRouter } from "./diri-router.js";
 export type {
@@ -103,8 +104,7 @@ export {
 
 export { CopilotProvider, createCopilotProvider } from "./copilot/index.js";
 export {
-  DEFAULT_COPILOT_MODEL,
-  getGithubModelInfo,
+  COPILOT_CLIENT_ID,
   hasGithubAuth,
   getGithubToken,
   getGithubTokenFromKeychain,
@@ -116,8 +116,6 @@ export {
   KEYCHAIN_ACCOUNT,
   validateGithubToken,
   InvalidTokenError,
-  fetchAvailableModels,
-  clearModelsCache,
   initiateGithubDeviceFlow,
   pollGithubDeviceToken,
   exchangeGithubDeviceCode,
@@ -125,7 +123,8 @@ export {
 } from "./copilot/index.js";
 export type {
   GithubUser,
-  CatalogModel,
+  CopilotModelInfo,
+  CopilotLoginResult,
   GithubTokenSource,
   GithubDeviceCodeResponse,
   GithubOAuthToken,
@@ -161,10 +160,22 @@ export {
   SubscriptionNotFoundError,
   SubscriptionAlreadyRegisteredError,
   SubscriptionRegistry,
-  getSeedModelCards,
-  getSeedSubscriptions,
-  seedAllRegistries,
 } from "./picker/index.js";
+
+// Utils — models.dev catalog client
+export type {
+  ModelsDevCost,
+  ModelsDevLimit,
+  ModelsDevModalities,
+  ModelsDevInterleaved,
+  ModelsDevModel,
+  ModelsDevProvider,
+  ModelsDevApiResponse,
+  ModelsDevQuery,
+  CatalogModel,
+} from "./utils/index.js";
+
+export { ModelsCatalog, ModelsDevFetchError } from "./utils/index.js";
 
 // LLM Picker — moved from @diricode/core/llm-picker
 export {
@@ -181,6 +192,9 @@ export {
   Tier3TinyLLMRouter,
   CascadeModelResolver,
   resolverCandidateFromContracts,
+  ContextTierSchema,
+  contextWindowToTier,
+  contextTierMinTokens,
 } from "./llm-picker/index.js";
 
 export type {
@@ -194,6 +208,7 @@ export type {
   ModelTier,
   ModelAttribute,
   FallbackType,
+  ContextTier,
   ModelDimensions,
   CascadeTier,
   TierHistoryEntry,

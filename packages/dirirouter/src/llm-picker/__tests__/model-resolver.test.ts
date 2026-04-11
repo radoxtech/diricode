@@ -36,7 +36,7 @@ import type {
   ModelTier,
 } from "../types.js";
 const validRequest = (): DecisionRequest => ({
-  chatId: "test-chat-session",
+  chatId: "660e8400-e29b-41d4-a716-446655440099",
   requestId: "550e8400-e29b-41d4-a716-446655440000",
   agent: { id: "coder-agent", role: "coding", seniority: "senior", specializations: [] },
   task: { type: "implement-feature", description: "Add dark mode" },
@@ -51,6 +51,7 @@ const hardRuleCandidates: ResolverCandidate[] = [
   {
     provider: "test-provider",
     model: "budget-model",
+    family: "budget",
     pricingTier: "budget",
     contextWindow: 32000,
     trusted: true,
@@ -62,6 +63,7 @@ const hardRuleCandidates: ResolverCandidate[] = [
   {
     provider: "test-provider",
     model: "standard-model",
+    family: "standard",
     pricingTier: "standard",
     contextWindow: 128000,
     trusted: true,
@@ -73,6 +75,7 @@ const hardRuleCandidates: ResolverCandidate[] = [
   {
     provider: "test-provider",
     model: "premium-model",
+    family: "premium",
     pricingTier: "premium",
     contextWindow: 256000,
     trusted: true,
@@ -287,26 +290,24 @@ describe("TaskInfoSchema", () => {
 describe("DecisionConstraintsSchema", () => {
   it("parses fully populated constraints", () => {
     const constraints = DecisionConstraintsSchema.parse({
-      maxCostUsd: 0.05,
-      maxLatencyMs: 3000,
-      minContextWindow: 128000,
+      contextTier: "extended",
       requiredCapabilities: ["function-calling"],
       excludedProviders: ["cohere"],
       excludedModels: ["gpt-3.5-turbo"],
       preferredProviders: ["anthropic"],
       preferredModels: ["claude-3-5-sonnet"],
     });
-    expect(constraints.maxCostUsd).toBe(0.05);
+    expect(constraints.contextTier).toBe("extended");
     expect(constraints.requiredCapabilities).toEqual(["function-calling"]);
   });
 
   it("parses empty constraints (all optional)", () => {
     const constraints = DecisionConstraintsSchema.parse({});
-    expect(constraints.maxCostUsd).toBeUndefined();
+    expect(constraints.contextTier).toBeUndefined();
   });
 
-  it("rejects negative cost", () => {
-    expect(() => DecisionConstraintsSchema.parse({ maxCostUsd: -1 })).toThrow();
+  it("rejects invalid context tier", () => {
+    expect(() => DecisionConstraintsSchema.parse({ contextTier: "huge" })).toThrow();
   });
 });
 
@@ -322,10 +323,10 @@ describe("DecisionRequestSchema", () => {
   it("parses request with all optional fields", () => {
     const full = DecisionRequestSchema.parse({
       ...validRequest(),
-      constraints: { maxCostUsd: 0.1 },
+      constraints: { contextTier: "extended" },
       policyOverride: "cost-optimized",
     });
-    expect(full.constraints?.maxCostUsd).toBe(0.1);
+    expect(full.constraints?.contextTier).toBe("extended");
     expect(full.policyOverride).toBe("cost-optimized");
   });
 
@@ -687,7 +688,7 @@ describe("CascadeModelResolver", () => {
     // Use architect agent + complex task to allow premium tier (min: standard, max: premium)
     // This isolates context window scoring from pricing tier filtering.
     const baseRequest = (tier: ModelTier): DecisionRequest => ({
-      chatId: "test-chat-session",
+      chatId: "770e8400-e29b-41d4-a716-446655440000",
       requestId: "550e8400-e29b-41d4-a716-446655440000",
       agent: { id: "test-agent", role: "architect", seniority: "senior", specializations: [] },
       task: { type: "complex-architecture" },
@@ -706,6 +707,7 @@ describe("CascadeModelResolver", () => {
           {
             provider: "tiny",
             model: "tiny-model",
+            family: "tiny",
             pricingTier: "standard",
             contextWindow: 32_000,
             trusted: false,
@@ -716,6 +718,7 @@ describe("CascadeModelResolver", () => {
           {
             provider: "ok",
             model: "ok-model",
+            family: "ok",
             pricingTier: "standard",
             contextWindow: 200_000,
             trusted: false,
@@ -739,6 +742,7 @@ describe("CascadeModelResolver", () => {
           {
             provider: "mid",
             model: "mid-model",
+            family: "mid",
             pricingTier: "premium",
             contextWindow: 200_000,
             trusted: true,
@@ -749,6 +753,7 @@ describe("CascadeModelResolver", () => {
           {
             provider: "huge",
             model: "huge-model",
+            family: "huge",
             pricingTier: "premium",
             contextWindow: 1_000_000,
             trusted: true,
@@ -774,6 +779,7 @@ describe("CascadeModelResolver", () => {
           {
             provider: "mid",
             model: "mid-model",
+            family: "mid",
             pricingTier: "standard",
             contextWindow: 200_000,
             trusted: true,
@@ -796,6 +802,7 @@ describe("CascadeModelResolver", () => {
           {
             provider: "unknown",
             model: "no-context-field-model",
+            family: "unknown",
             pricingTier: "standard",
             trusted: true,
             estimatedCostUsd: 0.5,
@@ -816,6 +823,7 @@ describe("CascadeModelResolver", () => {
           {
             provider: "openai",
             model: "gpt-4o",
+            family: "gpt",
             pricingTier: "standard",
           },
         ],

@@ -13,6 +13,8 @@
  */
 
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { classifyError } from "../error-classifier.js";
+import type { ModelCard } from "../contracts/model-card.js";
 import type {
   GenerateOptions,
   ModelConfig,
@@ -22,6 +24,94 @@ import type {
   ProviderAdapter,
   StreamChunk,
 } from "../types.js";
+
+const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
+  quality: { by_complexity_role: {}, by_specialization: {} },
+  speed: { tokens_per_second_avg: 0, feedback_count: 0 },
+};
+
+const ZAI_MODEL_CARDS: ModelCard[] = [
+  {
+    model: "glm-5",
+    family: "glm",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 128_000,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "glm-5-plus",
+    family: "glm-plus",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: true,
+      max_context: 128_000,
+    },
+    reasoning_levels: ["low", "medium", "high"],
+    known_for: {
+      roles: ["architect", "reviewer", "coder"],
+      complexities: ["moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "standard",
+    learned_from: 0,
+  },
+  {
+    model: "glm-5-turbo",
+    family: "glm-turbo",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 128_000,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+  {
+    model: "glm-5-turbo-plus",
+    family: "glm-turbo-plus",
+    capabilities: {
+      tool_calling: true,
+      streaming: true,
+      json_mode: true,
+      vision: false,
+      max_context: 128_000,
+    },
+    reasoning_levels: [],
+    known_for: {
+      roles: ["coder", "researcher"],
+      complexities: ["simple", "moderate"],
+      specializations: [],
+    },
+    benchmarks: EMPTY_BENCHMARKS,
+    pricing_tier: "budget",
+    learned_from: 0,
+  },
+];
 
 /** Default base URL for Z.ai GLM Coding Plan API */
 const DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/coding/paas/v4";
@@ -122,6 +212,10 @@ export class ZaiProvider implements Provider {
     return this.#apiKey.length > 0;
   }
 
+  getModelCards(): ModelCard[] {
+    return ZAI_MODEL_CARDS;
+  }
+
   /**
    * Generates a non-streaming completion and returns full text.
    *
@@ -156,7 +250,10 @@ export class ZaiProvider implements Provider {
 
       return text;
     } catch (error) {
-      throw this.handleError(error, "generate");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
   }
 
@@ -197,46 +294,11 @@ export class ZaiProvider implements Provider {
 
       yield { delta: "", done: true };
     } catch (error) {
-      throw this.handleError(error, "stream");
+      throw classifyError(error, {
+        provider: this.name,
+        model: modelId,
+      });
     }
-  }
-
-  /**
-   * Converts API errors to descriptive Error instances.
-   *
-   * @param error - The error from Z.ai API or SDK
-   * @param context - The operation context ("generate" or "stream")
-   * @returns {Error} Standardized error with descriptive message
-   * @private
-   */
-  private handleError(error: unknown, context: string): Error {
-    if (error instanceof Error) {
-      if (
-        error.message.toLowerCase().includes("api key") ||
-        error.message.toLowerCase().includes("unauthorized") ||
-        error.message.toLowerCase().includes("401")
-      ) {
-        return new Error("Invalid or missing API key. Check your DC_ZAI_API_KEY configuration.");
-      }
-
-      if (
-        error.message.toLowerCase().includes("rate limit") ||
-        error.message.toLowerCase().includes("429")
-      ) {
-        return new Error("Rate limit exceeded. Please wait before retrying.");
-      }
-
-      if (
-        error.message.toLowerCase().includes("model") ||
-        error.message.toLowerCase().includes("invalid")
-      ) {
-        return new Error("Invalid model ID. Check that the model name is correct and available.");
-      }
-
-      return new Error(`ZaiProvider ${context} failed: ${error.message}`);
-    }
-
-    return new Error(`ZaiProvider ${context} failed: Unknown error occurred`);
   }
 }
 

@@ -121,7 +121,7 @@ describe("MinimaxProviderAdapter", () => {
       const m27 = models.find((m) => m.apiModel === "MiniMax-M2.7");
       expect(m27).toBeDefined();
       expect(m27?.contextWindow).toBe(204_800);
-      expect(m27?.maxOutput).toBe(16_384);
+      expect(m27?.maxOutput).toBe(131_072);
       expect(m27?.canReason).toBe(true);
     });
 

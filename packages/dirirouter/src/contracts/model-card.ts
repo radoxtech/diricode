@@ -3,6 +3,9 @@ import { z } from "zod";
 export const PricingTierSchema = z.enum(["budget", "standard", "premium"]);
 export type PricingTier = z.infer<typeof PricingTierSchema>;
 
+export const ReasoningLevelSchema = z.enum(["low", "medium", "high", "xhigh"]);
+export type ReasoningLevel = z.infer<typeof ReasoningLevelSchema>;
+
 export const ModelCapabilitiesSchema = z.object({
   tool_calling: z.boolean(),
   streaming: z.boolean(),
@@ -47,6 +50,7 @@ export const ModelCardSchema = z.object({
   model: z.string().min(1),
   family: z.string().min(1),
   capabilities: ModelCapabilitiesSchema,
+  reasoning_levels: z.array(ReasoningLevelSchema).default([]),
   known_for: KnownForSchema,
   benchmarks: BenchmarksSchema,
   pricing_tier: PricingTierSchema,
