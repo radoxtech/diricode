@@ -304,14 +304,6 @@ export class GeminiProvider implements Provider {
     }
   }
 
-  /**
-   * Converts API errors to descriptive Error instances.
-   *
-   * @param error - The error from the Google GenAI SDK
-   * @param context - The operation context ("generate" or "stream")
-   * @returns {Error} Standardized error with descriptive message
-   * @private
-   */
   getModelCards(): ModelCard[] {
     return GEMINI_MODEL_CARDS;
   }

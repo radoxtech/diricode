@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ClassifiedError, classifyError } from "../index.js";
 import { GeminiProvider } from "../providers/gemini.js";
 
 describe("GeminiProvider", () => {
@@ -54,6 +55,51 @@ describe("GeminiProvider", () => {
     it("returns true when client is initialized", () => {
       const provider = new GeminiProvider(mockApiKey);
       expect(provider.isAvailable()).toBe(true);
+    });
+  });
+
+  describe("error classification contract", () => {
+    it("classifies empty response errors as non-retryable ClassifiedError", () => {
+      const err = new Error("Gemini API returned empty response");
+      const classified = classifyError(err, { provider: "gemini", model: "gemini-2.5-flash" });
+
+      expect(classified).toBeInstanceOf(ClassifiedError);
+      expect(classified.kind).toBe("other");
+      expect(classified.retryable).toBe(false);
+      expect(classified.provider).toBe("gemini");
+      expect(classified.model).toBe("gemini-2.5-flash");
+    });
+
+    it("classifies rate limit errors with retryAfterMs", () => {
+      const err = Object.assign(new Error("Too many requests"), {
+        status: 429,
+        headers: { "retry-after": "5" },
+      });
+      const classified = classifyError(err, { provider: "gemini", model: "gemini-2.5-pro" });
+
+      expect(classified).toBeInstanceOf(ClassifiedError);
+      expect(classified.kind).toBe("rate_limited");
+      expect(classified.retryable).toBe(true);
+      expect(classified.retryAfterMs).toBe(5_000);
+      expect(classified.provider).toBe("gemini");
+    });
+
+    it("classifies auth errors as non-retryable", () => {
+      const err = Object.assign(new Error("API key expired"), { status: 401 });
+      const classified = classifyError(err, { provider: "gemini", model: "gemini-2.5-flash" });
+
+      expect(classified).toBeInstanceOf(ClassifiedError);
+      expect(classified.kind).toBe("auth_error");
+      expect(classified.retryable).toBe(false);
+    });
+
+    it("classifies server errors as retryable overloaded", () => {
+      const err = Object.assign(new Error("Internal Server Error"), { status: 500 });
+      const classified = classifyError(err, { provider: "gemini", model: "gemini-2.5-flash" });
+
+      expect(classified).toBeInstanceOf(ClassifiedError);
+      expect(classified.kind).toBe("overloaded");
+      expect(classified.retryable).toBe(true);
     });
   });
 

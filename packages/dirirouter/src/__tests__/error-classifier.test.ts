@@ -383,3 +383,73 @@ describe("edge cases", () => {
     expect(result).toHaveProperty("raw");
   });
 });
+
+describe("provider-specific empty response classification", () => {
+  const providers = ["kimi", "gemini", "zai", "minimax", "copilot"] as const;
+
+  for (const provider of providers) {
+    it(`${provider}: empty response → kind "other", retryable false`, () => {
+      const result = classifyError(new Error(`${provider} API returned empty response`), {
+        provider,
+        model: "test-model",
+      });
+
+      expect(result.kind).toBe("other");
+      expect(result.retryable).toBe(false);
+      expect(result.provider).toBe(provider);
+      expect(result.raw).toBeInstanceOf(Error);
+    });
+  }
+});
+
+describe("provider-specific rate limit with retry-after extraction", () => {
+  const providers = ["kimi", "gemini", "zai", "minimax", "copilot"] as const;
+
+  for (const provider of providers) {
+    it(`${provider}: 429 with Retry-After header extracts retryAfterMs`, () => {
+      const err = {
+        status: 429,
+        message: "Rate limit exceeded",
+        headers: { "retry-after": "12" },
+      };
+      const result = classifyError(err, { provider, model: "test-model" });
+
+      expect(result.kind).toBe("rate_limited");
+      expect(result.retryable).toBe(true);
+      expect(result.retryAfterMs).toBe(12_000);
+    });
+  }
+});
+
+describe("provider-specific auth error classification", () => {
+  const providers = ["kimi", "gemini", "zai", "minimax", "copilot"] as const;
+
+  for (const provider of providers) {
+    it(`${provider}: 401 → auth_error, non-retryable`, () => {
+      const result = classifyError(
+        { status: 401, message: "Invalid API key" },
+        { provider, model: "test-model" },
+      );
+
+      expect(result.kind).toBe("auth_error");
+      expect(result.retryable).toBe(false);
+      expect(result.retryAfterMs).toBe(0);
+    });
+  }
+});
+
+describe("provider-specific model not-found classification", () => {
+  const providers = ["kimi", "gemini", "zai", "minimax", "copilot"] as const;
+
+  for (const provider of providers) {
+    it(`${provider}: 404 → not_found, non-retryable`, () => {
+      const result = classifyError(
+        { status: 404, message: "Model not found" },
+        { provider, model: "nonexistent-model" },
+      );
+
+      expect(result.kind).toBe("not_found");
+      expect(result.retryable).toBe(false);
+    });
+  }
+});
