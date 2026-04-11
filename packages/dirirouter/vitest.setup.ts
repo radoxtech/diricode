@@ -20,3 +20,20 @@ vi.mock("@napi-rs/keyring", () => ({
     return creds;
   }),
 }));
+
+const mockListModels = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+const mockStart = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockStop = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+
+vi.mock("@github/copilot-sdk", () => {
+  class MockCopilotClient {
+    listModels = mockListModels;
+    start = mockStart;
+    stop = mockStop;
+    createSession = vi.fn();
+  }
+  return {
+    CopilotClient: MockCopilotClient,
+    approveAll: vi.fn(),
+  };
+});
