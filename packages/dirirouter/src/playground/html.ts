@@ -95,13 +95,14 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       font-family: var(--font-mono);
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 0;
+      overflow-y: auto;
     }
 
-    /* Tabs */
-    .tabs {
+    /* Tab Bar */
+    .tab-bar {
       display: flex;
-      gap: 2rem;
+      gap: 0;
       border-bottom: 1px solid var(--border);
       margin-bottom: 1.5rem;
     }
@@ -110,12 +111,12 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       background: transparent;
       color: #64748b;
       border: none;
-      padding: 0.75rem 0;
+      padding: 0.75rem 1.5rem;
       font-family: var(--font-sys);
-      font-size: 1rem;
+      font-size: 0.85rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       cursor: pointer;
       border-bottom: 2px solid transparent;
       transition: all 0.2s;
@@ -280,19 +281,8 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       background: #00d2de;
       border-color: #00d2de;
     }
-    
-    .badges { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .badge {
-      padding: 0.3rem 0.6rem;
-      border-radius: 4px;
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      border: 1px solid var(--border);
-      background: #151821;
-    }
-    .badge.available { border-color: var(--success); color: var(--success); }
-    .badge.unavailable { border-color: var(--error); color: var(--error); }
 
+    /* Error box */
     .error-box {
       background: rgba(255, 42, 95, 0.1);
       border: 1px solid var(--error);
@@ -303,53 +293,156 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       font-family: var(--font-mono);
       font-size: 0.85rem;
     }
-    
-    .results-box {
+
+    /* Results / Output */
+    .output-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .output-box {
       background: #151821;
       border: 1px solid var(--border);
-      padding: 1rem;
       border-radius: 4px;
+      padding: 1rem;
       overflow-y: auto;
       flex: 1;
       white-space: pre-wrap;
       font-family: var(--font-mono);
       font-size: 0.85rem;
+      min-height: 0;
     }
 
-    /* Decision Trace */
+    .output-placeholder {
+      opacity: 0.4;
+      font-style: italic;
+    }
+
+    /* Decision Visualization */
+    .decision-viz {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: none;
+    }
+    
+    .decision-viz.visible {
+      display: block;
+    }
+    
+    .decision-viz-title {
+      font-family: var(--font-sys);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    
+    .trace-pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    
     .trace-step {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.6rem;
       font-family: var(--font-mono);
-      font-size: 0.85rem;
-      margin-bottom: 0.6rem;
-      color: #94a3b8;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    
+    .trace-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--fg);
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    
+    .trace-num.final {
+      background: var(--success);
+      color: #000;
+    }
+    
+    .trace-text {
+      flex: 1;
     }
     
     .trace-arrow {
       color: var(--accent);
-      font-weight: bold;
+      font-size: 0.9rem;
     }
     
-    .trace-highlight {
-      color: var(--fg);
-      background: var(--accent-dim);
-      padding: 0.15rem 0.4rem;
-      border-radius: 3px;
-      border: 1px solid rgba(0,242,254,0.3);
+    .trace-count {
+      color: var(--accent);
+      font-weight: 700;
     }
     
-    .trace-final {
+    .trace-model {
       color: var(--success);
       font-weight: 700;
-      background: rgba(57, 255, 20, 0.1);
-      padding: 0.15rem 0.4rem;
-      border-radius: 3px;
-      border: 1px solid rgba(57, 255, 20, 0.3);
     }
 
-    /* Model Toggles UI */
+    /* Provider Status in Config Tab */
+    .provider-status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .provider-status-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.8rem;
+      background: #151821;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    
+    .provider-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .provider-dot.available {
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+    }
+    
+    .provider-dot.unavailable {
+      background: var(--error);
+    }
+    
+    .provider-name {
+      font-family: var(--font-sys);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--fg);
+      flex: 1;
+    }
+    
+    .provider-env {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: #475569;
+    }
+
+    /* Model Toggles in Config Tab */
     .model-provider-group {
       margin-bottom: 1.5rem;
       background: #151821;
@@ -431,6 +524,10 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
 
     .toggle-switch input:checked + .toggle-track::before { transform: translateX(16px); }
     .toggle-switch input:disabled + .toggle-track { opacity: 0.4; cursor: not-allowed; }
+    
+    /* Tab content visibility */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
   </style>
 </head>
 <body x-data="playground()">
@@ -440,188 +537,216 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   </header>
 
   <main>
-    <!-- LEFT PANEL: FORM -->
+    <!-- LEFT PANEL: TABBED INTERFACE -->
     <div class="panel panel-left">
-      <form id="req-form" @submit.prevent hx-ext="json-enc">
-        
-        <div class="section-title">Task & Agent</div>
-        
-        <div class="form-group">
-          <label>Prompt</label>
-          <textarea name="prompt" required placeholder="Enter prompt..."></textarea>
-        </div>
+      
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab-btn" :class="activeTab === 'picker' ? 'active' : ''" @click="activeTab = 'picker'">
+          Picker Form
+        </button>
+        <button class="tab-btn" :class="activeTab === 'config' ? 'active' : ''" @click="activeTab = 'config'">
+          Subscription Config
+        </button>
+      </div>
 
-        <div class="form-row">
-          <div class="form-col">
-            <label>Agent Role</label>
-            <select name="agent.role">
-              <option value="coder">coder</option>
-              <option value="architect">architect</option>
-              <option value="researcher">researcher</option>
-              <option value="reviewer">reviewer</option>
-            </select>
-          </div>
-          <div class="form-col">
-            <label>Agent Seniority</label>
-            <select name="agent.seniority">
-              <option value="junior">junior</option>
-              <option value="mid" selected>mid</option>
-              <option value="senior">senior</option>
-              <option value="lead">lead</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-col">
-            <label>Task Type</label>
-            <select name="task.type">
-              <option value="code-generation">code-generation</option>
-              <option value="code-review">code-review</option>
-              <option value="debugging">debugging</option>
-              <option value="research">research</option>
-            </select>
-          </div>
-          <div class="form-col">
-            <label>Agent Specializations (comma separated)</label>
-            <input type="text" name="agent.specializations" placeholder="e.g. react, nodejs">
-          </div>
-        </div>
-
-        <div class="section-title">Model Dimensions</div>
-
-        <div class="form-row">
-          <div class="form-col">
-            <label>Tier</label>
-            <select name="modelDimensions.tier">
-              <option value="heavy">heavy</option>
-              <option value="medium" selected>medium</option>
-              <option value="low">low</option>
-            </select>
-          </div>
-          <div class="form-col">
-            <label>Fallback Type</label>
-            <select name="modelDimensions.fallbackType">
-              <option value="none">none</option>
-              ${fallbackTypes.map((f) => '<option value="' + f + '">' + f + "</option>").join("")}
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Model Attributes</label>
-          <div class="checkbox-grid">
-            ${modelAttributes.map((attr) => '<label class="checkbox-label"><input type="checkbox" name="modelDimensions.modelAttributes[]" value="' + attr + '"> ' + attr + "</label>").join("")}
-          </div>
-        </div>
-
-        <div class="section-title">Constraints</div>
-
-        <div class="form-row">
-          <div class="form-col">
-            <label>Context Tier</label>
-            <select name="constraints.contextTier">
-              <option value="">any</option>
-              <option value="standard">standard (≤200k)</option>
-              <option value="extended">extended (200k–800k)</option>
-              <option value="massive">massive (800k+)</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Preferred Providers <span style="font-weight:400;color:#94a3b8">(available only)</span></label>
-          <div class="scrollable-menu" id="pref-providers-grid">
-            <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Excluded Providers <span style="font-weight:400;color:#94a3b8">(available only)</span></label>
-          <div class="scrollable-menu" id="excl-providers-grid">
-            <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Preferred Models <span style="font-weight:400;color:#94a3b8">(by family)</span></label>
-          <div class="scrollable-menu" id="pref-models-grid">
-            <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Excluded Models <span style="font-weight:400;color:#94a3b8">(by family)</span></label>
-          <div class="scrollable-menu" id="excl-models-grid">
-            <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
-          </div>
-        </div>
-
-        <div class="actions">
-          <!-- Pick Only uses custom Alpine logic -->
-          <button type="button" 
-                  @click="pickOnly"
-                  x-show="!loading">
-            Pick Only
-          </button>
+      <!-- TAB: PICKER FORM -->
+      <div class="tab-content" :class="activeTab === 'picker' ? 'active' : ''">
+        <form id="req-form" @submit.prevent hx-ext="json-enc">
           
-          <!-- Pick + Chat uses custom Alpine logic to trigger SSE connection via HTMX -->
-          <button type="button" class="primary"
-                  @click="startChat"
-                  x-show="!loading">
-            Pick + Chat
-          </button>
+          <div class="section-title">Task & Agent</div>
           
-          <span x-show="loading" style="color: var(--accent);">Processing...</span>
+          <div class="form-group">
+            <label>Prompt</label>
+            <textarea name="prompt" required placeholder="Enter prompt..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label>Agent Role</label>
+              <select name="agent.role">
+                <option value="coder">coder</option>
+                <option value="architect">architect</option>
+                <option value="researcher">researcher</option>
+                <option value="reviewer">reviewer</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label>Agent Seniority</label>
+              <select name="agent.seniority">
+                <option value="junior">junior</option>
+                <option value="mid" selected>mid</option>
+                <option value="senior">senior</option>
+                <option value="lead">lead</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label>Task Type</label>
+              <select name="task.type">
+                <option value="code-generation">code-generation</option>
+                <option value="code-review">code-review</option>
+                <option value="debugging">debugging</option>
+                <option value="research">research</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label>Agent Specializations (comma separated)</label>
+              <input type="text" name="agent.specializations" placeholder="e.g. react, nodejs">
+            </div>
+          </div>
+
+          <div class="section-title">Model Dimensions</div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label>Tier</label>
+              <select name="modelDimensions.tier">
+                <option value="heavy">heavy</option>
+                <option value="medium" selected>medium</option>
+                <option value="low">low</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label>Fallback Type</label>
+              <select name="modelDimensions.fallbackType">
+                <option value="none">none</option>
+                ${fallbackTypes.map((f) => '<option value="' + f + '">' + f + "</option>").join("")}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Model Attributes</label>
+            <div class="checkbox-grid">
+              ${modelAttributes.map((attr) => '<label class="checkbox-label"><input type="checkbox" name="modelDimensions.modelAttributes[]" value="' + attr + '"> ' + attr + "</label>").join("")}
+            </div>
+          </div>
+
+          <div class="section-title">Constraints</div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label>Context Tier</label>
+              <select name="constraints.contextTier">
+                <option value="">any</option>
+                <option value="standard">standard (≤200k)</option>
+                <option value="extended">extended (200k–800k)</option>
+                <option value="massive">massive (800k+)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Preferred Providers <span style="font-weight:400;color:#94a3b8">(available only)</span></label>
+            <div class="scrollable-menu" id="pref-providers-grid">
+              <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Excluded Providers <span style="font-weight:400;color:#94a3b8">(available only)</span></label>
+            <div class="scrollable-menu" id="excl-providers-grid">
+              <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Preferred Models <span style="font-weight:400;color:#94a3b8">(by family)</span></label>
+            <div class="scrollable-menu" id="pref-models-grid">
+              <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Excluded Models <span style="font-weight:400;color:#94a3b8">(by family)</span></label>
+            <div class="scrollable-menu" id="excl-models-grid">
+              <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="button" @click="pickOnly" x-show="!loading">Pick Only</button>
+            <button type="button" class="primary" @click="startChat" x-show="!loading">Pick + Chat</button>
+            <span x-show="loading" style="color: var(--accent);">Processing...</span>
+          </div>
+        </form>
+      </div>
+
+      <!-- TAB: SUBSCRIPTION CONFIG -->
+      <div class="tab-content" :class="activeTab === 'config' ? 'active' : ''">
+        
+        <div class="section-title">Provider Status</div>
+        <div class="provider-status-list" id="provider-status-list">
+          <span style="color:#94a3b8;font-size:0.85rem;">Loading...</span>
         </div>
-      </form>
+
+        <div class="section-title">
+          <span>Models</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.78rem;color:#94a3b8;">
+            <span x-text="enabledModelsCount"></span> of <span x-text="totalModelsCount"></span> enabled
+          </span>
+        </div>
+        
+        <div class="model-list-section">
+          <template x-if="Object.keys(modelsByProvider).length === 0">
+            <span style="color:#94a3b8;font-size:0.85rem;">Loading models...</span>
+          </template>
+          
+          <template x-for="[provider, models] in Object.entries(modelsByProvider)" :key="provider">
+            <div class="model-provider-group">
+              <div class="model-provider-name" x-text="provider"></div>
+              <template x-for="model in models" :key="model.id">
+                <div class="model-row" :class="model.enabled ? '' : 'disabled'">
+                  <span class="model-id" x-text="model.id"></span>
+                  <label class="toggle-switch" :title="model.enabled ? 'Disable' : 'Enable'">
+                    <input type="checkbox" x-model="model.enabled" @change="toggleModel(model)">
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
     </div>
 
-    <!-- RIGHT PANEL: RESULTS -->
+    <!-- RIGHT PANEL: OUTPUT + DECISION VIZ -->
     <div class="panel panel-right">
       
-      <div class="section-title">Provider Status</div>
-      <div class="badges" id="provider-status-badges">
-        <span style="color:#94a3b8;font-size:0.8rem;">Loading...</span>
-      </div>
-
-      <div class="section-title">
-        <span>Models</span>
-        <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.78rem;color:#94a3b8;">
-          <span x-text="enabledModelsCount"></span> of <span x-text="totalModelsCount"></span> enabled
-        </span>
+      <!-- Decision Visualization -->
+      <div class="decision-viz" id="decision-viz">
+        <div class="decision-viz-title">Decision Path</div>
+        <div class="trace-pipeline" id="trace-pipeline">
+          <template x-if="decisionTrace.length === 0">
+            <span style="color:#475569;font-size:0.8rem;font-family:var(--font-mono);">No decision yet — run Pick or Pick+Chat</span>
+          </template>
+          <template x-for="(step, i) in decisionTrace" :key="i">
+            <div class="trace-step">
+              <span class="trace-num" :class="step.final ? 'final' : ''" x-text="i + 1"></span>
+              <span class="trace-text" x-text="step.label"></span>
+              <span class="trace-count" x-show="step.count !== undefined" x-text="'(' + step.count + ')'"></span>
+              <span class="trace-arrow" x-show="!step.final">→</span>
+              <span class="trace-model" x-show="step.final" x-text="'✓ ' + step.value"></span>
+            </div>
+          </template>
+        </div>
       </div>
       
-      <div class="model-list-section">
-        <template x-if="Object.keys(modelsByProvider).length === 0">
-          <span style="color:#94a3b8;font-size:0.8rem;">Loading models...</span>
-        </template>
-        
-        <template x-for="[provider, models] in Object.entries(modelsByProvider)" :key="provider">
-          <div class="model-provider-group">
-            <div class="model-provider-name" x-text="provider"></div>
-            <template x-for="model in models" :key="model.id">
-              <div class="model-row" :class="model.enabled ? '' : 'disabled'">
-                <span class="model-id" x-text="model.id"></span>
-                <label class="toggle-switch" :title="model.enabled ? 'Disable' : 'Enable'">
-                  <input type="checkbox" x-model="model.enabled" @change="toggleModel(model)">
-                  <span class="toggle-track"></span>
-                </label>
-              </div>
-            </template>
-          </div>
-        </template>
+      <!-- Error -->
+      <div id="error-container" class="error-box" style="margin: 1rem 1.5rem 0;"></div>
+
+      <!-- Output -->
+      <div class="output-section" style="padding: 1rem 1.5rem 1.5rem;">
+        <div class="section-title" style="border-bottom: none; margin-bottom: 0.75rem;">Output</div>
+        <div id="results-container" class="output-box">
+          <span class="output-placeholder">// Output will appear here...</span>
+        </div>
       </div>
 
-      <div class="section-title" style="margin-top: 1rem;">Results</div>
-      
-      <div id="error-container" class="error-box"></div>
-
-      <div id="results-container" class="results-box">
-        <span style="opacity: 0.5;">// Output will appear here...</span>
-      </div>
-
-      <!-- Hidden container for HTMX SSE to connect -->
+      <!-- Hidden container for HTMX SSE -->
       <div id="sse-container"></div>
     </div>
   </main>
@@ -630,10 +755,12 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
     document.addEventListener('alpine:init', () => {
       Alpine.data('playground', () => ({
         loading: false,
+        activeTab: 'picker',
         
         modelsByProvider: {},
         enabledModelsCount: 0,
         totalModelsCount: 0,
+        decisionTrace: [],
         
         init() {
           this.loadData();
@@ -641,17 +768,25 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
         
         async loadData() {
           try {
-            // Load status
+            // Load status → provider list
             const sRes = await fetch('/api/status');
             if (sRes.ok) {
               const data = await sRes.json();
               const providers = data.providers || [];
               
-              // Render badges
-              document.getElementById('provider-status-badges').innerHTML = providers.map(p => 
-                \`<div class="badge \${p.available ? 'available' : 'unavailable'}">\${p.name} (\${p.envVar})</div>\`
-              ).join('');
+              // Render provider status list (for config tab)
+              const provListEl = document.getElementById('provider-status-list');
+              if (provListEl) {
+                provListEl.innerHTML = providers.map(p => 
+                  \`<div class="provider-status-item">
+                    <span class="provider-dot \${p.available ? 'available' : 'unavailable'}"></span>
+                    <span class="provider-name">\${p.name}</span>
+                    <span class="provider-env">\${p.envVar}</span>
+                  </div>\`
+                ).join('');
+              }
               
+              // Render preferred/excluded provider grids (for picker tab)
               const availableProviders = providers.filter(p => p.available);
               const provHtml = availableProviders.length > 0
                 ? availableProviders.map(p => 
@@ -685,6 +820,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
               }
               this.modelsByProvider = grouped;
               
+              // Unique families for constraint grids
               const uniqueFamilies = [...new Set(modelCards.map(m => m.family))].sort();
               const modHtml = uniqueFamilies.length > 0
                 ? uniqueFamilies.map(family => 
@@ -767,14 +903,54 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
             prompt: formData.get('prompt')
           };
         },
+        
+        buildDecisionTrace(pickData) {
+          const trace = [];
+          const totalModels = this.totalModelsCount;
+          const enabledModels = this.enabledModelsCount;
+          
+          trace.push({ label: \`Starting pool: \${totalModels} total models\`, count: totalModels });
+          trace.push({ label: \`Filtered to enabled: \${enabledModels} models\`, count: enabledModels });
+          
+          if (pickData.classificationTrace) {
+            const ct = pickData.classificationTrace;
+            trace.push({ label: \`Classification: \${ct.classification} (tier \${ct.tierUsed})\` });
+          }
+          
+          if (pickData.selected) {
+            trace.push({ 
+              label: \`Scored & ranked\`, 
+              final: false 
+            });
+            trace.push({ 
+              label: \`Selected: \${pickData.selected.provider}/\${pickData.selected.model}\`, 
+              value: \`\${pickData.selected.provider}/\${pickData.selected.model}\`,
+              final: true 
+            });
+          } else if (pickData.candidates && pickData.candidates.length > 0) {
+            trace.push({ label: \`Ranked candidates: \${pickData.candidates.length}\`, final: false });
+            if (pickData.candidates[0]) {
+              trace.push({ 
+                label: \`Top pick: \${pickData.candidates[0].provider}/\${pickData.candidates[0].model}\`,
+                value: \`\${pickData.candidates[0].provider}/\${pickData.candidates[0].model}\`,
+                final: true 
+              });
+            }
+          }
+          
+          return trace;
+        },
 
         async pickOnly() {
           this.loading = true;
           this.clearErrors();
+          this.decisionTrace = [];
           
           const results = document.getElementById('results-container');
           const sseContainer = document.getElementById('sse-container');
-          results.innerHTML = 'Loading...';
+          const vizEl = document.getElementById('decision-viz');
+          results.innerHTML = '<span class="output-placeholder">Running picker...</span>';
+          vizEl.classList.remove('visible');
           sseContainer.innerHTML = '';
           
           try {
@@ -791,6 +967,8 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
               this.showError(json.error || 'Failed to pick model', json.actionable || JSON.stringify(json.details || json));
               results.innerHTML = '';
             } else {
+              this.decisionTrace = this.buildDecisionTrace(json);
+              vizEl.classList.add('visible');
               results.innerHTML = '<pre style="white-space: pre-wrap; word-wrap: break-word;">' + JSON.stringify(json, null, 2) + '</pre>';
             }
           } catch(e) {
@@ -804,11 +982,13 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
         async startChat() {
           this.loading = true;
           this.clearErrors();
+          this.decisionTrace = [];
           
           const results = document.getElementById('results-container');
           const sseContainer = document.getElementById('sse-container');
-          
+          const vizEl = document.getElementById('decision-viz');
           results.innerHTML = '';
+          vizEl.classList.remove('visible');
           sseContainer.innerHTML = '';
           
           try {
@@ -827,7 +1007,6 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
               return;
             }
 
-            // Read HTML response which contains the SSE setup from server
             const html = await res.text();
             sseContainer.innerHTML = html;
             htmx.process(sseContainer);
@@ -847,21 +1026,34 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
         err.innerHTML = \`<strong>API Error (\${evt.detail.xhr.status}):</strong> \${evt.detail.xhr.responseText}\`;
       });
       
-      // Handle SSE events defined in Reference (pick, chunk, done, error)
+      // Handle SSE events
       document.body.addEventListener('htmx:sseMessage', (evt) => {
         const results = document.getElementById('results-container');
+        const vizEl = document.getElementById('decision-viz');
         const type = evt.detail.type;
         const data = evt.detail.data;
+        const alpine = document.querySelector('[x-data]').__x.$data;
         
         if (type === 'pick') {
           try {
             const pickData = JSON.parse(data);
-            let pickHtml = \`<div style="color:var(--accent); margin-bottom:1rem;">\`;
+            
+            // Build and show decision trace
+            const trace = alpine.buildDecisionTrace(pickData);
+            alpine.decisionTrace = trace;
+            vizEl.classList.add('visible');
+            
+            // Show structured output
+            let pickHtml = \`<div style="margin-bottom: 1rem;">\`;
             if (pickData.selected) {
-              pickHtml += \`<strong>Model:</strong> \${pickData.selected.provider}/\${pickData.selected.model} (Score: \${pickData.selected.score})<br>\`;
+              pickHtml += \`<span style="color:var(--success);font-weight:700;">✓ Selected:</span>
+                <span style="color:var(--accent);"> \${pickData.selected.provider}/\${pickData.selected.model}</span>
+                <span style="color:#64748b;margin-left:0.5rem;">(score: \${pickData.selected.score})</span>\`;
             }
             if (pickData.classificationTrace) {
-              pickHtml += \`<strong>Trace:</strong> \${pickData.classificationTrace.classification} (Tier \${pickData.classificationTrace.tierUsed})\`;
+              const ct = pickData.classificationTrace;
+              pickHtml += \`<br><span style="color:#64748b;">Classified as </span><span style="color:var(--fg);">\${ct.classification}</span>
+                <span style="color:#64748b;"> tier </span><span style="color:var(--fg);">\${ct.tierUsed}</span>\`;
             }
             pickHtml += \`</div><hr style="border:1px dashed var(--border);margin:1rem 0;"><div id="chat-stream"></div>\`;
             results.innerHTML = pickHtml;
