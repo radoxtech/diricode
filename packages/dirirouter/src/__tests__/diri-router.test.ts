@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DiriRouter, ProviderPriorities, Registry } from "../index.js";
+import { CascadeModelResolver, DiriRouter, ProviderPriorities, Registry } from "../index.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../index.js";
 import type { DecisionRequest } from "@diricode/dirirouter";
 
@@ -87,6 +87,37 @@ function createProviderStub(name: string): ProviderStub {
   };
 }
 
+function createDecisionRequest(): DecisionRequest {
+  return {
+    chatId: "550e8400-e29b-41d4-a716-446655440000",
+    requestId: "550e8400-e29b-41d4-a716-446655440001",
+    agent: { id: "test-agent", role: "coder", specializations: [], seniority: "mid" },
+    task: { type: "simple" },
+    modelDimensions: {
+      tier: "low",
+      modelAttributes: ["reasoning", "agentic"],
+      fallbackType: "error",
+    },
+  };
+}
+
+function createResolverForCandidates(...candidates: Array<{ provider: string; model: string }>) {
+  return new CascadeModelResolver(undefined, {
+    defaultProvider: candidates[0]?.provider,
+    defaultModel: candidates[0]?.model,
+    candidatePool: candidates.map(({ provider, model }) => ({
+      provider,
+      model,
+      family: model,
+      pricingTier: "budget",
+      trusted: true,
+      modelAttributes: ["reasoning", "agentic"],
+      knownForRoles: ["coder"],
+      knownForComplexities: ["simple"],
+    })),
+  });
+}
+
 describe("DiriRouter", () => {
   describe("pick()", () => {
     it("returns DecisionResponse from cascade resolver", async () => {
@@ -113,6 +144,21 @@ describe("DiriRouter", () => {
       expect(response).toBeDefined();
       expect(response.requestId).toBe("test-request-id");
       expect(response.status).toMatch(/^(resolved|no_match)$/);
+    });
+
+    it("excludes failed models from subsequent picks", async () => {
+      const resolver = createResolverForCandidates(
+        { provider: "copilot", model: "copilot-model" },
+        { provider: "kimi", model: "kimi-model" },
+      );
+
+      const response = await resolver.resolve({
+        ...createDecisionRequest(),
+        failedModels: ["copilot-model"],
+      });
+
+      expect(response.status).toBe("resolved");
+      expect(response.selected).toMatchObject({ provider: "kimi", model: "kimi-model" });
     });
   });
 
@@ -181,6 +227,33 @@ describe("DiriRouter", () => {
       expect(result.text).toBe("copilot response");
       expect(result.provider).toBe("copilot");
     });
+
+    it("re-picks the next model when selected provider fails with explicit retryable error", async () => {
+      const copilot = createProviderStub("copilot");
+      const kimi = createProviderStub("kimi");
+      copilot.setNextError(Object.assign(new Error("temporary outage"), { retryable: true }));
+      kimi.setNextResponse("kimi response");
+
+      const registry = new Registry();
+      registry.register(copilot, ProviderPriorities.COPILOT);
+      registry.register(kimi, ProviderPriorities.KIMI);
+
+      const router = new DiriRouter({
+        registry,
+        cascadeResolver: createResolverForCandidates(
+          { provider: "copilot", model: "copilot-model" },
+          { provider: "kimi", model: "kimi-model" },
+        ),
+      });
+
+      const result = await router.chat({ prompt: "hello", request: createDecisionRequest() });
+
+      expect(result.text).toBe("kimi response");
+      expect(result.provider).toBe("kimi");
+      expect(result.model).toBe("kimi-model");
+      expect(copilot.getCallHistory()).toHaveLength(1);
+      expect(kimi.getCallHistory()).toHaveLength(1);
+    });
   });
 
   describe("stream()", () => {
@@ -212,6 +285,40 @@ describe("DiriRouter", () => {
 
       expect(chunks).toEqual(["ki:false", "mi:true"]);
       expect(copilot.getCallHistory()).toHaveLength(0);
+      expect(kimi.getCallHistory()).toHaveLength(1);
+    });
+
+    it("re-picks the next model when stream provider fails with retryable classified error", async () => {
+      const copilot = createProviderStub("copilot");
+      const kimi = createProviderStub("kimi");
+      copilot.setNextError(Object.assign(new Error("service unavailable"), { status: 503 }));
+      kimi.setNextStreamChunks([
+        { delta: "ki", done: false },
+        { delta: "mi", done: true },
+      ]);
+
+      const registry = new Registry();
+      registry.register(copilot, ProviderPriorities.COPILOT);
+      registry.register(kimi, ProviderPriorities.KIMI);
+
+      const router = new DiriRouter({
+        registry,
+        cascadeResolver: createResolverForCandidates(
+          { provider: "copilot", model: "copilot-model" },
+          { provider: "kimi", model: "kimi-model" },
+        ),
+      });
+
+      const chunks: string[] = [];
+      for await (const chunk of router.stream({
+        prompt: "hello",
+        request: createDecisionRequest(),
+      })) {
+        chunks.push(`${chunk.delta}:${String(chunk.done)}`);
+      }
+
+      expect(chunks).toEqual(["ki:false", "mi:true"]);
+      expect(copilot.getCallHistory()).toHaveLength(1);
       expect(kimi.getCallHistory()).toHaveLength(1);
     });
   });
