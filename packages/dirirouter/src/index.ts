@@ -160,29 +160,6 @@ export type {
   NormalizationResult,
 } from "./families/index.js";
 
-export type {
-  ProviderModelAvailability,
-  ModelStability,
-} from "./contracts/provider-model-availability.js";
-
-export {
-  ProviderModelAvailabilitySchema,
-  ModelStabilitySchema,
-} from "./contracts/provider-model-availability.js";
-
-// Families — provider-agnostic normalization and family metadata
-export {
-  normalizeModelFamily,
-  resolveFamilyMetadata,
-  listCanonicalFamilies,
-} from "./families/index.js";
-export type {
-  ModelFamily,
-  ModelStability as Stability,
-  FamilyMetadata,
-  NormalizationResult,
-} from "./families/index.js";
-
 // Utils — models.dev catalog client
 export type {
   ModelsDevCost,
