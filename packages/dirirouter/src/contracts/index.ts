@@ -25,9 +25,12 @@ export type {
 export {
   ProviderModelAvailabilitySchema,
   ModelStabilitySchema,
+  RateLimitSchema,
+  ProviderModelAvailabilitySchema as PickerSubscriptionSchema,
 } from "./provider-model-availability.js";
-export type { ProviderModelAvailability, ModelStability } from "./provider-model-availability.js";
-
-export { PickerSubscriptionSchema, RateLimitSchema } from "./subscription.js";
-
-export type { PickerSubscription, RateLimit } from "./subscription.js";
+export type {
+  ProviderModelAvailability,
+  ModelStability,
+  RateLimit,
+  ProviderModelAvailability as PickerSubscription,
+} from "./provider-model-availability.js";

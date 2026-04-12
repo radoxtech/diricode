@@ -139,9 +139,13 @@ export type {
   SpeedBenchmark,
   Benchmarks,
   PricingTier,
+} from "./contracts/model-card.js";
+
+export type {
   RateLimit,
-  PickerSubscription,
-} from "./picker/index.js";
+  ProviderModelAvailability,
+  ProviderModelAvailability as PickerSubscription,
+} from "./contracts/provider-model-availability.js";
 
 export {
   ModelCapabilitiesSchema,
@@ -153,7 +157,9 @@ export {
   BenchmarksSchema,
   PricingTierSchema,
   RateLimitSchema,
-  PickerSubscriptionSchema,
+  ProviderModelAvailabilitySchema,
+  ProviderModelAvailabilitySchema as PickerSubscriptionSchema,
+  ModelStabilitySchema,
   ModelCardNotFoundError,
   ModelCardAlreadyRegisteredError,
   ModelCardRegistry,
@@ -161,16 +167,6 @@ export {
   SubscriptionAlreadyRegisteredError,
   SubscriptionRegistry,
 } from "./picker/index.js";
-
-export type {
-  ProviderModelAvailability,
-  ModelStability,
-} from "./contracts/provider-model-availability.js";
-
-export {
-  ProviderModelAvailabilitySchema,
-  ModelStabilitySchema,
-} from "./contracts/provider-model-availability.js";
 
 // Families — provider-agnostic normalization and family metadata
 export {

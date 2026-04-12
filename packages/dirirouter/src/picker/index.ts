@@ -22,9 +22,18 @@ export {
   ReasoningLevelSchema,
 } from "./model-card.js";
 
-export type { RateLimit, PickerSubscription } from "./subscription.js";
+export { RateLimitSchema } from "../contracts/provider-model-availability.js";
+export type { RateLimit } from "../contracts/provider-model-availability.js";
 
-export { RateLimitSchema, PickerSubscriptionSchema } from "./subscription.js";
+export {
+  ProviderModelAvailabilitySchema as PickerSubscriptionSchema,
+  ProviderModelAvailabilitySchema,
+  ModelStabilitySchema,
+} from "../contracts/provider-model-availability.js";
+export type {
+  ProviderModelAvailability as PickerSubscription,
+  ProviderModelAvailability,
+} from "../contracts/provider-model-availability.js";
 
 export {
   ModelCardNotFoundError,

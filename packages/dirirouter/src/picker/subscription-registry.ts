@@ -1,5 +1,4 @@
-import type { ModelCardRegistry } from "./model-card-registry.js";
-import type { PickerSubscription } from "./subscription.js";
+import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -7,14 +6,14 @@ import type { PickerSubscription } from "./subscription.js";
 
 export class SubscriptionNotFoundError extends Error {
   constructor(id: string) {
-    super(`PickerSubscription "${id}" is not registered`);
+    super(`Subscription "${id}" is not registered`);
     this.name = "SubscriptionNotFoundError";
   }
 }
 
 export class SubscriptionAlreadyRegisteredError extends Error {
   constructor(id: string) {
-    super(`PickerSubscription "${id}" is already registered`);
+    super(`Subscription "${id}" is already registered`);
     this.name = "SubscriptionAlreadyRegisteredError";
   }
 }
@@ -24,36 +23,27 @@ export class SubscriptionAlreadyRegisteredError extends Error {
 // ---------------------------------------------------------------------------
 
 /**
- * In-memory registry for {@link PickerSubscription} instances.
+ * In-memory registry for {@link ProviderModelAvailability} instances.
  *
- * Keyed by `PickerSubscription.id`. Validates that the referenced
- * `model` exists in the provided {@link ModelCardRegistry} on registration.
- *
- * @see PickerSubscription
- * @see ModelCardRegistry
+ * Keyed by `ProviderModelAvailability.id`. Validates that `id` is present
+ * and non-empty on registration. Provider availability is trusted as the
+ * golden source — no card-registry validation is performed.
  */
 export class SubscriptionRegistry {
-  readonly #entries = new Map<string, PickerSubscription>();
-  readonly #cardRegistry: ModelCardRegistry;
+  readonly #entries = new Map<string, ProviderModelAvailability>();
 
-  constructor(cardRegistry: ModelCardRegistry) {
-    this.#cardRegistry = cardRegistry;
-  }
-
-  register(subscription: PickerSubscription): this {
-    if (this.#entries.has(subscription.id)) {
-      throw new SubscriptionAlreadyRegisteredError(subscription.id);
+  register(subscription: ProviderModelAvailability): this {
+    if (this.#entries.has(subscription.id ?? subscription.model_id)) {
+      throw new SubscriptionAlreadyRegisteredError(subscription.id ?? subscription.model_id);
     }
-    if (!this.#cardRegistry.has(subscription.model)) {
-      throw new Error(
-        `Cannot register subscription "${subscription.id}": ModelCard "${subscription.model}" is not registered`,
-      );
+    if (!subscription.id?.trim()) {
+      throw new Error(`Cannot register availability: "id" field is required but was not provided`);
     }
     this.#entries.set(subscription.id, subscription);
     return this;
   }
 
-  get(id: string): PickerSubscription {
+  get(id: string): ProviderModelAvailability {
     const sub = this.#entries.get(id);
     if (sub === undefined) {
       throw new SubscriptionNotFoundError(id);
@@ -61,7 +51,7 @@ export class SubscriptionRegistry {
     return sub;
   }
 
-  list(): readonly PickerSubscription[] {
+  list(): readonly ProviderModelAvailability[] {
     return Array.from(this.#entries.values());
   }
 
@@ -81,27 +71,27 @@ export class SubscriptionRegistry {
     return this;
   }
 
-  update(subscription: PickerSubscription): this {
-    if (!this.#entries.has(subscription.id)) {
-      throw new SubscriptionNotFoundError(subscription.id);
+  update(subscription: ProviderModelAvailability): this {
+    if (!this.#entries.has(subscription.id ?? subscription.model_id)) {
+      throw new SubscriptionNotFoundError(subscription.id ?? subscription.model_id);
     }
-    this.#entries.set(subscription.id, subscription);
+    this.#entries.set(subscription.id!, subscription);
     return this;
   }
 
-  findByModel(model: string): PickerSubscription[] {
-    return Array.from(this.#entries.values()).filter((sub) => sub.model === model);
+  findByModel(model: string): ProviderModelAvailability[] {
+    return Array.from(this.#entries.values()).filter((sub) => sub.model_id === model);
   }
 
-  findByProvider(provider: string): PickerSubscription[] {
+  findByProvider(provider: string): ProviderModelAvailability[] {
     return Array.from(this.#entries.values()).filter((sub) => sub.provider === provider);
   }
 
-  findTrusted(): PickerSubscription[] {
+  findTrusted(): ProviderModelAvailability[] {
     return Array.from(this.#entries.values()).filter((sub) => sub.trusted);
   }
 
-  findAvailable(): PickerSubscription[] {
+  findAvailable(): ProviderModelAvailability[] {
     return Array.from(this.#entries.values()).filter((sub) => sub.available);
   }
 }

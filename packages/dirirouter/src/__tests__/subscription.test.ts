@@ -4,87 +4,77 @@ import {
   SubscriptionRegistry,
   SubscriptionNotFoundError,
   SubscriptionAlreadyRegisteredError,
-  ModelCardRegistry,
 } from "../index.js";
-import type { ModelCard, PickerSubscription } from "../index.js";
+import type { ProviderModelAvailability } from "../index.js";
 
-function makeCard(model: string): ModelCard {
-  return {
-    model,
-    family: "test",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 8000,
-    },
-    reasoning_levels: [],
-    known_for: {
-      roles: ["coder"],
-      complexities: ["simple"],
-      specializations: ["backend"],
-    },
-    benchmarks: {
-      quality: { by_complexity_role: {}, by_specialization: {} },
-      speed: { tokens_per_second_avg: 0, feedback_count: 0 },
-    },
-    pricing_tier: "standard",
-    learned_from: 0,
-  };
-}
-
-function makeSub(overrides: Partial<PickerSubscription> = {}): PickerSubscription {
+function makeAvail(overrides: Partial<ProviderModelAvailability> = {}): ProviderModelAvailability {
   return {
     id: "test-sub",
     provider: "copilot",
-    model: "test-model",
+    model_id: "test-model",
+    family: "claude-sonnet",
+    stability: "stable",
     context_window: 128000,
-    rate_limit: { requests_per_hour: 1000, remaining: 1000 },
-    trusted: true,
     available: true,
-    cost_per_1k_input: 0,
-    cost_per_1k_output: 0,
+    trusted: true,
+    supports_tool_calling: true,
+    supports_vision: true,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
     ...overrides,
   };
 }
 
-function makeRegistries(models: string[] = ["test-model"]): {
-  cardReg: ModelCardRegistry;
-  subReg: SubscriptionRegistry;
-} {
-  const cardReg = new ModelCardRegistry();
-  for (const m of models) {
-    cardReg.register(makeCard(m));
-  }
-  const subReg = new SubscriptionRegistry(cardReg);
-  return { cardReg, subReg };
+function makeRegistry(): SubscriptionRegistry {
+  return new SubscriptionRegistry();
 }
 
-describe("PickerSubscriptionSchema", () => {
+describe("ProviderModelAvailabilitySchema (PickerSubscriptionSchema)", () => {
   describe("parse", () => {
-    it("accepts a valid subscription", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeSub())).not.toThrow();
+    it("accepts a valid availability", () => {
+      expect(() => PickerSubscriptionSchema.parse(makeAvail())).not.toThrow();
+    });
+
+    it("accepts legacy input with model field (model_id alias)", () => {
+      expect(() =>
+        PickerSubscriptionSchema.parse({
+          provider: "copilot",
+          model: "test-model",
+          family: "claude-sonnet",
+          stability: "stable",
+          available: true,
+          context_window: 128000,
+          trusted: true,
+          supports_tool_calling: true,
+          supports_vision: true,
+          supports_structured_output: true,
+          supports_streaming: true,
+          input_cost_per_1k: 0,
+          output_cost_per_1k: 0,
+        }),
+      ).not.toThrow();
     });
 
     it("rejects empty id", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeSub({ id: "" }))).toThrow();
+      expect(() => PickerSubscriptionSchema.parse(makeAvail({ id: "" }))).toThrow();
     });
 
     it("rejects empty provider", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeSub({ provider: "" }))).toThrow();
+      expect(() => PickerSubscriptionSchema.parse(makeAvail({ provider: "" }))).toThrow();
     });
 
-    it("rejects empty model", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeSub({ model: "" }))).toThrow();
+    it("rejects empty model_id", () => {
+      expect(() => PickerSubscriptionSchema.parse(makeAvail({ model_id: "" }))).toThrow();
     });
 
     it("rejects non-positive context_window", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeSub({ context_window: 0 }))).toThrow();
+      expect(() => PickerSubscriptionSchema.parse(makeAvail({ context_window: 0 }))).toThrow();
     });
 
-    it("rejects negative cost_per_1k_input", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeSub({ cost_per_1k_input: -1 }))).toThrow();
+    it("rejects negative input_cost_per_1k", () => {
+      expect(() => PickerSubscriptionSchema.parse(makeAvail({ input_cost_per_1k: -1 }))).toThrow();
     });
 
     it("rejects missing required fields", () => {
@@ -95,203 +85,201 @@ describe("PickerSubscriptionSchema", () => {
 
 describe("SubscriptionRegistry", () => {
   describe("register", () => {
-    it("registers a subscription and returns this for chaining", () => {
-      const { subReg } = makeRegistries();
-      const result = subReg.register(makeSub());
-      expect(result).toBe(subReg);
-      expect(subReg.size).toBe(1);
+    it("registers an availability and returns this for chaining", () => {
+      const reg = makeRegistry();
+      const result = reg.register(makeAvail());
+      expect(result).toBe(reg);
+      expect(reg.size).toBe(1);
     });
 
     it("throws SubscriptionAlreadyRegisteredError on duplicate id", () => {
-      const { subReg } = makeRegistries();
-      subReg.register(makeSub({ id: "dup" }));
-      expect(() => subReg.register(makeSub({ id: "dup" }))).toThrow(
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "dup" }));
+      expect(() => reg.register(makeAvail({ id: "dup" }))).toThrow(
         SubscriptionAlreadyRegisteredError,
       );
     });
 
-    it("error message includes the subscription id", () => {
-      const { subReg } = makeRegistries();
-      subReg.register(makeSub({ id: "my-sub" }));
-      expect(() => subReg.register(makeSub({ id: "my-sub" }))).toThrow(/my-sub/);
+    it("error message includes the availability id", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "my-sub" }));
+      expect(() => reg.register(makeAvail({ id: "my-sub" }))).toThrow(/my-sub/);
     });
 
-    it("throws when referenced model is not in ModelCardRegistry", () => {
-      const { subReg } = makeRegistries(["test-model"]);
-      expect(() => subReg.register(makeSub({ id: "bad", model: "nonexistent-model" }))).toThrow(
-        /nonexistent-model/,
-      );
+    it("throws when id is missing", () => {
+      const reg = makeRegistry();
+      expect(() => reg.register(makeAvail({ id: undefined }))).toThrow();
     });
   });
 
   describe("get", () => {
-    it("returns the registered subscription", () => {
-      const { subReg } = makeRegistries();
-      const sub = makeSub({ id: "find-me" });
-      subReg.register(sub);
-      expect(subReg.get("find-me")).toEqual(sub);
+    it("returns the registered availability", () => {
+      const reg = makeRegistry();
+      const avail = makeAvail({ id: "find-me" });
+      reg.register(avail);
+      expect(reg.get("find-me")).toEqual(avail);
     });
 
     it("throws SubscriptionNotFoundError for unknown id", () => {
-      const { subReg } = makeRegistries();
-      expect(() => subReg.get("nope")).toThrow(SubscriptionNotFoundError);
+      const reg = makeRegistry();
+      expect(() => reg.get("nope")).toThrow(SubscriptionNotFoundError);
     });
   });
 
   describe("list", () => {
-    it("returns empty array when no subscriptions registered", () => {
-      const { subReg } = makeRegistries();
-      expect(subReg.list()).toEqual([]);
+    it("returns empty array when no availabilities registered", () => {
+      const reg = makeRegistry();
+      expect(reg.list()).toEqual([]);
     });
 
-    it("returns all registered subscriptions", () => {
-      const { subReg } = makeRegistries(["m1", "m2"]);
-      subReg.register(makeSub({ id: "s1", model: "m1" }));
-      subReg.register(makeSub({ id: "s2", model: "m2" }));
-      expect(subReg.list()).toHaveLength(2);
+    it("returns all registered availabilities", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "s1", model_id: "m1" }));
+      reg.register(makeAvail({ id: "s2", model_id: "m2" }));
+      expect(reg.list()).toHaveLength(2);
     });
   });
 
   describe("has", () => {
     it("returns false for unregistered id", () => {
-      const { subReg } = makeRegistries();
-      expect(subReg.has("nope")).toBe(false);
+      const reg = makeRegistry();
+      expect(reg.has("nope")).toBe(false);
     });
 
     it("returns true after registration", () => {
-      const { subReg } = makeRegistries();
-      subReg.register(makeSub({ id: "yes" }));
-      expect(subReg.has("yes")).toBe(true);
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "yes" }));
+      expect(reg.has("yes")).toBe(true);
     });
   });
 
   describe("size", () => {
     it("is 0 initially", () => {
-      const { subReg } = makeRegistries();
-      expect(subReg.size).toBe(0);
+      const reg = makeRegistry();
+      expect(reg.size).toBe(0);
     });
 
     it("increments with each registration", () => {
-      const { subReg } = makeRegistries(["m1", "m2"]);
-      subReg.register(makeSub({ id: "s1", model: "m1" }));
-      expect(subReg.size).toBe(1);
-      subReg.register(makeSub({ id: "s2", model: "m2" }));
-      expect(subReg.size).toBe(2);
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "s1", model_id: "m1" }));
+      expect(reg.size).toBe(1);
+      reg.register(makeAvail({ id: "s2", model_id: "m2" }));
+      expect(reg.size).toBe(2);
     });
   });
 
   describe("remove", () => {
-    it("removes a registered subscription", () => {
-      const { subReg } = makeRegistries();
-      subReg.register(makeSub({ id: "rem" }));
-      subReg.remove("rem");
-      expect(subReg.has("rem")).toBe(false);
+    it("removes a registered availability", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "rem" }));
+      reg.remove("rem");
+      expect(reg.has("rem")).toBe(false);
     });
 
     it("throws SubscriptionNotFoundError for unknown id", () => {
-      const { subReg } = makeRegistries();
-      expect(() => subReg.remove("ghost")).toThrow(SubscriptionNotFoundError);
+      const reg = makeRegistry();
+      expect(() => reg.remove("ghost")).toThrow(SubscriptionNotFoundError);
     });
 
     it("returns this for chaining", () => {
-      const { subReg } = makeRegistries();
-      subReg.register(makeSub({ id: "ch" }));
-      expect(subReg.remove("ch")).toBe(subReg);
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "ch" }));
+      expect(reg.remove("ch")).toBe(reg);
     });
   });
 
   describe("update", () => {
-    it("updates an existing subscription", () => {
-      const { subReg } = makeRegistries();
-      subReg.register(makeSub({ id: "upd", available: true }));
-      subReg.update(makeSub({ id: "upd", available: false }));
-      expect(subReg.get("upd").available).toBe(false);
+    it("updates an existing availability", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "upd", available: true }));
+      reg.update(makeAvail({ id: "upd", available: false }));
+      expect(reg.get("upd").available).toBe(false);
     });
 
     it("throws SubscriptionNotFoundError for unknown id", () => {
-      const { subReg } = makeRegistries();
-      expect(() => subReg.update(makeSub({ id: "phantom" }))).toThrow(SubscriptionNotFoundError);
+      const reg = makeRegistry();
+      expect(() => reg.update(makeAvail({ id: "phantom" }))).toThrow(SubscriptionNotFoundError);
     });
   });
 
   describe("findByModel", () => {
-    it("returns all subscriptions for a given model", () => {
-      const { subReg } = makeRegistries(["m1", "m2"]);
-      subReg.register(makeSub({ id: "s1", model: "m1" }));
-      subReg.register(makeSub({ id: "s2", model: "m1" }));
-      subReg.register(makeSub({ id: "s3", model: "m2" }));
-      const result = subReg.findByModel("m1");
+    it("returns all availabilities for a given model", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "s1", model_id: "m1" }));
+      reg.register(makeAvail({ id: "s2", model_id: "m1" }));
+      reg.register(makeAvail({ id: "s3", model_id: "m2" }));
+      const result = reg.findByModel("m1");
       expect(result).toHaveLength(2);
-      expect(result.every((s) => s.model === "m1")).toBe(true);
+      expect(result.every((s) => s.model_id === "m1")).toBe(true);
     });
 
-    it("returns empty array when no subscriptions for model", () => {
-      const { subReg } = makeRegistries(["m1"]);
-      subReg.register(makeSub({ id: "s1", model: "m1" }));
-      expect(subReg.findByModel("m2")).toEqual([]);
+    it("returns empty array when no availabilities for model", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "s1", model_id: "m1" }));
+      expect(reg.findByModel("m2")).toEqual([]);
     });
   });
 
   describe("findByProvider", () => {
-    it("returns only subscriptions from the given provider", () => {
-      const { subReg } = makeRegistries(["m1", "m2"]);
-      subReg.register(makeSub({ id: "cop1", model: "m1", provider: "copilot" }));
-      subReg.register(makeSub({ id: "goo1", model: "m2", provider: "google" }));
-      const result = subReg.findByProvider("copilot");
+    it("returns only availabilities from the given provider", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "cop1", model_id: "m1", provider: "copilot" }));
+      reg.register(makeAvail({ id: "goo1", model_id: "m2", provider: "google" }));
+      const result = reg.findByProvider("copilot");
       expect(result).toHaveLength(1);
       expect(result[0]?.id).toBe("cop1");
     });
   });
 
   describe("findTrusted", () => {
-    it("returns only trusted=true subscriptions", () => {
-      const { subReg } = makeRegistries(["m1", "m2", "m3"]);
-      subReg.register(makeSub({ id: "t1", model: "m1", trusted: true }));
-      subReg.register(makeSub({ id: "t2", model: "m2", trusted: false }));
-      subReg.register(makeSub({ id: "t3", model: "m3", trusted: true }));
-      const result = subReg.findTrusted();
+    it("returns only trusted=true availabilities", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "t1", model_id: "m1", trusted: true }));
+      reg.register(makeAvail({ id: "t2", model_id: "m2", trusted: false }));
+      reg.register(makeAvail({ id: "t3", model_id: "m3", trusted: true }));
+      const result = reg.findTrusted();
       expect(result).toHaveLength(2);
       expect(result.every((s) => s.trusted)).toBe(true);
     });
 
-    it("returns empty array when no trusted subscriptions", () => {
-      const { subReg } = makeRegistries(["m1"]);
-      subReg.register(makeSub({ id: "s1", model: "m1", trusted: false }));
-      expect(subReg.findTrusted()).toEqual([]);
+    it("returns empty array when no trusted availabilities", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "s1", model_id: "m1", trusted: false }));
+      expect(reg.findTrusted()).toEqual([]);
     });
   });
 
   describe("findAvailable", () => {
-    it("returns only available=true subscriptions", () => {
-      const { subReg } = makeRegistries(["m1", "m2"]);
-      subReg.register(makeSub({ id: "a1", model: "m1", available: true }));
-      subReg.register(makeSub({ id: "a2", model: "m2", available: false }));
-      const result = subReg.findAvailable();
+    it("returns only available=true availabilities", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "a1", model_id: "m1", available: true }));
+      reg.register(makeAvail({ id: "a2", model_id: "m2", available: false }));
+      const result = reg.findAvailable();
       expect(result).toHaveLength(1);
       expect(result[0]?.id).toBe("a1");
     });
   });
 
-  describe("confidential code access filtering", () => {
-    it("filters out untrusted subscriptions for confidential code", () => {
-      const { subReg } = makeRegistries(["m1", "m2", "m3"]);
-      subReg.register(makeSub({ id: "enterprise", model: "m1", trusted: true }));
-      subReg.register(makeSub({ id: "public-api", model: "m2", trusted: false }));
-      subReg.register(makeSub({ id: "internal", model: "m3", trusted: true }));
+  describe("trusted availability filtering", () => {
+    it("filters out untrusted availabilities", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "enterprise", model_id: "m1", trusted: true }));
+      reg.register(makeAvail({ id: "public-api", model_id: "m2", trusted: false }));
+      reg.register(makeAvail({ id: "internal", model_id: "m3", trusted: true }));
 
-      const eligible = subReg.findTrusted();
+      const eligible = reg.findTrusted();
 
       expect(eligible).toHaveLength(2);
       expect(eligible.every((s) => s.trusted)).toBe(true);
       expect(eligible.find((s) => s.id === "public-api")).toBeUndefined();
     });
 
-    it("returns all subscriptions when confidential code access is not restricted", () => {
-      const { subReg } = makeRegistries(["m1", "m2"]);
-      subReg.register(makeSub({ id: "ent", model: "m1", trusted: true }));
-      subReg.register(makeSub({ id: "pub", model: "m2", trusted: false }));
+    it("returns all availabilities when no filtering applied", () => {
+      const reg = makeRegistry();
+      reg.register(makeAvail({ id: "ent", model_id: "m1", trusted: true }));
+      reg.register(makeAvail({ id: "pub", model_id: "m2", trusted: false }));
 
-      const eligible = subReg.list();
+      const eligible = reg.list();
 
       expect(eligible).toHaveLength(2);
     });
