@@ -32,8 +32,6 @@ const rawSchema = z.object({
   id: z.string().min(1).optional(),
 });
 
-type RawOutput = z.infer<typeof rawSchema>;
-
 const transformSchema = rawSchema.transform(
   (
     val,
@@ -57,7 +55,7 @@ const transformSchema = rawSchema.transform(
     id?: string;
   } => ({
     provider: val.provider,
-    model_id: val.model_id ?? val.model!,
+    model_id: val.model_id ?? val.model ?? "",
     family: val.family,
     stability: val.stability,
     available: val.available,

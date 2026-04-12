@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { normalizeModelFamily } from "../../families/normalization.js";
-import type { ModelFamily } from "../../families/types.js";
 
 describe("normalizeModelFamily", () => {
   describe("Claude", () => {

@@ -75,7 +75,8 @@ export class SubscriptionRegistry {
     if (!this.#entries.has(subscription.id ?? subscription.model_id)) {
       throw new SubscriptionNotFoundError(subscription.id ?? subscription.model_id);
     }
-    this.#entries.set(subscription.id!, subscription);
+    const key = subscription.id ?? subscription.model_id;
+    this.#entries.set(key, subscription);
     return this;
   }
 

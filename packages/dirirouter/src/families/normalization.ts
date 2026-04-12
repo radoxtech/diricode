@@ -7,7 +7,7 @@ export interface NormalizationResult {
 
 const PREVIEW_PATTERNS = [/preview/i, /beta/i, /alpha/i, /experimental/i, /^o[1-9]-/i];
 
-const FAMILY_RULES: Array<{ pattern: RegExp; family: ModelFamily }> = [
+const FAMILY_RULES: { pattern: RegExp; family: ModelFamily }[] = [
   // Claude
   { pattern: /^claude-3-opus|^claude-4-opus|^claude-opus/i, family: "claude-opus" },
   { pattern: /^claude-3.5-sonnet|^claude-4-sonnet|^claude-sonnet/i, family: "claude-sonnet" },
