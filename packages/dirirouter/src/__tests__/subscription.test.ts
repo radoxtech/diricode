@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  PickerSubscriptionSchema,
+  ProviderModelAvailabilitySchema,
   SubscriptionRegistry,
   SubscriptionNotFoundError,
   SubscriptionAlreadyRegisteredError,
@@ -31,15 +31,15 @@ function makeRegistry(): SubscriptionRegistry {
   return new SubscriptionRegistry();
 }
 
-describe("ProviderModelAvailabilitySchema (PickerSubscriptionSchema)", () => {
+describe("ProviderModelAvailabilitySchema (ProviderModelAvailabilitySchema)", () => {
   describe("parse", () => {
     it("accepts a valid availability", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeAvail())).not.toThrow();
+      expect(() => ProviderModelAvailabilitySchema.parse(makeAvail())).not.toThrow();
     });
 
     it("accepts legacy input with model field (model_id alias)", () => {
       expect(() =>
-        PickerSubscriptionSchema.parse({
+        ProviderModelAvailabilitySchema.parse({
           provider: "copilot",
           model: "test-model",
           family: "claude-sonnet",
@@ -58,27 +58,31 @@ describe("ProviderModelAvailabilitySchema (PickerSubscriptionSchema)", () => {
     });
 
     it("rejects empty id", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeAvail({ id: "" }))).toThrow();
+      expect(() => ProviderModelAvailabilitySchema.parse(makeAvail({ id: "" }))).toThrow();
     });
 
     it("rejects empty provider", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeAvail({ provider: "" }))).toThrow();
+      expect(() => ProviderModelAvailabilitySchema.parse(makeAvail({ provider: "" }))).toThrow();
     });
 
     it("rejects empty model_id", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeAvail({ model_id: "" }))).toThrow();
+      expect(() => ProviderModelAvailabilitySchema.parse(makeAvail({ model_id: "" }))).toThrow();
     });
 
     it("rejects non-positive context_window", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeAvail({ context_window: 0 }))).toThrow();
+      expect(() =>
+        ProviderModelAvailabilitySchema.parse(makeAvail({ context_window: 0 })),
+      ).toThrow();
     });
 
     it("rejects negative input_cost_per_1k", () => {
-      expect(() => PickerSubscriptionSchema.parse(makeAvail({ input_cost_per_1k: -1 }))).toThrow();
+      expect(() =>
+        ProviderModelAvailabilitySchema.parse(makeAvail({ input_cost_per_1k: -1 })),
+      ).toThrow();
     });
 
     it("rejects missing required fields", () => {
-      expect(() => PickerSubscriptionSchema.parse({})).toThrow();
+      expect(() => ProviderModelAvailabilitySchema.parse({})).toThrow();
     });
   });
 });

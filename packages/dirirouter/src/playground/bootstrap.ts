@@ -1,5 +1,5 @@
 import { Registry } from "../registry.js";
-import { SubscriptionRegistry } from "../picker/subscription-registry.js";
+import { SubscriptionRegistry } from "../llm-picker/subscription-registry.js";
 import { CascadeModelResolver } from "../llm-picker/model-resolver.js";
 import { DiriRouter } from "../diri-router.js";
 import { GeminiProvider } from "../providers/gemini.js";

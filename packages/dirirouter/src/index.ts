@@ -133,18 +133,19 @@ export type {
 export type {
   RateLimit,
   ProviderModelAvailability,
-  ProviderModelAvailability as PickerSubscription,
 } from "./contracts/provider-model-availability.js";
 
 export {
   RateLimitSchema,
   ProviderModelAvailabilitySchema,
-  ProviderModelAvailabilitySchema as PickerSubscriptionSchema,
   ModelStabilitySchema,
+} from "./contracts/index.js";
+
+export {
   SubscriptionNotFoundError,
   SubscriptionAlreadyRegisteredError,
   SubscriptionRegistry,
-} from "./picker/index.js";
+} from "./llm-picker/index.js";
 
 // Families — provider-agnostic normalization and family metadata
 export {

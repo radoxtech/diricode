@@ -76,3 +76,9 @@ export type {
   HardRuleEvaluationContext,
   HardRuleEvaluationResult,
 } from "./hard-rules.js";
+
+export {
+  SubscriptionNotFoundError,
+  SubscriptionAlreadyRegisteredError,
+  SubscriptionRegistry,
+} from "./subscription-registry.js";

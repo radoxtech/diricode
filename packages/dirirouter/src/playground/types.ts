@@ -34,7 +34,7 @@ import {
 } from "@diricode/dirirouter/llm-picker/types.js";
 import type { DiriRouter } from "@diricode/dirirouter/diri-router.js";
 import type { Registry } from "@diricode/dirirouter/registry.js";
-import type { SubscriptionRegistry } from "@diricode/dirirouter/picker/subscription-registry.js";
+import type { SubscriptionRegistry } from "@diricode/dirirouter/llm-picker/subscription-registry.js";
 
 // ---------------------------------------------------------------------------
 // Provider Status
