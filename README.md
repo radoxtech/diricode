@@ -27,7 +27,7 @@ DiriCode is organized into **9 distinct modules**, each owning a well-defined co
 
 | #   | Module                    | Package                                 | Role                                                                                         |
 | --- | ------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
-| 0   | **Diricontext**           | `packages/project-planner/`             | Graph-based directed context — project knowledge across 3 namespaces (docs, plan, reference) |
+| 0   | **Diricontext**           | `packages/diricontext/`                 | Graph-based directed context — project knowledge across 3 namespaces (docs, plan, reference) |
 | 1   | **Code Structural Index** | `packages/code-index/` _(planned)_      | Tree-sitter parsing, PageRank file scoring, FTS5 symbol search                               |
 | 2   | **Prompt Composer**       | `packages/prompt-composer/` _(planned)_ | 3-layer context management: structural index → condenser pipeline → context composer         |
 | 3   | **Semantic Search**       | `packages/semantic-search/` _(planned)_ | Embedding provider abstraction, sqlite-vec storage, hybrid FTS5+vector search                |
@@ -235,7 +235,7 @@ packages/
   memory/                 # Agent Memory — SQLite session/turn state
   server/                 # Hono API server
   web/                    # Web Dashboard (Vite + React + shadcn/ui)
-  project-planner/        # Diricontext — project knowledge graph
+  diricontext/            # Diricontext — project knowledge graph
   prompt-composer/        # Prompt Composer (planned — context management)
   semantic-search/        # Semantic Search (planned — embeddings + hybrid search)
   code-index/             # Code Structural Index (planned — tree-sitter + PageRank)

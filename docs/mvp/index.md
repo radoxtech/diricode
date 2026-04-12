@@ -9,9 +9,11 @@
 ## Iteration Summary
 
 ### POC — "Wheel" (Week 1-2)
+
 **Goal**: Prove the core runtime path works end-to-end with safe tools and a read-only dispatcher.
 
 Epics active:
+
 - [epic-monorepo-setup.md](epic-monorepo-setup.md) — Project scaffolding
 - [epic-config.md](epic-config.md) — JSONC + c12 + Zod (#184)
 - [epic-diri-router.md](epic-diri-router.md) — Model routing (DiriRouter ADR-055) (#3)
@@ -29,9 +31,11 @@ Epics active:
 ---
 
 ### MVP-1 — "Scooter" (Week 3-4)
+
 **Goal**: Ship the first believable runtime: sequential-first execution, explicit checkpoints, evented visibility, and memory-backed continuity.
 
 Epics active:
+
 - [epic-memory.md](epic-memory.md) — SQLite + FTS5 + timeline + local issue system
 - [epic-pipeline.md](epic-pipeline.md) — Turn lifecycle + dispatcher→specialist→tools path + sequential checkpoints
 - [epic-prompt-composer.md](epic-prompt-composer.md) — Prompt Composer (NEW #631)
@@ -46,9 +50,11 @@ Epics active:
 ---
 
 ### MVP-2 — "Bicycle" (Week 5-6)
+
 **Goal**: Expand reliability and autonomy without breaking the controlled MVP-1 runtime.
 
 Epics active:
+
 - [epic-hooks.md](epic-hooks.md) — Hook framework + 6 MVP hooks (#14)
 - [epic-pipeline.md](epic-pipeline.md) — Full pipeline (Interview→Plan→Execute→Verify)
 - [epic-prompt-composer.md](epic-prompt-composer.md) — Deeper compression/budget features (Layer 3)
@@ -64,9 +70,11 @@ Epics active:
 ---
 
 ### MVP-3 — "Car" (Week 7-8)
+
 **Goal**: Complete MVP with richer Web UI, broader observability surfaces, and the wider MVP agent set.
 
 Epics active:
+
 - [epic-web-dashboard.md](epic-web-dashboard.md) — Vite + React + shadcn/ui (#17)
 - [epic-event-stream.md](epic-event-stream.md) — Agent Tree UI + Metrics Bar + Live Activity
 - [epic-semantic-search.md](epic-semantic-search.md) — Semantic Search (NEW #632)
@@ -94,30 +102,30 @@ Epics active:
 
 ## Child Epic Index
 
-| Epic | Package(s) | Iterations | Issues |
-|------|-----------|------------|--------|
-| [monorepo-setup](epic-monorepo-setup.md) | root | POC | DC-SETUP-001..005 |
-| [config](epic-config.md) | packages/core | POC | #184 |
-| [diri-router](epic-diri-router.md) | packages/dirirouter | POC→MVP-2 | #3 |
-| [server](epic-server.md) | packages/server | POC | #192 |
-| [tools](epic-tools.md) | packages/tools | POC→MVP-2 | #5 |
-| [memory](epic-memory.md) | packages/memory | MVP-1 | DC-MEM-001..009 |
-| [agent-workers](epic-agent-workers.md) | packages/agents | POC→MVP-3 | #613 |
-| [orchestrators](epic-orchestrators.md) | packages/orchestrators | MVP-2 | #614 |
-| [hooks](epic-hooks.md) | packages/core | MVP-2 | #14 |
-| [pipeline](epic-pipeline.md) | packages/core | MVP-1→MVP-2 | DC-PIPE-001..009 |
-| [prompt-composer](epic-prompt-composer.md) | packages/prompt-composer | MVP-1→MVP-3 | #631 |
-| [semantic-search](epic-semantic-search.md) | packages/semantic-search | MVP-3 | #632 |
-| [code-index](epic-code-index.md) | packages/code-index | MVP-3 | #633 |
-| [safety](epic-safety.md) | packages/tools | POC→MVP-1 | DC-SAFE-001..005 |
-| [skills](epic-skills.md) | packages/agents | MVP-2→MVP-3 | #15 |
-| [event-stream](epic-event-stream.md) | packages/core | MVP-1→MVP-3 | #623 |
-| [permission-engine](epic-permission-engine.md) | packages/core | MVP-2 | #621 |
-| [web-dashboard](epic-web-dashboard.md) | packages/web | MVP-3 | #17 |
-| [cli](epic-cli.md) | apps/cli | POC→MVP-1 | #9 |
-| [testing-infra](epic-testing-infra.md) | root, test-utils | POC | #10 |
-| [bun-migration](epic-bun-migration.md) | root | POC | #163 |
-| [diricontext](epic-diricontext.md) | packages/project-planner | MVP-1 | #576-612 |
+| Epic                                           | Package(s)               | Iterations  | Issues            |
+| ---------------------------------------------- | ------------------------ | ----------- | ----------------- |
+| [monorepo-setup](epic-monorepo-setup.md)       | root                     | POC         | DC-SETUP-001..005 |
+| [config](epic-config.md)                       | packages/core            | POC         | #184              |
+| [diri-router](epic-diri-router.md)             | packages/dirirouter      | POC→MVP-2   | #3                |
+| [server](epic-server.md)                       | packages/server          | POC         | #192              |
+| [tools](epic-tools.md)                         | packages/tools           | POC→MVP-2   | #5                |
+| [memory](epic-memory.md)                       | packages/memory          | MVP-1       | DC-MEM-001..009   |
+| [agent-workers](epic-agent-workers.md)         | packages/agents          | POC→MVP-3   | #613              |
+| [orchestrators](epic-orchestrators.md)         | packages/orchestrators   | MVP-2       | #614              |
+| [hooks](epic-hooks.md)                         | packages/core            | MVP-2       | #14               |
+| [pipeline](epic-pipeline.md)                   | packages/core            | MVP-1→MVP-2 | DC-PIPE-001..009  |
+| [prompt-composer](epic-prompt-composer.md)     | packages/prompt-composer | MVP-1→MVP-3 | #631              |
+| [semantic-search](epic-semantic-search.md)     | packages/semantic-search | MVP-3       | #632              |
+| [code-index](epic-code-index.md)               | packages/code-index      | MVP-3       | #633              |
+| [safety](epic-safety.md)                       | packages/tools           | POC→MVP-1   | DC-SAFE-001..005  |
+| [skills](epic-skills.md)                       | packages/agents          | MVP-2→MVP-3 | #15               |
+| [event-stream](epic-event-stream.md)           | packages/core            | MVP-1→MVP-3 | #623              |
+| [permission-engine](epic-permission-engine.md) | packages/core            | MVP-2       | #621              |
+| [web-dashboard](epic-web-dashboard.md)         | packages/web             | MVP-3       | #17               |
+| [cli](epic-cli.md)                             | apps/cli                 | POC→MVP-1   | #9                |
+| [testing-infra](epic-testing-infra.md)         | root, test-utils         | POC         | #10               |
+| [bun-migration](epic-bun-migration.md)         | root                     | POC         | #163              |
+| [diricontext](epic-diricontext.md)             | packages/diricontext     | MVP-1       | #576-612          |
 
 ---
 
