@@ -54,8 +54,6 @@ export {
   CascadeModelResolver,
 } from "./model-resolver.js";
 
-export { resolverCandidateFromContracts } from "./model-resolver.js";
-
 export type { CascadeModelResolverOptions, ResolverCandidate } from "./model-resolver.js";
 
 export {

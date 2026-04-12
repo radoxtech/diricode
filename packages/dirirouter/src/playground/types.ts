@@ -34,7 +34,6 @@ import {
 } from "@diricode/dirirouter/llm-picker/types.js";
 import type { DiriRouter } from "@diricode/dirirouter/diri-router.js";
 import type { Registry } from "@diricode/dirirouter/registry.js";
-import type { ModelCardRegistry } from "@diricode/dirirouter/picker/model-card-registry.js";
 import type { SubscriptionRegistry } from "@diricode/dirirouter/picker/subscription-registry.js";
 
 // ---------------------------------------------------------------------------
@@ -81,8 +80,6 @@ export interface BootstrapResult {
   diriRouter: DiriRouter;
   /** Provider registry with registered providers. */
   registry: Registry;
-  /** Model card registry with discovered models. */
-  modelCardRegistry: ModelCardRegistry;
   /** Subscription registry with active subscriptions. */
   subscriptionRegistry: SubscriptionRegistry;
   /** Individual provider health statuses. */

@@ -56,11 +56,11 @@ function renderStartupTable(params: {
   host: string;
   port: string;
   providerStatuses: BootstrapResult["providerStatuses"];
-  modelCardRegistry: BootstrapResult["modelCardRegistry"];
+  subscriptionRegistry: BootstrapResult["subscriptionRegistry"];
 }): string {
-  const { host, port, providerStatuses, modelCardRegistry } = params;
+  const { host, port, providerStatuses, subscriptionRegistry } = params;
 
-  const allModels = modelCardRegistry.list();
+  const allModels = subscriptionRegistry.list();
   const totalModels = allModels.length;
   const { disabledModels } = readPlaygroundState();
   const enabledCount = totalModels - disabledModels.length;
@@ -152,7 +152,7 @@ async function main(): Promise<void> {
       host,
       port: portStr,
       providerStatuses: result.providerStatuses,
-      modelCardRegistry: result.modelCardRegistry,
+      subscriptionRegistry: result.subscriptionRegistry,
     }),
   );
 

@@ -210,7 +210,6 @@ export {
   Tier2BertRouter,
   Tier3TinyLLMRouter,
   CascadeModelResolver,
-  resolverCandidateFromContracts,
   ContextTierSchema,
   contextWindowToTier,
   contextTierMinTokens,

@@ -1,49 +1,64 @@
 import { describe, expect, test } from "vitest";
-import type { ModelCard } from "../contracts/model-card.js";
-import { buildCopilotModelCard } from "../playground/bootstrap.js";
+import { buildCopilotAvailability } from "../playground/bootstrap.js";
 
-describe("buildCopilotModelCard", () => {
-  test("reuses matching static card metadata when model exists", () => {
-    const staticCard: ModelCard = {
-      model: "gpt-4o",
-      family: "gpt-reasoning",
-      capabilities: {
-        tool_calling: true,
-        streaming: true,
-        json_mode: true,
-        vision: true,
-        max_context: 128_000,
-      },
-      reasoning_levels: ["low", "medium", "high"],
-      known_for: {
-        roles: ["coder"],
-        complexities: ["moderate"],
-        specializations: [],
-      },
-      benchmarks: {
-        quality: { by_complexity_role: {}, by_specialization: {} },
-        speed: { tokens_per_second_avg: 0, feedback_count: 0 },
-      },
-      pricing_tier: "standard",
-      learned_from: 0,
-    };
+describe("buildCopilotAvailability", () => {
+  test("creates availability for a model with full capabilities", () => {
+    const result = buildCopilotAvailability({
+      id: "gpt-4o",
+      capabilities: { tool_calls: true, streaming: true, vision: true },
+    });
 
-    const result = buildCopilotModelCard({ id: "gpt-4o" }, [staticCard]);
-    expect(result).toBe(staticCard);
+    expect(result.model_id).toBe("gpt-4o");
+    expect(result.provider).toBe("copilot");
+    expect(result.family).toBe("gpt-standard");
+    expect(result.stability).toBe("stable");
+    expect(result.available).toBe(true);
+    expect(result.context_window).toBe(200_000);
+    expect(result.supports_tool_calling).toBe(true);
+    expect(result.supports_vision).toBe(true);
+    expect(result.supports_structured_output).toBe(true);
+    expect(result.supports_streaming).toBe(true);
+    expect(result.input_cost_per_1k).toBe(0);
+    expect(result.output_cost_per_1k).toBe(0);
+    expect(result.trusted).toBe(true);
+    expect(result.id).toBe("copilot-gpt-4o");
   });
 
-  test("creates fallback metadata for live models not present in static list", () => {
-    const result = buildCopilotModelCard(
-      {
-        id: "claude-sonnet-4",
-        capabilities: { tool_calls: true, streaming: true, vision: true },
-      },
-      [],
-    );
+  test("derives family as gpt-reasoning for o-series models", () => {
+    const result = buildCopilotAvailability({
+      id: "o1-preview",
+      capabilities: { tool_calls: false, streaming: false, vision: false },
+    });
 
-    expect(result.model).toBe("claude-sonnet-4");
-    expect(result.family).toBe("claude");
-    expect(result.capabilities.vision).toBe(true);
-    expect(result.pricing_tier).toBe("standard");
+    expect(result.family).toBe("gpt-reasoning");
+    expect(result.stability).toBe("preview");
+  });
+
+  test("derives family as claude-sonnet for claude models", () => {
+    const result = buildCopilotAvailability({
+      id: "claude-sonnet-4",
+      capabilities: { tool_calls: true, streaming: true, vision: true },
+    });
+
+    expect(result.family).toBe("claude-sonnet");
+    expect(result.stability).toBe("stable");
+  });
+
+  test("defaults capabilities to true when not provided", () => {
+    const result = buildCopilotAvailability({ id: "unknown-model" });
+
+    expect(result.supports_tool_calling).toBe(true);
+    expect(result.supports_streaming).toBe(true);
+    expect(result.supports_structured_output).toBe(true);
+    expect(result.supports_vision).toBe(false);
+  });
+
+  test("uses tool_calling alias from capabilities", () => {
+    const result = buildCopilotAvailability({
+      id: "model-with-tool-calling",
+      capabilities: { tool_calling: true, streaming: false, vision: false },
+    });
+
+    expect(result.supports_tool_calling).toBe(true);
   });
 });

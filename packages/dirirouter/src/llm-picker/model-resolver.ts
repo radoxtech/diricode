@@ -9,13 +9,7 @@ import type {
   RouterClassification,
 } from "./types.js";
 import { contextTierMinTokens, contextWindowToTier } from "./types.js";
-import type {
-  ModelCard,
-  ModelCapabilities,
-  PickerSubscription,
-} from "@diricode/dirirouter/contracts";
-import type { ModelCardRegistry } from "../picker/model-card-registry.js";
-import type { SubscriptionRegistry } from "../picker/subscription-registry.js";
+import type { ProviderModelAvailability } from "@diricode/dirirouter/contracts";
 import {
   DEFAULT_HARD_RULES_CONFIG,
   getPricingTierRejectionReason,
@@ -79,7 +73,7 @@ export interface ResolverCandidate {
   readonly provider: string;
   readonly model: string;
   readonly family: string;
-  readonly pricingTier: PricingTier;
+  readonly pricingTier?: PricingTier;
   readonly contextWindow?: number;
   readonly estimatedCostUsd?: number;
   readonly trusted?: boolean;
@@ -89,66 +83,28 @@ export interface ResolverCandidate {
   readonly knownForComplexities?: readonly string[];
 }
 
-export function resolverCandidateFromContracts(
-  modelCard: ModelCard,
-  subscription: PickerSubscription,
-): ResolverCandidate {
-  return {
-    provider: subscription.provider,
-    model: subscription.model,
-    family: modelCard.family,
-    pricingTier: modelCard.pricing_tier,
-    contextWindow: subscription.context_window,
-    estimatedCostUsd: subscription.cost_per_1k_input + subscription.cost_per_1k_output,
-    trusted: subscription.trusted,
-    modelAttributes: deriveModelAttributesFromCard(modelCard),
-    capabilities: capabilitiesToList(modelCard.capabilities),
-    knownForRoles: modelCard.known_for.roles,
-    knownForComplexities: modelCard.known_for.complexities,
-  };
+function pricingTierFromModelName(modelName: string): PricingTier {
+  const lower = modelName.toLowerCase();
+  if (
+    lower.includes("flash") ||
+    lower.includes("haiku") ||
+    lower.includes("mini") ||
+    lower.includes("turbo") ||
+    lower.includes("highspeed") ||
+    lower.includes("nano") ||
+    lower.includes("lite")
+  ) {
+    return "budget";
+  }
+  if (lower.includes("opus") || lower.endsWith("-plus")) {
+    return "premium";
+  }
+  return "standard";
 }
 
-function capabilitiesToList(capabilities: ModelCapabilities): string[] {
-  const supported: string[] = [];
-
-  if (capabilities.tool_calling) {
-    supported.push("tool-calling");
-  }
-  if (capabilities.streaming) {
-    supported.push("streaming");
-  }
-  if (capabilities.json_mode) {
-    supported.push("json-mode");
-  }
-  if (capabilities.vision) {
-    supported.push("vision");
-  }
-
-  return supported;
-}
-
-function deriveModelAttributesFromCard(modelCard: ModelCard): ModelAttribute[] {
+function deriveModelAttributesFromAvailability(avail: ProviderModelAvailability): ModelAttribute[] {
   const attributes = new Set<ModelAttribute>();
-  const modelName = modelCard.model.toLowerCase();
-  const roles = new Set(modelCard.known_for.roles.map((role) => role.toLowerCase()));
-  const complexities = new Set(
-    modelCard.known_for.complexities.map((level) => level.toLowerCase()),
-  );
-  const specializations = new Set(
-    modelCard.known_for.specializations.map((specialization) => specialization.toLowerCase()),
-  );
-
-  if (roles.has("architect") || complexities.has("complex") || complexities.has("expert")) {
-    attributes.add("reasoning");
-  }
-
-  if (roles.has("reviewer")) {
-    attributes.add("quality");
-  }
-
-  if (modelCard.capabilities.tool_calling || roles.has("coder")) {
-    attributes.add("agentic");
-  }
+  const modelName = avail.model_id.toLowerCase();
 
   if (
     modelName.includes("flash") ||
@@ -160,65 +116,50 @@ function deriveModelAttributesFromCard(modelCard: ModelCard): ModelAttribute[] {
     attributes.add("speed");
   }
 
-  if (modelCard.capabilities.vision && specializations.has("frontend")) {
-    attributes.add("ui-ux");
+  if (modelName.includes("opus")) {
+    attributes.add("creative");
   }
 
-  if ((modelCard.capabilities.max_context ?? 0) >= 200_000 || modelName.includes("pro")) {
+  if (avail.context_window >= 200_000 || modelName.includes("pro")) {
     attributes.add("bulk");
   }
 
-  if (modelName.includes("opus")) {
-    attributes.add("creative");
+  if (avail.supports_tool_calling) {
+    attributes.add("agentic");
   }
 
   return [...attributes];
 }
 
+function capabilitiesFromAvailability(avail: ProviderModelAvailability): string[] {
+  const supported: string[] = [];
+  if (avail.supports_tool_calling) supported.push("tool-calling");
+  if (avail.supports_streaming) supported.push("streaming");
+  if (avail.supports_vision) supported.push("vision");
+  if (avail.supports_structured_output) supported.push("json-mode");
+  return supported;
+}
+
 /**
- * Builds the resolver candidate pool from the ModelCardRegistry and
- * SubscriptionRegistry.  For each registered model-card that also has a
- * matching subscription, a {@link ResolverCandidate} is produced via
- * {@link resolverCandidateFromContracts}.
+ * Builds resolver candidates from provider availability data.
  *
- * Model-cards without a subscription are still included with sensible
- * defaults so that the resolver can at least consider them.
+ * Each availability entry becomes a candidate. Family metadata and
+ * capability heuristics are derived from the availability object.
  */
-function buildCandidatePoolFromRegistries(
-  mcr?: ModelCardRegistry,
-  sr?: SubscriptionRegistry,
+function buildCandidatePoolFromAvailabilities(
+  availabilities: ProviderModelAvailability[],
 ): readonly ResolverCandidate[] {
-  if (mcr === undefined) return [];
-
-  const cards = mcr.list();
-  const candidates: ResolverCandidate[] = [];
-
-  for (const card of cards) {
-    const subs = sr?.findByModel(card.model) ?? [];
-
-    if (subs.length > 0) {
-      for (const sub of subs) {
-        candidates.push(resolverCandidateFromContracts(card, sub));
-      }
-    } else {
-      // Model card exists but no subscription yet – include with defaults
-      // so the resolver can still score it.
-      candidates.push({
-        provider: card.family,
-        model: card.model,
-        family: card.family,
-        pricingTier: card.pricing_tier,
-        contextWindow: card.capabilities.max_context ?? undefined,
-        trusted: false,
-        modelAttributes: deriveModelAttributesFromCard(card),
-        capabilities: capabilitiesToList(card.capabilities),
-        knownForRoles: card.known_for.roles,
-        knownForComplexities: card.known_for.complexities,
-      });
-    }
-  }
-
-  return candidates;
+  return availabilities.map((avail) => ({
+    provider: avail.provider,
+    model: avail.model_id,
+    family: avail.family,
+    pricingTier: pricingTierFromModelName(avail.model_id),
+    contextWindow: avail.context_window,
+    estimatedCostUsd: avail.input_cost_per_1k + avail.output_cost_per_1k,
+    trusted: avail.trusted,
+    modelAttributes: deriveModelAttributesFromAvailability(avail),
+    capabilities: capabilitiesFromAvailability(avail),
+  }));
 }
 
 export interface CascadeModelResolverOptions {
@@ -228,8 +169,8 @@ export interface CascadeModelResolverOptions {
   readonly defaultPolicy?: string;
   readonly hardRulesConfig?: HardRulesConfig;
   readonly candidatePool?: readonly ResolverCandidate[];
-  readonly modelCardRegistry?: ModelCardRegistry;
-  readonly subscriptionRegistry?: SubscriptionRegistry;
+  /** Direct candidate pool — takes precedence over providerAvailabilities */
+  readonly providerAvailabilities?: ProviderModelAvailability[];
 }
 
 export class CascadeModelResolver implements ModelResolver {
@@ -255,7 +196,7 @@ export class CascadeModelResolver implements ModelResolver {
     this.hardRulesConfig = options.hardRulesConfig ?? DEFAULT_HARD_RULES_CONFIG;
     this.candidatePool =
       options.candidatePool ??
-      buildCandidatePoolFromRegistries(options.modelCardRegistry, options.subscriptionRegistry);
+      buildCandidatePoolFromAvailabilities(options.providerAvailabilities ?? []);
   }
 
   async resolve(request: DecisionRequest): Promise<DecisionResponse> {
@@ -396,7 +337,9 @@ export class CascadeModelResolver implements ModelResolver {
     const candidateStates = descriptors.map((descriptor) => {
       const rejectionReason =
         forceExcludedReason ??
-        getPricingTierRejectionReason(descriptor.pricingTier, hardRuleRange) ??
+        (descriptor.pricingTier
+          ? getPricingTierRejectionReason(descriptor.pricingTier, hardRuleRange)
+          : undefined) ??
         this.getConstraintRejectionReason(descriptor, request);
 
       return {
