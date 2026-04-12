@@ -131,38 +131,16 @@ export type {
 } from "./copilot/index.js";
 
 export type {
-  ModelCapabilities,
-  ModelCard,
-  KnownFor,
-  BenchmarkBucket,
-  QualityBenchmark,
-  SpeedBenchmark,
-  Benchmarks,
-  PricingTier,
-} from "./contracts/model-card.js";
-
-export type {
   RateLimit,
   ProviderModelAvailability,
   ProviderModelAvailability as PickerSubscription,
 } from "./contracts/provider-model-availability.js";
 
 export {
-  ModelCapabilitiesSchema,
-  ModelCardSchema,
-  KnownForSchema,
-  BenchmarkBucketSchema,
-  QualityBenchmarkSchema,
-  SpeedBenchmarkSchema,
-  BenchmarksSchema,
-  PricingTierSchema,
   RateLimitSchema,
   ProviderModelAvailabilitySchema,
   ProviderModelAvailabilitySchema as PickerSubscriptionSchema,
   ModelStabilitySchema,
-  ModelCardNotFoundError,
-  ModelCardAlreadyRegisteredError,
-  ModelCardRegistry,
   SubscriptionNotFoundError,
   SubscriptionAlreadyRegisteredError,
   SubscriptionRegistry,
