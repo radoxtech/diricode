@@ -22,6 +22,12 @@ export type {
   SpeedBenchmark,
 } from "./model-card.js";
 
+export {
+  ProviderModelAvailabilitySchema,
+  ModelStabilitySchema,
+} from "./provider-model-availability.js";
+export type { ProviderModelAvailability, ModelStability } from "./provider-model-availability.js";
+
 export { PickerSubscriptionSchema, RateLimitSchema } from "./subscription.js";
 
 export type { PickerSubscription, RateLimit } from "./subscription.js";

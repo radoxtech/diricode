@@ -1,7 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { PickRequestSchema, ChatRequestSchema } from "../playground/types.js";
+import { renderPlayground } from "../playground/html.js";
 
 describe("PickRequestSchema", () => {
+  test("playground form includes default agent.id field", () => {
+    const html = renderPlayground();
+    expect(html).toContain('name="agent.id"');
+    expect(html).toContain('value="playground-agent"');
+  });
+
   test("valid PickRequest passes validation", () => {
     const validPickRequest = {
       agent: { id: "agent-1", role: "coder" },

@@ -5,7 +5,7 @@
  * uniform streaming/generation interface to the rest of DiriCode.
  */
 
-import type { ModelCard } from "./contracts/model-card.js";
+import type { ProviderModelAvailability } from "./contracts/provider-model-availability.js";
 
 // ---------------------------------------------------------------------------
 // Priority
@@ -109,14 +109,14 @@ export interface Provider {
   stream(options: GenerateOptions): AsyncIterable<StreamChunk>;
 
   /**
-   * Returns the static list of ModelCards this provider supports.
+   * Returns the static list of availability descriptors this provider supports.
    *
-   * Each provider is the golden source for its own model metadata.
-   * Cards are registered into the ModelCardRegistry at bootstrap.
+   * Each provider is the golden source for its own model runtime metadata.
+   * Availability entries are used by the registry at bootstrap.
    *
-   * @returns Array of ModelCards (may be empty if provider is not available).
+   * @returns Array of ProviderModelAvailability (may be empty if provider is not available).
    */
-  getModelCards(): ModelCard[];
+  getModelAvailability(): ProviderModelAvailability[];
 }
 
 // ---------------------------------------------------------------------------

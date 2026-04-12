@@ -9,6 +9,7 @@ import { MinimaxProvider } from "../providers/minimax.js";
 import { ProviderPriorities } from "../types.js";
 import type { Provider } from "../types.js";
 import { getGithubToken } from "../copilot/auth.js";
+import type { ModelCard } from "../contracts/model-card.js";
 
 export interface ProviderStatus {
   readonly name: string;
@@ -34,6 +35,100 @@ function registerProviderCards(provider: Provider, mcr: ModelCardRegistry): void
       mcr.register(card);
     }
   }
+}
+
+function inferCopilotPricingTier(modelId: string): ModelCard["pricing_tier"] {
+  const normalized = modelId.toLowerCase();
+
+  if (
+    normalized.includes("opus") ||
+    normalized.includes("gpt-5") ||
+    normalized === "o1" ||
+    normalized.startsWith("o1-")
+  ) {
+    return "premium";
+  }
+
+  if (normalized.includes("mini") || normalized.includes("flash") || normalized.includes("haiku")) {
+    return "budget";
+  }
+
+  return "standard";
+}
+
+function inferCopilotReasoningLevels(modelId: string): ModelCard["reasoning_levels"] {
+  const normalized = modelId.toLowerCase();
+
+  if (normalized.includes("gpt-5") || normalized === "o1" || normalized.startsWith("o1-")) {
+    return ["low", "medium", "high", "xhigh"];
+  }
+
+  if (normalized.includes("mini") || normalized.includes("flash") || normalized.includes("haiku")) {
+    return ["low", "medium"];
+  }
+
+  return ["low", "medium", "high"];
+}
+
+function inferCopilotFamily(modelId: string): string {
+  const normalized = modelId.toLowerCase();
+
+  if (normalized.includes("claude")) return "claude";
+  if (normalized.includes("gemini")) return "gemini";
+  if (normalized.startsWith("gpt") || normalized.startsWith("o1") || normalized.startsWith("o3")) {
+    return "openai";
+  }
+
+  return normalized.split(/[-_]/)[0] || "copilot";
+}
+
+export function buildCopilotModelCard(
+  model: { id: string; capabilities?: unknown },
+  existingCards: readonly ModelCard[],
+): ModelCard {
+  const existingCard = existingCards.find((card) => card.model === model.id);
+  if (existingCard) {
+    return existingCard;
+  }
+
+  const capabilities =
+    typeof model.capabilities === "object" && model.capabilities !== null
+      ? (model.capabilities as Record<string, unknown>)
+      : undefined;
+
+  const toolCalling =
+    typeof capabilities?.tool_calls === "boolean"
+      ? capabilities.tool_calls
+      : typeof capabilities?.tool_calling === "boolean"
+        ? capabilities.tool_calling
+        : true;
+
+  const streaming = typeof capabilities?.streaming === "boolean" ? capabilities.streaming : true;
+  const vision = typeof capabilities?.vision === "boolean" ? capabilities.vision : false;
+
+  return {
+    model: model.id,
+    family: inferCopilotFamily(model.id),
+    capabilities: {
+      tool_calling: toolCalling,
+      streaming,
+      json_mode: true,
+      vision,
+      max_context: 200_000,
+    },
+    reasoning_levels: inferCopilotReasoningLevels(model.id),
+    known_for: {
+      roles: ["coder", "reviewer", "architect", "researcher", "orchestrator"],
+      complexities: ["simple", "moderate", "complex"],
+      specializations: [],
+    },
+    benchmarks: {
+      quality: { by_complexity_role: {}, by_specialization: {} },
+      speed: { tokens_per_second_avg: 0, feedback_count: 0 },
+    },
+    pricing_tier: inferCopilotPricingTier(model.id),
+    learned_from: 0,
+  };
 }
 
 export async function bootstrapPlayground(): Promise<BootstrapResult> {
@@ -153,7 +248,7 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
   try {
     const { CopilotProvider } = await import("../copilot/adapter.js");
     const provider = new CopilotProvider(copilotToken);
-    registerProviderCards(provider, modelCardRegistry);
+    const copilotStaticCards = provider.getModelCards();
 
     if (copilotToken) {
       registry.register(provider, ProviderPriorities.COPILOT);
@@ -161,7 +256,10 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
       const models = await provider.listModels();
       if (models.length > 0) {
         for (const model of models) {
-          if (!modelCardRegistry.has(model.id)) continue;
+          const card = buildCopilotModelCard(model, copilotStaticCards);
+          if (!modelCardRegistry.has(card.model)) {
+            modelCardRegistry.register(card);
+          }
           subscriptionRegistry.register({
             id: `copilot-${model.id}`,
             provider: "copilot",

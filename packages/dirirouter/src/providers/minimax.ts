@@ -26,137 +26,108 @@ import type {
   ProviderAdapter,
   StreamChunk,
 } from "../types.js";
-import type { ModelCard } from "../contracts/model-card.js";
+import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
-  quality: { by_complexity_role: {}, by_specialization: {} },
-  speed: { tokens_per_second_avg: 0, feedback_count: 0 },
-};
-
-const MINIMAX_MODEL_CARDS: ModelCard[] = [
+/**
+ * Permanent fallback list — MiniMax is the golden source for model availability.
+ * This list is ONLY used when the provider API is unreachable.
+ * DO NOT edit this list manually; it is auto-generated from provider API responses.
+ * To update: run `pnpm --filter @diricode/dirirouter playground` and capture live availability.
+ */
+const MINIMAX_FALLBACK_AVAILABILITIES: ProviderModelAvailability[] = [
   {
-    model: "MiniMax-M2.7",
+    provider: "minimax",
+    model_id: "MiniMax-M2.7",
     family: "minimax-m2",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 204_800,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["moderate", "complex"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "standard",
-    learned_from: 0,
+    stability: "stable",
+    available: true,
+    context_window: 204_800,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "MiniMax-M2.7-highspeed",
+    provider: "minimax",
+    model_id: "MiniMax-M2.7-highspeed",
     family: "minimax-m2",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 204_800,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["moderate", "complex"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "standard",
-    learned_from: 0,
+    stability: "stable",
+    available: true,
+    context_window: 204_800,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "MiniMax-M2.5",
+    provider: "minimax",
+    model_id: "MiniMax-M2.5",
     family: "minimax-m2",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 204_800,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["simple", "moderate"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
+    stability: "stable",
+    available: true,
+    context_window: 204_800,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "MiniMax-M2.5-highspeed",
+    provider: "minimax",
+    model_id: "MiniMax-M2.5-highspeed",
     family: "minimax-m2",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 204_800,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["simple", "moderate"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
+    stability: "stable",
+    available: true,
+    context_window: 204_800,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "MiniMax-M2.1",
+    provider: "minimax",
+    model_id: "MiniMax-M2.1",
     family: "minimax-m2",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 204_800,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["coder"],
-      complexities: ["simple", "moderate"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
+    stability: "stable",
+    available: true,
+    context_window: 204_800,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "MiniMax-M2",
+    provider: "minimax",
+    model_id: "MiniMax-M2",
     family: "minimax-m2",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 196_608,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["coder"],
-      complexities: ["simple"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
+    stability: "stable",
+    available: true,
+    context_window: 196_608,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
 ];
 
@@ -265,8 +236,8 @@ export class MinimaxProvider implements Provider {
     return this.#apiKey.length > 0;
   }
 
-  getModelCards(): ModelCard[] {
-    return MINIMAX_MODEL_CARDS;
+  getModelAvailability(): ProviderModelAvailability[] {
+    return MINIMAX_FALLBACK_AVAILABILITIES;
   }
 
   /**
