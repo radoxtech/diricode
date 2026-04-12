@@ -66,8 +66,19 @@ export const IssueSchema = z.object({
 
 export type Issue = z.infer<typeof IssueSchema>;
 
-export { initDatabase } from "./lib/database.js";
-export type { DatabaseInstance } from "./lib/database.js";
+export { DiriContext } from "./lib/diricontext.js";
+export type {
+  Blocker,
+  BlockerAnalysis,
+  DiriContextOptions,
+  ExecutionWave,
+  FeatureMap,
+  FeatureMapEntry,
+  NextWorkItem,
+  ProgressSummary,
+  ProjectStatus,
+  Sprint,
+} from "./lib/diricontext.js";
 export {
   EdgeStorage,
   EdgeValidationError,
@@ -76,7 +87,7 @@ export {
 } from "./lib/edges.js";
 export type { CreateEdgeInput, EdgeFilters } from "./lib/edges.js";
 export { SearchEngine } from "./lib/search.js";
-export * from "./types/index.js";
-export * from "./legacy.js";
 export { NodeStorage } from "./lib/storage.js";
 export { NamespaceStorage } from "./lib/namespaces.js";
+export * from "./types/index.js";
+export * from "./legacy.js";
