@@ -563,6 +563,10 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
 
           <div class="form-row">
             <div class="form-col">
+              <label>Agent ID</label>
+              <input type="text" name="agent.id" value="playground-agent" placeholder="playground-agent">
+            </div>
+            <div class="form-col">
               <label>Agent Role</label>
               <select name="agent.role">
                 <option value="coder">coder</option>
@@ -883,6 +887,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
 
           return {
             agent: { 
+              id: formData.get('agent.id') || 'playground-agent',
               role: formData.get('agent.role'),
               seniority: formData.get('agent.seniority'),
               specializations

@@ -1,6 +1,5 @@
 import { Registry } from "../registry.js";
-import { ModelCardRegistry } from "../picker/model-card-registry.js";
-import { SubscriptionRegistry } from "../picker/subscription-registry.js";
+import { SubscriptionRegistry } from "../llm-picker/subscription-registry.js";
 import { CascadeModelResolver } from "../llm-picker/model-resolver.js";
 import { DiriRouter } from "../diri-router.js";
 import { GeminiProvider } from "../providers/gemini.js";
@@ -9,6 +8,8 @@ import { MinimaxProvider } from "../providers/minimax.js";
 import { ProviderPriorities } from "../types.js";
 import type { Provider } from "../types.js";
 import { getGithubToken } from "../copilot/auth.js";
+import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
+import { normalizeModelFamily } from "../families/normalization.js";
 
 export interface ProviderStatus {
   readonly name: string;
@@ -23,44 +24,79 @@ export interface BootstrapResult {
   readonly startTime: number;
   readonly diriRouter: DiriRouter;
   readonly registry: Registry;
-  readonly modelCardRegistry: ModelCardRegistry;
   readonly subscriptionRegistry: SubscriptionRegistry;
   readonly providerStatuses: readonly ProviderStatus[];
 }
 
-function registerProviderCards(provider: Provider, mcr: ModelCardRegistry): void {
-  for (const card of provider.getModelCards()) {
-    if (!mcr.has(card.model)) {
-      mcr.register(card);
+function registerProviderAvailabilities(provider: Provider, registry: SubscriptionRegistry): void {
+  for (const availability of provider.getModelAvailability()) {
+    const key = availability.id ?? availability.model_id;
+    if (!registry.has(key)) {
+      registry.register(availability);
     }
   }
 }
 
+export function buildCopilotAvailability(model: {
+  id: string;
+  capabilities?: unknown;
+}): ProviderModelAvailability {
+  const normalized = normalizeModelFamily(model.id);
+  const capabilities =
+    typeof model.capabilities === "object" && model.capabilities !== null
+      ? (model.capabilities as Record<string, unknown>)
+      : undefined;
+
+  const toolCalling =
+    typeof capabilities?.tool_calls === "boolean"
+      ? capabilities.tool_calls
+      : typeof capabilities?.tool_calling === "boolean"
+        ? capabilities.tool_calling
+        : true;
+
+  const streaming = typeof capabilities?.streaming === "boolean" ? capabilities.streaming : true;
+  const vision = typeof capabilities?.vision === "boolean" ? capabilities.vision : false;
+
+  return {
+    id: `copilot-${model.id}`,
+    provider: "copilot",
+    model_id: model.id,
+    family: normalized.family,
+    stability: normalized.stability,
+    available: true,
+    context_window: 200_000,
+    supports_tool_calling: toolCalling,
+    supports_vision: vision,
+    supports_structured_output: true,
+    supports_streaming: streaming,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
+  };
+}
+
 export async function bootstrapPlayground(): Promise<BootstrapResult> {
   const startTime = Date.now();
-  const modelCardRegistry = new ModelCardRegistry();
-  const subscriptionRegistry = new SubscriptionRegistry(modelCardRegistry);
+  const subscriptionRegistry = new SubscriptionRegistry();
   const registry = new Registry();
 
-  const resolver = new CascadeModelResolver(undefined, {
-    modelCardRegistry,
-    subscriptionRegistry,
-  });
   const providerStatuses: ProviderStatus[] = [];
+  const allAvailabilities: ProviderModelAvailability[] = [];
 
   const geminiApiKey = process.env.GEMINI_API_KEY?.trim() ?? "";
   try {
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY is not set");
     const provider = new GeminiProvider({ apiKey: geminiApiKey });
-    registerProviderCards(provider, modelCardRegistry);
+    registerProviderAvailabilities(provider, subscriptionRegistry);
     registry.register(provider, ProviderPriorities.GEMINI);
-    const cards = provider.getModelCards();
+    const availabilities = provider.getModelAvailability();
+    allAvailabilities.push(...availabilities);
     providerStatuses.push({
       name: "gemini",
       available: true,
       envVar: "GEMINI_API_KEY",
-      modelCount: cards.length,
-      modelNames: cards.map((c) => c.model),
+      modelCount: availabilities.length,
+      modelNames: availabilities.map((a) => a.model_id),
     });
   } catch (err) {
     providerStatuses.push({
@@ -78,15 +114,16 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
     if (!kimiApiKey) throw new Error("DC_KIMI_API_KEY is not set");
     const { KimiProvider } = await import("../providers/kimi.js");
     const provider = new KimiProvider({ apiKey: kimiApiKey });
-    registerProviderCards(provider, modelCardRegistry);
+    registerProviderAvailabilities(provider, subscriptionRegistry);
     registry.register(provider, ProviderPriorities.KIMI);
-    const cards = provider.getModelCards();
+    const availabilities = provider.getModelAvailability();
+    allAvailabilities.push(...availabilities);
     providerStatuses.push({
       name: "kimi",
       available: true,
       envVar: "DC_KIMI_API_KEY",
-      modelCount: cards.length,
-      modelNames: cards.map((c) => c.model),
+      modelCount: availabilities.length,
+      modelNames: availabilities.map((a) => a.model_id),
     });
   } catch (err) {
     providerStatuses.push({
@@ -103,15 +140,16 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
   try {
     if (!zaiApiKey) throw new Error("DC_ZAI_API_KEY is not set");
     const provider = new ZaiProvider({ apiKey: zaiApiKey });
-    registerProviderCards(provider, modelCardRegistry);
+    registerProviderAvailabilities(provider, subscriptionRegistry);
     registry.register(provider, ProviderPriorities.ZAI);
-    const cards = provider.getModelCards();
+    const availabilities = provider.getModelAvailability();
+    allAvailabilities.push(...availabilities);
     providerStatuses.push({
       name: "zai",
       available: true,
       envVar: "DC_ZAI_API_KEY",
-      modelCount: cards.length,
-      modelNames: cards.map((c) => c.model),
+      modelCount: availabilities.length,
+      modelNames: availabilities.map((a) => a.model_id),
     });
   } catch (err) {
     providerStatuses.push({
@@ -128,15 +166,16 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
   try {
     if (!minimaxApiKey) throw new Error("DC_MINIMAX_API_KEY is not set");
     const provider = new MinimaxProvider({ apiKey: minimaxApiKey });
-    registerProviderCards(provider, modelCardRegistry);
+    registerProviderAvailabilities(provider, subscriptionRegistry);
     registry.register(provider, ProviderPriorities.MINIMAX);
-    const cards = provider.getModelCards();
+    const availabilities = provider.getModelAvailability();
+    allAvailabilities.push(...availabilities);
     providerStatuses.push({
       name: "minimax",
       available: true,
       envVar: "DC_MINIMAX_API_KEY",
-      modelCount: cards.length,
-      modelNames: cards.map((c) => c.model),
+      modelCount: availabilities.length,
+      modelNames: availabilities.map((a) => a.model_id),
     });
   } catch (err) {
     providerStatuses.push({
@@ -153,7 +192,6 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
   try {
     const { CopilotProvider } = await import("../copilot/adapter.js");
     const provider = new CopilotProvider(copilotToken);
-    registerProviderCards(provider, modelCardRegistry);
 
     if (copilotToken) {
       registry.register(provider, ProviderPriorities.COPILOT);
@@ -161,18 +199,12 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
       const models = await provider.listModels();
       if (models.length > 0) {
         for (const model of models) {
-          if (!modelCardRegistry.has(model.id)) continue;
-          subscriptionRegistry.register({
-            id: `copilot-${model.id}`,
-            provider: "copilot",
-            model: model.id,
-            context_window: 200_000,
-            rate_limit: { requests_per_hour: 500, remaining: 500 },
-            trusted: true,
-            available: true,
-            cost_per_1k_input: 0,
-            cost_per_1k_output: 0,
-          });
+          const availability = buildCopilotAvailability(model);
+          const key = availability.id ?? availability.model_id;
+          if (!subscriptionRegistry.has(key)) {
+            subscriptionRegistry.register(availability);
+          }
+          allAvailabilities.push(availability);
         }
         providerStatuses.push({
           name: "copilot",
@@ -214,6 +246,10 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
     });
   }
 
+  const resolver = new CascadeModelResolver(undefined, {
+    providerAvailabilities: allAvailabilities,
+  });
+
   const diriRouter = new DiriRouter({
     registry,
     cascadeResolver: resolver,
@@ -223,7 +259,6 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
     startTime,
     diriRouter,
     registry,
-    modelCardRegistry,
     subscriptionRegistry,
     providerStatuses,
   };

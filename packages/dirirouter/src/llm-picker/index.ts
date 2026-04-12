@@ -54,8 +54,6 @@ export {
   CascadeModelResolver,
 } from "./model-resolver.js";
 
-export { resolverCandidateFromContracts } from "./model-resolver.js";
-
 export type { CascadeModelResolverOptions, ResolverCandidate } from "./model-resolver.js";
 
 export {
@@ -78,3 +76,9 @@ export type {
   HardRuleEvaluationContext,
   HardRuleEvaluationResult,
 } from "./hard-rules.js";
+
+export {
+  SubscriptionNotFoundError,
+  SubscriptionAlreadyRegisteredError,
+  SubscriptionRegistry,
+} from "./subscription-registry.js";

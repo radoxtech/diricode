@@ -16,19 +16,19 @@ export function getModels(c: Context): Response {
     };
   });
 
-  const modelCards = bootstrap.modelCardRegistry.list().map((card) => {
-    const subs = bootstrap.subscriptionRegistry.findByModel(card.model);
+  const availabilities = bootstrap.subscriptionRegistry.list().map((avail) => {
+    const subs = bootstrap.subscriptionRegistry.findByModel(avail.model_id);
     const provider = subs.length > 0 ? (subs[0]?.provider ?? "unknown") : "unknown";
     return {
-      ...card,
-      id: card.model,
+      ...avail,
+      id: avail.model_id,
       provider: provider,
-      enabled: !disabledModels.includes(card.model),
+      enabled: !disabledModels.includes(avail.model_id),
     };
   });
 
   return c.json({
-    modelCards,
+    availabilities,
     disabledModels,
     subscriptions: bootstrap.subscriptionRegistry.list(),
     candidatePool: bootstrap.diriRouter.resolver.getCandidatePool(),
@@ -57,7 +57,8 @@ export async function patchModelToggle(c: Context): Promise<Response> {
 
   // Validate modelId exists
   const bootstrap = getBootstrap(c);
-  if (!bootstrap.modelCardRegistry.has(modelId)) {
+  const subs = bootstrap.subscriptionRegistry.findByModel(modelId);
+  if (subs.length === 0) {
     return c.json({ error: `Model '${modelId}' not found in registry` }, 404);
   }
 

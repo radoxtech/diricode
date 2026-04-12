@@ -1,115 +1,92 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { classifyError } from "../error-classifier.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
-import type { ModelCard } from "../contracts/model-card.js";
+import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
 
-const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
-  quality: { by_complexity_role: {}, by_specialization: {} },
-  speed: { tokens_per_second_avg: 0, feedback_count: 0 },
-};
-
-const KIMI_MODEL_CARDS: ModelCard[] = [
+/**
+ * Permanent fallback list — Kimi is the golden source for model availability.
+ * This list is ONLY used when the provider API is unreachable.
+ * DO NOT edit this list manually; it is auto-generated from provider API responses.
+ * To update: run `pnpm --filter @diricode/dirirouter playground` and capture live availability.
+ */
+const KIMI_FALLBACK_AVAILABILITIES: ProviderModelAvailability[] = [
   {
-    model: "kimi-k2.5",
-    family: "kimi",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: true,
-      max_context: 262_144,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["coder", "researcher", "architect"],
-      complexities: ["moderate", "complex", "expert"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "standard",
-    learned_from: 0,
+    provider: "kimi",
+    model_id: "kimi-k2.5",
+    family: "kimi-k2",
+    stability: "stable",
+    available: true,
+    context_window: 262_144,
+    supports_tool_calling: true,
+    supports_vision: true,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "kimi-k2-0905-preview",
-    family: "kimi",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 262_144,
-    },
-    reasoning_levels: [],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["moderate", "complex"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "standard",
-    learned_from: 0,
+    provider: "kimi",
+    model_id: "kimi-k2-0905-preview",
+    family: "kimi-k2",
+    stability: "preview",
+    available: true,
+    context_window: 262_144,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "kimi-k2-thinking",
-    family: "kimi-thinking",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 262_144,
-    },
-    reasoning_levels: ["low", "medium", "high", "xhigh"],
-    known_for: {
-      roles: ["architect", "reviewer", "coder"],
-      complexities: ["complex", "expert"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "standard",
-    learned_from: 0,
+    provider: "kimi",
+    model_id: "kimi-k2-thinking",
+    family: "kimi-k2-thinking",
+    stability: "stable",
+    available: true,
+    context_window: 262_144,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "kimi-k2-thinking-turbo",
-    family: "kimi-thinking",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 262_144,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["moderate", "complex"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
+    provider: "kimi",
+    model_id: "kimi-k2-thinking-turbo",
+    family: "kimi-k2-thinking",
+    stability: "stable",
+    available: true,
+    context_window: 262_144,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "kimi-k2-turbo-preview",
-    family: "kimi",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 262_144,
-    },
-    reasoning_levels: [],
-    known_for: {
-      roles: ["coder"],
-      complexities: ["simple", "moderate"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
+    provider: "kimi",
+    model_id: "kimi-k2-turbo-preview",
+    family: "kimi-k2",
+    stability: "preview",
+    available: true,
+    context_window: 262_144,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
 ];
+
 import {
   getKimiApiKey,
   hasKimiAuth,
@@ -190,8 +167,8 @@ export class KimiProvider implements Provider {
     });
   }
 
-  getModelCards(): ModelCard[] {
-    return KIMI_MODEL_CARDS;
+  getModelAvailability(): ProviderModelAvailability[] {
+    return KIMI_FALLBACK_AVAILABILITIES;
   }
 
   async generate(options: GenerateOptions): Promise<string> {

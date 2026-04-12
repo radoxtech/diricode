@@ -13,7 +13,7 @@ function makeProvider(name: string, modelId = "test-model"): Provider {
     name,
     defaultModel,
     isAvailable: () => true,
-    getModelCards: () => [],
+    getModelAvailability: () => [],
     generate: (_options: GenerateOptions): Promise<string> => Promise.resolve(`${name}:response`),
     stream: (_options: GenerateOptions): AsyncIterable<StreamChunk> => {
       async function* gen(): AsyncGenerator<StreamChunk> {

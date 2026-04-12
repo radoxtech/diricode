@@ -131,36 +131,34 @@ export type {
 } from "./copilot/index.js";
 
 export type {
-  ModelCapabilities,
-  ModelCard,
-  KnownFor,
-  BenchmarkBucket,
-  QualityBenchmark,
-  SpeedBenchmark,
-  Benchmarks,
-  PricingTier,
   RateLimit,
-  PickerSubscription,
-} from "./picker/index.js";
+  ProviderModelAvailability,
+} from "./contracts/provider-model-availability.js";
 
 export {
-  ModelCapabilitiesSchema,
-  ModelCardSchema,
-  KnownForSchema,
-  BenchmarkBucketSchema,
-  QualityBenchmarkSchema,
-  SpeedBenchmarkSchema,
-  BenchmarksSchema,
-  PricingTierSchema,
   RateLimitSchema,
-  PickerSubscriptionSchema,
-  ModelCardNotFoundError,
-  ModelCardAlreadyRegisteredError,
-  ModelCardRegistry,
+  ProviderModelAvailabilitySchema,
+  ModelStabilitySchema,
+} from "./contracts/index.js";
+
+export {
   SubscriptionNotFoundError,
   SubscriptionAlreadyRegisteredError,
   SubscriptionRegistry,
-} from "./picker/index.js";
+} from "./llm-picker/index.js";
+
+// Families — provider-agnostic normalization and family metadata
+export {
+  normalizeModelFamily,
+  resolveFamilyMetadata,
+  listCanonicalFamilies,
+} from "./families/index.js";
+export type {
+  ModelFamily,
+  ModelStability as Stability,
+  FamilyMetadata,
+  NormalizationResult,
+} from "./families/index.js";
 
 // Utils — models.dev catalog client
 export type {
@@ -191,7 +189,6 @@ export {
   Tier2BertRouter,
   Tier3TinyLLMRouter,
   CascadeModelResolver,
-  resolverCandidateFromContracts,
   ContextTierSchema,
   contextWindowToTier,
   contextTierMinTokens,

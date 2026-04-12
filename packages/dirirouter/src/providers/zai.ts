@@ -14,7 +14,7 @@
 
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { classifyError } from "../error-classifier.js";
-import type { ModelCard } from "../contracts/model-card.js";
+import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
 import type {
   GenerateOptions,
   ModelConfig,
@@ -25,91 +25,72 @@ import type {
   StreamChunk,
 } from "../types.js";
 
-const EMPTY_BENCHMARKS: ModelCard["benchmarks"] = {
-  quality: { by_complexity_role: {}, by_specialization: {} },
-  speed: { tokens_per_second_avg: 0, feedback_count: 0 },
-};
-
-const ZAI_MODEL_CARDS: ModelCard[] = [
+/**
+ * Permanent fallback list — Z.ai is the golden source for model availability.
+ * This list is ONLY used when the provider API is unreachable.
+ * DO NOT edit this list manually; it is auto-generated from provider API responses.
+ * To update: run `pnpm --filter @diricode/dirirouter playground` and capture live availability.
+ */
+const ZAI_FALLBACK_AVAILABILITIES: ProviderModelAvailability[] = [
   {
-    model: "glm-5",
-    family: "glm",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 128_000,
-    },
-    reasoning_levels: [],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["moderate", "complex"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "standard",
-    learned_from: 0,
+    provider: "zai",
+    model_id: "glm-5",
+    family: "glm-5",
+    stability: "stable",
+    available: true,
+    context_window: 128_000,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "glm-5-plus",
-    family: "glm-plus",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: true,
-      max_context: 128_000,
-    },
-    reasoning_levels: ["low", "medium", "high"],
-    known_for: {
-      roles: ["architect", "reviewer", "coder"],
-      complexities: ["moderate", "complex"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "standard",
-    learned_from: 0,
+    provider: "zai",
+    model_id: "glm-5-plus",
+    family: "glm-5-plus",
+    stability: "stable",
+    available: true,
+    context_window: 128_000,
+    supports_tool_calling: true,
+    supports_vision: true,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "glm-5-turbo",
-    family: "glm-turbo",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 128_000,
-    },
-    reasoning_levels: [],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["simple", "moderate"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
+    provider: "zai",
+    model_id: "glm-5-turbo",
+    family: "glm-5-turbo",
+    stability: "stable",
+    available: true,
+    context_window: 128_000,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
   {
-    model: "glm-5-turbo-plus",
-    family: "glm-turbo-plus",
-    capabilities: {
-      tool_calling: true,
-      streaming: true,
-      json_mode: true,
-      vision: false,
-      max_context: 128_000,
-    },
-    reasoning_levels: [],
-    known_for: {
-      roles: ["coder", "researcher"],
-      complexities: ["simple", "moderate"],
-      specializations: [],
-    },
-    benchmarks: EMPTY_BENCHMARKS,
-    pricing_tier: "budget",
-    learned_from: 0,
+    provider: "zai",
+    model_id: "glm-5-turbo-plus",
+    family: "glm-5-turbo-plus",
+    stability: "stable",
+    available: true,
+    context_window: 128_000,
+    supports_tool_calling: true,
+    supports_vision: false,
+    supports_structured_output: true,
+    supports_streaming: true,
+    input_cost_per_1k: 0,
+    output_cost_per_1k: 0,
+    trusted: true,
   },
 ];
 
@@ -212,8 +193,8 @@ export class ZaiProvider implements Provider {
     return this.#apiKey.length > 0;
   }
 
-  getModelCards(): ModelCard[] {
-    return ZAI_MODEL_CARDS;
+  getModelAvailability(): ProviderModelAvailability[] {
+    return ZAI_FALLBACK_AVAILABILITIES;
   }
 
   /**
