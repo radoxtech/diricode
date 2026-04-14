@@ -12,6 +12,18 @@ export type {
 
 export { ProviderPriorities } from "./types.js";
 
+export type {
+  ProviderStatus,
+  ProviderDiscoveryResult,
+  DiscoverableProvider,
+} from "./provider-discovery.js";
+
+export { isDiscoverableProvider } from "./provider-discovery.js";
+
+export type { ProviderDefinition, ProviderDiscoveryEntry } from "./provider-registry.js";
+
+export { getProviderDefinitions, discoverAllProviders } from "./provider-registry.js";
+
 export { ProviderAlreadyRegisteredError, ProviderNotFoundError, Registry } from "./registry.js";
 
 export { ClassifiedError } from "./error-classifier.js";
