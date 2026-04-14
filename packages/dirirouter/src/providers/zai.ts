@@ -15,6 +15,7 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { classifyError } from "../error-classifier.js";
 import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
+import type { ProviderDiscoveryResult } from "../provider-discovery.js";
 import type {
   GenerateOptions,
   ModelConfig,
@@ -195,6 +196,21 @@ export class ZaiProvider implements Provider {
 
   getModelAvailability(): ProviderModelAvailability[] {
     return ZAI_FALLBACK_AVAILABILITIES;
+  }
+
+  async discoverAvailability(): Promise<ProviderDiscoveryResult> {
+    const availabilities = this.getModelAvailability();
+    return {
+      provider: this,
+      availabilities,
+      status: {
+        name: this.name,
+        available: this.isAvailable(),
+        envVar: "DC_ZAI_API_KEY",
+        modelCount: availabilities.length,
+        modelNames: availabilities.map((a) => a.model_id),
+      },
+    };
   }
 
   /**
