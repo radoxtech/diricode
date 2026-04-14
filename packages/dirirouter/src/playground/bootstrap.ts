@@ -5,7 +5,6 @@ import { DiriRouter } from "../diri-router.js";
 import type { ProviderStatus } from "../provider-discovery.js";
 import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
 import { discoverAllProviders } from "../provider-registry.js";
-import type { ProviderDiscoveryEntry } from "../provider-registry.js";
 
 export interface BootstrapResult {
   readonly startTime: number;

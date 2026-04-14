@@ -199,6 +199,7 @@ export class ZaiProvider implements Provider {
   }
 
   async discoverAvailability(): Promise<ProviderDiscoveryResult> {
+    await Promise.resolve();
     const availabilities = this.getModelAvailability();
     return {
       provider: this,

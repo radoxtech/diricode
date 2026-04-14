@@ -1,6 +1,5 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { getProviderDefinitions, discoverAllProviders } from "../provider-registry.js";
-import type { ProviderDiscoveryResult } from "../provider-discovery.js";
 
 describe("getProviderDefinitions", () => {
   test("returns all configured provider definitions", () => {

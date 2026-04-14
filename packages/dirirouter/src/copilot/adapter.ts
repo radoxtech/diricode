@@ -127,7 +127,7 @@ export class CopilotProvider implements Provider {
 
         const normalized = normalizeModelFamily(model.id);
         const capabilities =
-          typeof model.capabilities === "object" && model.capabilities !== null
+          model.capabilities != null
             ? (model.capabilities as unknown as Record<string, unknown>)
             : undefined;
 
