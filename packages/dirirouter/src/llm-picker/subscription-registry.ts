@@ -32,14 +32,16 @@ export class SubscriptionAlreadyRegisteredError extends Error {
 export class SubscriptionRegistry {
   readonly #entries = new Map<string, ProviderModelAvailability>();
 
+  #normalizeId(subscription: ProviderModelAvailability): string {
+    return subscription.id?.trim() ?? `${subscription.provider}-${subscription.model_id}`;
+  }
+
   register(subscription: ProviderModelAvailability): this {
-    if (this.#entries.has(subscription.id ?? subscription.model_id)) {
-      throw new SubscriptionAlreadyRegisteredError(subscription.id ?? subscription.model_id);
+    const key = this.#normalizeId(subscription);
+    if (this.#entries.has(key)) {
+      throw new SubscriptionAlreadyRegisteredError(key);
     }
-    if (!subscription.id?.trim()) {
-      throw new Error(`Cannot register availability: "id" field is required but was not provided`);
-    }
-    this.#entries.set(subscription.id, subscription);
+    this.#entries.set(key, { ...subscription, id: key });
     return this;
   }
 
@@ -72,11 +74,11 @@ export class SubscriptionRegistry {
   }
 
   update(subscription: ProviderModelAvailability): this {
-    if (!this.#entries.has(subscription.id ?? subscription.model_id)) {
-      throw new SubscriptionNotFoundError(subscription.id ?? subscription.model_id);
+    const key = this.#normalizeId(subscription);
+    if (!this.#entries.has(key)) {
+      throw new SubscriptionNotFoundError(key);
     }
-    const key = subscription.id ?? subscription.model_id;
-    this.#entries.set(key, subscription);
+    this.#entries.set(key, { ...subscription, id: key });
     return this;
   }
 

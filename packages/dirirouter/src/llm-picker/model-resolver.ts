@@ -190,8 +190,8 @@ export class CascadeModelResolver implements ModelResolver {
       new Tier3TinyLLMRouter(),
     ];
     this.confidenceThreshold = options.confidenceThreshold ?? DEFAULT_CONFIDENCE_THRESHOLD;
-    this.defaultProvider = options.defaultProvider ?? "anthropic";
-    this.defaultModel = options.defaultModel ?? "claude-3.5-sonnet";
+    this.defaultProvider = options.defaultProvider ?? "";
+    this.defaultModel = options.defaultModel ?? "";
     this.defaultPolicy = options.defaultPolicy ?? "default";
     this.hardRulesConfig = options.hardRulesConfig ?? DEFAULT_HARD_RULES_CONFIG;
     this.candidatePool =
@@ -384,23 +384,7 @@ export class CascadeModelResolver implements ModelResolver {
   }
 
   getCandidatePool(): ResolverCandidate[] {
-    const candidates = this.candidatePool.map((candidate) => ({ ...candidate }));
-
-    const hasDefaultCandidate = candidates.some(
-      (candidate) =>
-        candidate.provider === this.defaultProvider && candidate.model === this.defaultModel,
-    );
-
-    if (!hasDefaultCandidate) {
-      candidates.push({
-        provider: this.defaultProvider,
-        model: this.defaultModel,
-        family: "default",
-        pricingTier: "standard",
-      });
-    }
-
-    return candidates;
+    return this.candidatePool.map((candidate) => ({ ...candidate }));
   }
 
   private getConstraintRejectionReason(

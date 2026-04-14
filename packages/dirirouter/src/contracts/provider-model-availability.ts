@@ -70,7 +70,7 @@ const transformSchema = rawSchema.transform(
     trusted: val.trusted,
     rate_limit: val.rate_limit,
     vendor_metadata: val.vendor_metadata,
-    id: val.id,
+    id: val.id ?? `${val.provider}-${val.model_id ?? ""}`,
   }),
 );
 

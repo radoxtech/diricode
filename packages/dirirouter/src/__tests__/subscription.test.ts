@@ -110,9 +110,10 @@ describe("SubscriptionRegistry", () => {
       expect(() => reg.register(makeAvail({ id: "my-sub" }))).toThrow(/my-sub/);
     });
 
-    it("throws when id is missing", () => {
+    it("auto-generates id from provider-model_id when id is missing", () => {
       const reg = makeRegistry();
-      expect(() => reg.register(makeAvail({ id: undefined }))).toThrow();
+      reg.register(makeAvail({ id: undefined, provider: "copilot", model_id: "gpt-4o" }));
+      expect(reg.get("copilot-gpt-4o").model_id).toBe("gpt-4o");
     });
   });
 

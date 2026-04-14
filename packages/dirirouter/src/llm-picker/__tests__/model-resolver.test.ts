@@ -86,6 +86,22 @@ const hardRuleCandidates: ResolverCandidate[] = [
   },
 ];
 
+const defaultCandidates: ResolverCandidate[] = [
+  {
+    provider: "copilot",
+    model: "gpt-4o",
+    family: "gpt-standard",
+    pricingTier: "standard",
+    contextWindow: 200_000,
+    trusted: true,
+    estimatedCostUsd: 0.2,
+    capabilities: ["tool-calling", "streaming", "json-mode"],
+    modelAttributes: ["reasoning", "agentic"],
+    knownForRoles: ["coding", "coder"],
+    knownForComplexities: ["moderate", "complex"],
+  },
+];
+
 describe("ModelTierSchema", () => {
   it("accepts all valid tiers", () => {
     const tiers: ModelTier[] = ["heavy", "medium", "low"];
@@ -590,7 +606,7 @@ describe("CascadeModelResolver", () => {
 
   describe("resolve() — response shape", () => {
     it("returns a valid DecisionResponse for a standard request", async () => {
-      const resolver = new CascadeModelResolver();
+      const resolver = new CascadeModelResolver(undefined, { candidatePool: defaultCandidates });
       const response = await resolver.resolve(validRequest());
 
       const parsed = DecisionResponseSchema.safeParse(response);
@@ -598,13 +614,13 @@ describe("CascadeModelResolver", () => {
     });
 
     it("echoes the requestId from the input", async () => {
-      const resolver = new CascadeModelResolver();
+      const resolver = new CascadeModelResolver(undefined, { candidatePool: defaultCandidates });
       const response = await resolver.resolve(validRequest());
       expect(response.requestId).toBe(validRequest().requestId);
     });
 
     it("generates a unique decisionId (UUID)", async () => {
-      const resolver = new CascadeModelResolver();
+      const resolver = new CascadeModelResolver(undefined, { candidatePool: defaultCandidates });
       const r1 = await resolver.resolve(validRequest());
       const r2 = await resolver.resolve(validRequest());
       expect(r1.decisionId).not.toBe(r2.decisionId);
@@ -614,13 +630,13 @@ describe("CascadeModelResolver", () => {
     });
 
     it("sets status to resolved", async () => {
-      const resolver = new CascadeModelResolver();
+      const resolver = new CascadeModelResolver(undefined, { candidatePool: defaultCandidates });
       const response = await resolver.resolve(validRequest());
       expect(response.status).toBe("resolved");
     });
 
     it("includes selected model", async () => {
-      const resolver = new CascadeModelResolver();
+      const resolver = new CascadeModelResolver(undefined, { candidatePool: defaultCandidates });
       const response = await resolver.resolve(validRequest());
       expect(response.selected).toBeDefined();
       expect(response.selected?.provider).toBeDefined();
@@ -628,30 +644,42 @@ describe("CascadeModelResolver", () => {
     });
 
     it("includes classificationTrace", async () => {
-      const resolver = new CascadeModelResolver();
+      const resolver = new CascadeModelResolver(undefined, { candidatePool: defaultCandidates });
       const response = await resolver.resolve(validRequest());
       expect(response.classificationTrace).toBeDefined();
       expect(response.classificationTrace?.tierHistory.length).toBeGreaterThan(0);
     });
 
     it("uses policyOverride when provided", async () => {
-      const resolver = new CascadeModelResolver();
+      const resolver = new CascadeModelResolver(undefined, { candidatePool: defaultCandidates });
       const req: DecisionRequest = { ...validRequest(), policyOverride: "cost-optimized" };
       const response = await resolver.resolve(req);
       expect(response.decisionMeta?.policyUsed).toBe("cost-optimized");
     });
 
     it("uses default policy when policyOverride is null", async () => {
-      const resolver = new CascadeModelResolver(undefined, { defaultPolicy: "my-policy" });
+      const resolver = new CascadeModelResolver(undefined, {
+        defaultPolicy: "my-policy",
+        candidatePool: defaultCandidates,
+      });
       const req: DecisionRequest = { ...validRequest(), policyOverride: null };
       const response = await resolver.resolve(req);
       expect(response.decisionMeta?.policyUsed).toBe("my-policy");
     });
 
     it("timestamp is a valid ISO datetime string", async () => {
-      const resolver = new CascadeModelResolver();
+      const resolver = new CascadeModelResolver(undefined, { candidatePool: defaultCandidates });
       const response = await resolver.resolve(validRequest());
       expect(new Date(response.timestamp).toISOString()).toBe(response.timestamp);
+    });
+
+    it("returns no_match when candidate pool is empty", async () => {
+      const resolver = new CascadeModelResolver(undefined, { candidatePool: [] });
+      const response = await resolver.resolve(validRequest());
+
+      expect(response.status).toBe("no_match");
+      expect(response.selected).toBeUndefined();
+      expect(response.candidates).toEqual([]);
     });
   });
 

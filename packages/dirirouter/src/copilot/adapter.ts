@@ -3,129 +3,7 @@ import type { CopilotSession, ModelInfo, SessionEvent } from "@github/copilot-sd
 import { classifyError } from "../error-classifier.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
 import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
-
-const COPILOT_FALLBACK_AVAILABILITIES: ProviderModelAvailability[] = [
-  {
-    provider: "copilot",
-    model_id: "gpt-4o",
-    family: "gpt-reasoning",
-    stability: "stable",
-    available: true,
-    context_window: 128_000,
-    supports_tool_calling: true,
-    supports_vision: true,
-    supports_structured_output: true,
-    supports_streaming: true,
-    input_cost_per_1k: 0,
-    output_cost_per_1k: 0,
-    trusted: true,
-  },
-  {
-    provider: "copilot",
-    model_id: "gpt-4o-mini",
-    family: "gpt-mini",
-    stability: "stable",
-    available: true,
-    context_window: 128_000,
-    supports_tool_calling: true,
-    supports_vision: true,
-    supports_structured_output: true,
-    supports_streaming: true,
-    input_cost_per_1k: 0,
-    output_cost_per_1k: 0,
-    trusted: true,
-  },
-  {
-    provider: "copilot",
-    model_id: "o1",
-    family: "gpt-reasoning",
-    stability: "stable",
-    available: true,
-    context_window: 200_000,
-    supports_tool_calling: true,
-    supports_vision: true,
-    supports_structured_output: true,
-    supports_streaming: true,
-    input_cost_per_1k: 0,
-    output_cost_per_1k: 0,
-    trusted: true,
-  },
-  {
-    provider: "copilot",
-    model_id: "o1-mini",
-    family: "gpt-reasoning",
-    stability: "preview",
-    available: true,
-    context_window: 128_000,
-    supports_tool_calling: true,
-    supports_vision: false,
-    supports_structured_output: true,
-    supports_streaming: true,
-    input_cost_per_1k: 0,
-    output_cost_per_1k: 0,
-    trusted: true,
-  },
-  {
-    provider: "copilot",
-    model_id: "o3-mini",
-    family: "gpt-reasoning",
-    stability: "preview",
-    available: true,
-    context_window: 200_000,
-    supports_tool_calling: true,
-    supports_vision: false,
-    supports_structured_output: true,
-    supports_streaming: true,
-    input_cost_per_1k: 0,
-    output_cost_per_1k: 0,
-    trusted: true,
-  },
-  {
-    provider: "copilot",
-    model_id: "claude-3.5-sonnet",
-    family: "claude-sonnet",
-    stability: "stable",
-    available: true,
-    context_window: 200_000,
-    supports_tool_calling: true,
-    supports_vision: true,
-    supports_structured_output: true,
-    supports_streaming: true,
-    input_cost_per_1k: 0,
-    output_cost_per_1k: 0,
-    trusted: true,
-  },
-  {
-    provider: "copilot",
-    model_id: "claude-3-opus",
-    family: "claude-opus",
-    stability: "stable",
-    available: true,
-    context_window: 200_000,
-    supports_tool_calling: true,
-    supports_vision: true,
-    supports_structured_output: true,
-    supports_streaming: true,
-    input_cost_per_1k: 0,
-    output_cost_per_1k: 0,
-    trusted: true,
-  },
-  {
-    provider: "copilot",
-    model_id: "gemini-2.5-pro",
-    family: "gemini-pro",
-    stability: "stable",
-    available: true,
-    context_window: 1_048_576,
-    supports_tool_calling: true,
-    supports_vision: true,
-    supports_structured_output: true,
-    supports_streaming: true,
-    input_cost_per_1k: 0,
-    output_cost_per_1k: 0,
-    trusted: true,
-  },
-];
+import type { ProviderDiscoveryResult } from "../provider-discovery.js";
 import { getGithubToken, storeGithubToken, clearGithubToken } from "./auth.js";
 import {
   initiateGithubDeviceFlow,
@@ -217,7 +95,113 @@ export class CopilotProvider implements Provider {
   }
 
   getModelAvailability(): ProviderModelAvailability[] {
-    return COPILOT_FALLBACK_AVAILABILITIES;
+    return [];
+  }
+
+  async discoverAvailability(): Promise<ProviderDiscoveryResult> {
+    const { normalizeModelFamily } = await import("../families/normalization.js");
+
+    if (!this.isAvailable()) {
+      return {
+        provider: this,
+        availabilities: [],
+        status: {
+          name: this.name,
+          available: false,
+          error: "No token. Run 'diricode login copilot' to authenticate.",
+          envVar: "GITHUB_TOKEN",
+          modelCount: 0,
+          modelNames: [],
+        },
+      };
+    }
+
+    try {
+      const models = await this.listModels();
+      const seen = new Set<string>();
+      const availabilities: ProviderModelAvailability[] = [];
+
+      for (const model of models) {
+        if (seen.has(model.id)) continue;
+        seen.add(model.id);
+
+        const normalized = normalizeModelFamily(model.id);
+        const capabilities =
+          model.capabilities != null
+            ? (model.capabilities as unknown as Record<string, unknown>)
+            : undefined;
+
+        const toolCalling =
+          typeof capabilities?.tool_calls === "boolean"
+            ? capabilities.tool_calls
+            : typeof capabilities?.tool_calling === "boolean"
+              ? capabilities.tool_calling
+              : true;
+        const streaming =
+          typeof capabilities?.streaming === "boolean" ? capabilities.streaming : true;
+        const vision = typeof capabilities?.vision === "boolean" ? capabilities.vision : false;
+
+        availabilities.push({
+          provider: this.name,
+          model_id: model.id,
+          family: normalized.family,
+          stability: normalized.stability,
+          available: true,
+          context_window: 200_000,
+          supports_tool_calling: toolCalling,
+          supports_vision: vision,
+          supports_structured_output: true,
+          supports_streaming: streaming,
+          input_cost_per_1k: 0,
+          output_cost_per_1k: 0,
+          trusted: true,
+        });
+      }
+
+      await this.stop();
+
+      if (availabilities.length === 0) {
+        return {
+          provider: this,
+          availabilities: [],
+          status: {
+            name: this.name,
+            available: false,
+            error: "Copilot API returned no models.",
+            envVar: "GITHUB_TOKEN",
+            modelCount: 0,
+            modelNames: [],
+          },
+        };
+      }
+
+      return {
+        provider: this,
+        availabilities,
+        status: {
+          name: this.name,
+          available: true,
+          envVar: "GITHUB_TOKEN",
+          modelCount: availabilities.length,
+          modelNames: availabilities.map((a) => a.model_id),
+        },
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.stop();
+      return {
+        provider: this,
+        availabilities: [],
+        status: {
+          name: this.name,
+          available: false,
+          error: `API error: ${message}`,
+          envVar: "GITHUB_TOKEN",
+          modelCount: 0,
+          modelNames: [],
+        },
+      };
+    }
   }
 
   async listModels(): Promise<CopilotModelInfo[]> {

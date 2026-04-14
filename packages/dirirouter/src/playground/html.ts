@@ -811,7 +811,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
             const mRes = await fetch('/api/models');
             if (mRes.ok) {
               const data = await mRes.json();
-              const modelCards = data.modelCards || [];
+              const modelCards = data.availabilities || data.modelCards || [];
               
               this.totalModelsCount = modelCards.length;
               this.enabledModelsCount = modelCards.filter(m => m.enabled).length;

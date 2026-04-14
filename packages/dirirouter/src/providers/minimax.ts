@@ -26,6 +26,7 @@ import type {
   ProviderAdapter,
   StreamChunk,
 } from "../types.js";
+import type { ProviderDiscoveryResult } from "../provider-discovery.js";
 import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
 
 // ---------------------------------------------------------------------------
@@ -238,6 +239,22 @@ export class MinimaxProvider implements Provider {
 
   getModelAvailability(): ProviderModelAvailability[] {
     return MINIMAX_FALLBACK_AVAILABILITIES;
+  }
+
+  async discoverAvailability(): Promise<ProviderDiscoveryResult> {
+    await Promise.resolve();
+    const availabilities = this.getModelAvailability();
+    return {
+      provider: this,
+      availabilities,
+      status: {
+        name: this.name,
+        available: this.isAvailable(),
+        envVar: "DC_MINIMAX_API_KEY",
+        modelCount: availabilities.length,
+        modelNames: availabilities.map((a) => a.model_id),
+      },
+    };
   }
 
   /**

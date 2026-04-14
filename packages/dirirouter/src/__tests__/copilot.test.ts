@@ -144,6 +144,81 @@ describe("CopilotProvider", () => {
     });
   });
 
+  describe("discoverAvailability", () => {
+    it("returns unavailable status when no token is available", async () => {
+      vi.stubEnv("DC_GITHUB_TOKEN", "");
+      vi.stubEnv("GITHUB_TOKEN", "");
+      vi.stubEnv("GH_TOKEN", "");
+      const provider = new CopilotProvider();
+      const result = await provider.discoverAvailability();
+      expect(result.status.available).toBe(false);
+      expect(result.availabilities).toHaveLength(0);
+      expect(result.status.error).toContain("No token");
+    });
+
+    it("maps live models to provider-produced availabilities", async () => {
+      mockListModels.mockResolvedValue([
+        {
+          id: "gpt-5.4",
+          name: "GPT-5.4",
+          capabilities: { tool_calls: true, streaming: true, vision: false },
+        },
+        {
+          id: "claude-sonnet-4.6",
+          name: "Claude Sonnet 4.6",
+          capabilities: { tool_calls: true, streaming: true, vision: true },
+        },
+      ]);
+
+      const provider = new CopilotProvider("test-token");
+      const result = await provider.discoverAvailability();
+
+      expect(result.status.available).toBe(true);
+      expect(result.availabilities).toHaveLength(2);
+      expect(result.availabilities[0]?.model_id).toBe("gpt-5.4");
+      expect(result.availabilities[0]?.provider).toBe("copilot");
+      expect(result.availabilities[1]?.model_id).toBe("claude-sonnet-4.6");
+      expect(result.availabilities[1]?.supports_vision).toBe(true);
+      expect(mockStop).toHaveBeenCalled();
+    });
+
+    it("deduplicates models by id", async () => {
+      mockListModels.mockResolvedValue([
+        { id: "gpt-4o", name: "GPT-4o", capabilities: {} },
+        { id: "gpt-4o", name: "GPT-4o dup", capabilities: {} },
+      ]);
+
+      const provider = new CopilotProvider("test-token");
+      const result = await provider.discoverAvailability();
+
+      expect(result.availabilities).toHaveLength(1);
+      expect(result.availabilities[0]?.model_id).toBe("gpt-4o");
+    });
+
+    it("returns error status when listModels throws", async () => {
+      mockListModels.mockRejectedValue(new Error("Network error"));
+      const provider = new CopilotProvider("test-token");
+      const result = await provider.discoverAvailability();
+
+      expect(result.status.available).toBe(false);
+      expect(result.status.error).toContain("Network error");
+      expect(result.availabilities).toHaveLength(0);
+      expect(mockStop).toHaveBeenCalled();
+    });
+
+    it("does not depend on hardcoded fallback constants", async () => {
+      mockListModels.mockResolvedValue([
+        { id: "totally-new-model", name: "New", capabilities: {} },
+      ]);
+
+      const provider = new CopilotProvider("test-token");
+      const result = await provider.discoverAvailability();
+
+      expect(result.status.available).toBe(true);
+      expect(result.availabilities[0]?.model_id).toBe("totally-new-model");
+    });
+  });
+
   describe("createCopilotProvider", () => {
     it("creates a CopilotProvider instance", () => {
       const provider = createCopilotProvider("test-token");

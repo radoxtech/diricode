@@ -1,6 +1,7 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { classifyError } from "../error-classifier.js";
 import type { GenerateOptions, ModelConfig, Provider, StreamChunk } from "../types.js";
+import type { ProviderDiscoveryResult } from "../provider-discovery.js";
 import type { ProviderModelAvailability } from "../contracts/provider-model-availability.js";
 
 /**
@@ -169,6 +170,22 @@ export class KimiProvider implements Provider {
 
   getModelAvailability(): ProviderModelAvailability[] {
     return KIMI_FALLBACK_AVAILABILITIES;
+  }
+
+  async discoverAvailability(): Promise<ProviderDiscoveryResult> {
+    await Promise.resolve();
+    const availabilities = this.getModelAvailability();
+    return {
+      provider: this,
+      availabilities,
+      status: {
+        name: this.name,
+        available: this.isAvailable(),
+        envVar: "DC_KIMI_API_KEY",
+        modelCount: availabilities.length,
+        modelNames: availabilities.map((a) => a.model_id),
+      },
+    };
   }
 
   async generate(options: GenerateOptions): Promise<string> {

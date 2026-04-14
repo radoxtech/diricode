@@ -32,27 +32,12 @@ import {
   DecisionConstraintsSchema,
   ContextTierSchema,
 } from "@diricode/dirirouter/llm-picker/types.js";
-import type { DiriRouter } from "@diricode/dirirouter/diri-router.js";
-import type { Registry } from "@diricode/dirirouter/registry.js";
-import type { SubscriptionRegistry } from "@diricode/dirirouter/llm-picker/subscription-registry.js";
+import type { ProviderStatus } from "../provider-discovery.js";
+import type { DiriRouter } from "../diri-router.js";
+import type { Registry } from "../registry.js";
+import type { SubscriptionRegistry } from "../llm-picker/subscription-registry.js";
 
-// ---------------------------------------------------------------------------
-// Provider Status
-// ---------------------------------------------------------------------------
-
-/**
- * Health status of a single provider.
- */
-export interface ProviderStatus {
-  /** Provider name (e.g. "gemini", "kimi"). */
-  name: string;
-  /** Whether the provider is available for requests. */
-  available: boolean;
-  /** Error message if unavailable. */
-  error?: string;
-  /** Environment variable name required for this provider. */
-  envVar: string;
-}
+export type { ProviderStatus };
 
 // ---------------------------------------------------------------------------
 // Playground Configuration
