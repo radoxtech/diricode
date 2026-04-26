@@ -15,6 +15,9 @@ type ZeroShotClassifier = (text: string, labels: string[], options: { multi_labe
   scores: number[];
 }>;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PipelineResult = any;
+
 let debertaPipelineCache: ZeroShotClassifier | null = null;
 let modernBertPipelineCache: ZeroShotClassifier | null = null;
 let debertaLoading = false;
@@ -26,9 +29,10 @@ async function getDebertaPipeline(): Promise<ZeroShotClassifier> {
   if (!debertaLoading) {
     debertaLoading = true;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       debertaPipelineCache = (await pipeline("zero-shot-classification", DEBERTA_MODEL_ID, {
         device: "cpu",
-      })) as ZeroShotClassifier;
+      })) as PipelineResult as ZeroShotClassifier;
     } finally {
       debertaLoading = false;
     }
@@ -48,9 +52,10 @@ async function getModernBertPipeline(): Promise<ZeroShotClassifier> {
   if (!modernBertLoading) {
     modernBertLoading = true;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       modernBertPipelineCache = (await pipeline("zero-shot-classification", MODERNBERT_MODEL_ID, {
         device: "cpu",
-      })) as ZeroShotClassifier;
+      })) as PipelineResult as ZeroShotClassifier;
     } finally {
       modernBertLoading = false;
     }
