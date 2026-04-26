@@ -10,53 +10,58 @@ env.allowLocalModels = true;
 const DEBERTA_MODEL_ID = "Xenova/deberta-large-mnli-zero-cls";
 const MODERNBERT_MODEL_ID = "onnx-community/ModernBERT-large-zeroshot-v2.0-ONNX";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let debertaPipelineCache: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let modernBertPipelineCache: any = null;
+type ZeroShotClassifier = (text: string, labels: string[], options: { multi_label: boolean }) => Promise<{
+  labels: string[];
+  scores: number[];
+}>;
+
+let debertaPipelineCache: ZeroShotClassifier | null = null;
+let modernBertPipelineCache: ZeroShotClassifier | null = null;
 let debertaLoading = false;
 let modernBertLoading = false;
 
-async function getDebertaPipeline() {
+async function getDebertaPipeline(): Promise<ZeroShotClassifier> {
   if (debertaPipelineCache) return debertaPipelineCache;
-  if (debertaLoading) {
+  
+  if (!debertaLoading) {
+    debertaLoading = true;
+    try {
+      debertaPipelineCache = (await pipeline("zero-shot-classification", DEBERTA_MODEL_ID, {
+        device: "cpu",
+      })) as ZeroShotClassifier;
+    } finally {
+      debertaLoading = false;
+    }
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     while (debertaLoading) await new Promise((r) => setTimeout(r, 100));
-    return debertaPipelineCache;
   }
-  debertaLoading = true;
-  try {
-    console.log(
-      "[classifier-engine] Loading DeBERTa model (first time - downloading if needed)...",
-    );
-    debertaPipelineCache = await pipeline("zero-shot-classification", DEBERTA_MODEL_ID, {
-      device: "cpu",
-    });
-    console.log("[classifier-engine] DeBERTa model loaded successfully");
-    return debertaPipelineCache;
-  } finally {
-    debertaLoading = false;
-  }
+  
+  const cache = debertaPipelineCache;
+  if (!cache) throw new Error("Failed to load DeBERTa pipeline");
+  return cache;
 }
 
-async function getModernBertPipeline() {
+async function getModernBertPipeline(): Promise<ZeroShotClassifier> {
   if (modernBertPipelineCache) return modernBertPipelineCache;
-  if (modernBertLoading) {
+  
+  if (!modernBertLoading) {
+    modernBertLoading = true;
+    try {
+      modernBertPipelineCache = (await pipeline("zero-shot-classification", MODERNBERT_MODEL_ID, {
+        device: "cpu",
+      })) as ZeroShotClassifier;
+    } finally {
+      modernBertLoading = false;
+    }
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     while (modernBertLoading) await new Promise((r) => setTimeout(r, 100));
-    return modernBertPipelineCache;
   }
-  modernBertLoading = true;
-  try {
-    console.log(
-      "[classifier-engine] Loading ModernBERT model (first time - downloading if needed)...",
-    );
-    modernBertPipelineCache = await pipeline("zero-shot-classification", MODERNBERT_MODEL_ID, {
-      device: "cpu",
-    });
-    console.log("[classifier-engine] ModernBERT model loaded successfully");
-    return modernBertPipelineCache;
-  } finally {
-    modernBertLoading = false;
-  }
+  
+  const cache = modernBertPipelineCache;
+  if (!cache) throw new Error("Failed to load ModernBERT pipeline");
+  return cache;
 }
 
 export interface ClassifierTagScore {
@@ -70,7 +75,7 @@ export interface ClassifierResult {
   modelName: string;
   tagScores: ClassifierTagScore[];
   primaryTags: ClassifierTagScore[];
-  rawOutput?: Array<{ label: string; score: number }>;
+  rawOutput?: { label: string; score: number }[];
   isTrueZeroShot: boolean;
 }
 
@@ -79,24 +84,20 @@ async function debeNli(text: string): Promise<ClassifierResult> {
 
   const classifier = await getDebertaPipeline();
 
-  let raw;
-  try {
-    raw = await (classifier as any)(text, labels, { multi_label: true });
-  } catch (err) {
-    console.error("[classifier-engine] DeBERTa classification failed:", err);
-    throw err;
-  }
+  const raw = await classifier(text, labels, { multi_label: true });
 
-  const rawLabels: string[] = (raw as { labels?: string[] }).labels ?? [];
-  const rawScores: number[] = (raw as { scores?: number[] }).scores ?? [];
+  const rawLabels = raw.labels;
+  const rawScores = raw.scores;
 
   const tagScores: ClassifierTagScore[] = rawLabels.map((label, i) => {
-    const score = rawScores[i] ?? 0;
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    const score = rawScores[i] || 0;
     const tag = label as CanonicalRoutingTag;
     return {
-      tag: CANONICAL_ROUTING_TAGS.includes(tag) ? tag : (tag as CanonicalRoutingTag),
+      tag: CANONICAL_ROUTING_TAGS.includes(tag) ? tag : (label as CanonicalRoutingTag),
       score,
-      definition: ROUTING_TAG_DEFINITIONS[tag as CanonicalRoutingTag] ?? "",
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      definition: ROUTING_TAG_DEFINITIONS[tag] ?? "",
     };
   });
 
@@ -107,7 +108,8 @@ async function debeNli(text: string): Promise<ClassifierResult> {
     modelName: "DeBERTa-v3-large (NLI zero-shot)",
     tagScores,
     primaryTags: tagScores.slice(0, 3),
-    rawOutput: rawLabels.map((label, i) => ({ label, score: rawScores[i] ?? 0 })),
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    rawOutput: rawLabels.map((label, i) => ({ label, score: rawScores[i] || 0 })),
     isTrueZeroShot: true,
   };
 }
@@ -117,27 +119,22 @@ async function modernBertTc(text: string): Promise<ClassifierResult> {
 
   const classifier = await getModernBertPipeline();
 
-  let raw;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    raw = await (classifier as any)(text, labels, {
-      multi_label: true,
-    });
-  } catch (err) {
-    console.error("[classifier-engine] ModernBERT classification failed:", err);
-    throw err;
-  }
+  const raw = await classifier(text, labels, {
+    multi_label: true,
+  });
 
-  const rawLabels: string[] = (raw as { labels?: string[] }).labels ?? [];
-  const rawScores: number[] = (raw as { scores?: number[] }).scores ?? [];
+  const rawLabels = raw.labels;
+  const rawScores = raw.scores;
 
   const tagScores: ClassifierTagScore[] = rawLabels.map((label, i) => {
-    const score = rawScores[i] ?? 0;
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    const score = rawScores[i] || 0;
     const tag = label as CanonicalRoutingTag;
     return {
-      tag: CANONICAL_ROUTING_TAGS.includes(tag) ? tag : (tag as CanonicalRoutingTag),
+      tag: CANONICAL_ROUTING_TAGS.includes(tag) ? tag : (label as CanonicalRoutingTag),
       score,
-      definition: ROUTING_TAG_DEFINITIONS[tag as CanonicalRoutingTag] ?? "",
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      definition: ROUTING_TAG_DEFINITIONS[tag] ?? "",
     };
   });
 
@@ -148,7 +145,8 @@ async function modernBertTc(text: string): Promise<ClassifierResult> {
     modelName: "ModernBERT-large (zero-shot)",
     tagScores,
     primaryTags: tagScores.slice(0, 3),
-    rawOutput: rawLabels.map((label, i) => ({ label, score: rawScores[i] ?? 0 })),
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    rawOutput: rawLabels.map((label, i) => ({ label, score: rawScores[i] || 0 })),
     isTrueZeroShot: true,
   };
 }
@@ -165,17 +163,17 @@ export interface RoutingClassificationResult {
   inputText: string;
   deberta: ClassifierResult;
   modernBert: ClassifierResult;
-  agreementTags: Array<{
+  agreementTags: {
     tag: CanonicalRoutingTag;
     debertaScore: number;
     modernBertScore: number;
     agreed: boolean;
-  }>;
-  disagreementTags: Array<{
+  }[];
+  disagreementTags: {
     tag: CanonicalRoutingTag;
     debertaScore: number;
     modernBertScore: number;
-  }>;
+  }[];
 }
 
 export async function classifyRoutingTags(
@@ -190,14 +188,8 @@ export async function classifyRoutingTags(
   ].join("\n");
 
   const [debertaResult, modernBertResult] = await Promise.all([
-    debeNli(inputText).catch((err) => {
-      console.error("[classifier-engine] DeBERTa failed:", err);
-      return null;
-    }),
-    modernBertTc(inputText).catch((err) => {
-      console.error("[classifier-engine] ModernBERT failed:", err);
-      return null;
-    }),
+    debeNli(inputText).catch(() => null),
+    modernBertTc(inputText).catch(() => null),
   ]);
 
   const deberta = debertaResult ?? {

@@ -614,10 +614,10 @@ agreementCount: classifierComparison.agreementTags.length,
       if (selectedBd?.semanticSimilarity !== undefined) {
         const simPct = (selectedBd.semanticSimilarity * 100).toFixed(1);
         steps.push(`🧠 Embeddings Analysis:`);
-        steps.push(`   Agent skills: "${selectedBd.agentSpecializationsMatched}"`);
-        steps.push(`   Best model attribute matched: "${selectedBd.modelAttributesMatched}"`);
+        steps.push(`   Agent skills: "${selectedBd.agentSpecializationsMatched ?? ''}"`);
+        steps.push(`   Best model attribute matched: "${selectedBd.modelAttributesMatched ?? ''}"`);
         steps.push(
-          `   Semantic similarity: ${simPct}%${selectedBd.semanticBoost ? ` (+${selectedBd.semanticBoost} pts boost)` : ""}`,
+          `   Semantic similarity: ${simPct}%${selectedBd.semanticBoost ? ` (+${String(selectedBd.semanticBoost)} pts boost)` : ""}`,
         );
       }
     }
@@ -914,8 +914,8 @@ agreementCount: classifierComparison.agreementTags.length,
     let semanticBoost = 0;
     let specText = "";
     let bestAttr = "";
-    let bridgeConcepts: Array<{ phrase: string; attribute: string; score: number }> = [];
-    let debertaMatchedTags: Array<{ tag: string; score: number }> = [];
+    let bridgeConcepts: { phrase: string; attribute: string; score: number }[] = [];
+    let debertaMatchedTags: { tag: string; score: number }[] = [];
     if (request.agent.specializations.length > 0 && (descriptor.modelAttributes?.length ?? 0) > 0) {
       specText = request.agent.specializations.join(", ");
 

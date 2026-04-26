@@ -2,13 +2,13 @@ import { env, pipeline } from "@huggingface/transformers";
 
 env.allowLocalModels = false;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let extractorPromise: Promise<any> | null = null;
+// Type for the feature extraction pipeline
+type ExtractorPipeline = (text: string, options: { pooling: string; normalize: boolean }) => Promise<{ data: Float32Array }>;
 
-export async function getExtractor(): Promise<any> {
-  if (!extractorPromise) {
-    extractorPromise = pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
-  }
+let extractorPromise: Promise<ExtractorPipeline> | null = null;
+
+export async function getExtractor(): Promise<ExtractorPipeline> {
+  extractorPromise ??= pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2") as Promise<ExtractorPipeline>;
   return extractorPromise;
 }
 
@@ -203,7 +203,7 @@ export const LOW_COMPLEXITY_KEYWORDS = [
 export interface BestMatchResult {
   score: number;
   bestAttribute: string;
-  bridgeConcepts: Array<{ phrase: string; attribute: string; score: number }>;
+  bridgeConcepts: { phrase: string; attribute: string; score: number }[];
   method: "bridge" | "embeddings" | "none";
 }
 
@@ -214,11 +214,10 @@ export interface ComputeBestMatchOptions {
 
 async function embedWithExtractor(
   text: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extractor: any,
+  extractor: ExtractorPipeline,
 ): Promise<number[]> {
   const output = await extractor(text, { pooling: "mean", normalize: true });
-  return Array.from(output.data as Float32Array);
+  return Array.from(output.data);
 }
 
 export async function computeBestMatch(
@@ -232,7 +231,7 @@ export async function computeBestMatch(
 
   const lowerText = specText.toLowerCase();
   const bridgeScores: Record<string, number> = {};
-  const bridgeHits: Array<{ phrase: string; attribute: string; score: number }> = [];
+  const bridgeHits: { phrase: string; attribute: string; score: number }[] = [];
 
   if (!options.disableBridge) {
     for (const [phrase, attrScores] of Object.entries(BRIDGE_CONCEPTS)) {
@@ -266,7 +265,10 @@ export async function computeBestMatch(
 
   try {
     const extractor = options.embedText ? null : await getExtractor();
-    const embedText = options.embedText ?? ((text: string) => embedWithExtractor(text, extractor!));
+    const embedText = options.embedText ?? ((text: string) => {
+      if (!extractor) throw new Error("Extractor not initialized");
+      return embedWithExtractor(text, extractor);
+    });
     const specVec = await embedText(specText);
 
     let maxScore = 0;

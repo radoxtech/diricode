@@ -28,7 +28,7 @@ function formatHintDictionary(): string {
 
   const formattedSections = sections.map(([title, groups]) => {
     const body = Object.entries(groups)
-      .map(([group, values]) => `  - ${group}: ${values.join(", ")}`)
+      .map(([group, values]: [string, string[]]) => `  - ${group}: ${values.join(", ")}`)
       .join("\n");
     return `${title}:\n${body}`;
   });
