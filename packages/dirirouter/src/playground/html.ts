@@ -394,6 +394,393 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
       font-weight: 700;
     }
 
+    /* Pick Result UI */
+    .pick-result { display: flex; flex-direction: column; gap: 1.25rem; }
+    .pick-summary {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-sys);
+      font-size: 0.95rem;
+      color: var(--fg);
+    }
+    .pick-summary strong { color: var(--accent); }
+    .result-card {
+      background: #151821;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+    }
+    .result-card-title {
+      font-family: var(--font-sys);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    .selected-model-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .selected-model-name {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--success);
+    }
+    .score-badge {
+      background: var(--border);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.5rem;
+    }
+    .breakdown-item {
+      background: #0f1015;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.5rem;
+      text-align: center;
+    }
+    .breakdown-item.negative { border-color: rgba(255,42,95,0.4); }
+    .breakdown-label {
+      font-size: 0.7rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .breakdown-value {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--fg);
+      margin-top: 0.25rem;
+    }
+    .breakdown-item.negative .breakdown-value { color: #ff6b8a; }
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+    .steps-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+    }
+    .steps-list li::before {
+      content: "→";
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .excluded-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .excluded-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      background: rgba(255,42,95,0.05);
+      border: 1px solid rgba(255,42,95,0.15);
+      border-radius: 4px;
+      padding: 0.4rem 0.6rem;
+    }
+    .excluded-model { font-family: var(--font-mono); color: #fca5a5; flex-shrink: 0; }
+    .excluded-reason { color: #94a3b8; }
+    .cost-impact {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+    }
+    .runner-ups-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .runner-ups-table th, .runner-ups-table td {
+      text-align: left;
+      padding: 0.4rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .runner-ups-table th {
+      color: #64748b;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+    .runner-ups-table td { color: #cbd5e1; }
+
+    .semantic-compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+    .semantic-compare-table th, .semantic-compare-table td {
+      text-align: left;
+      padding: 0.4rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .semantic-compare-table th {
+      color: #64748b;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+    .semantic-compare-table td { color: #cbd5e1; }
+    .semantic-compare-table tr.selected-row {
+      border-left: 2px solid #22c55e;
+      background: rgba(34, 197, 94, 0.05);
+    }
+    .score-high { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .score-med { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+    .score-low { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+
+    .cascade-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+      margin-top: 0.5rem;
+    }
+    .cascade-item {
+      display: flex;
+      align-items: stretch;
+      gap: 1rem;
+      position: relative;
+      background: #151821;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .cascade-icon {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: bold;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .cascade-item.success {
+      border-color: rgba(57, 255, 20, 0.4);
+      background: rgba(57, 255, 20, 0.05);
+    }
+    .cascade-item.success .cascade-icon {
+      background: var(--success);
+      color: #0f1015;
+    }
+    .cascade-item.fallback .cascade-icon {
+      background: #f59e0b;
+      color: #0f1015;
+    }
+    .cascade-item.skipped {
+      opacity: 0.7;
+    }
+    .cascade-item.skipped .cascade-icon {
+      background: #334155;
+      color: #94a3b8;
+    }
+    .cascade-body {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      flex: 1;
+    }
+    .cascade-title {
+      font-family: var(--font-sys);
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: var(--fg);
+    }
+    .cascade-item.success .cascade-title {
+      color: var(--success);
+    }
+    .cascade-item.fallback .cascade-title {
+      color: #fcd34d;
+    }
+    .cascade-item.skipped .cascade-title {
+      color: #94a3b8;
+    }
+    .cascade-line {
+      position: absolute;
+      left: 2rem;
+      top: 3.5rem;
+      bottom: -1rem;
+      width: 2px;
+      background: var(--border);
+    }
+    .cascade-item.success + .cascade-item .cascade-line {
+      background: linear-gradient(to bottom, var(--success), var(--border));
+    }
+
+    .semantic-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin: 1rem 0;
+    }
+    .semantic-flow-step {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+      position: relative;
+      padding: 0.75rem 1rem;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 100%;
+    }
+    .semantic-flow-step:not(:last-child)::after {
+      content: "↓";
+      position: absolute;
+      bottom: -1.3rem;
+      left: 1.5rem;
+      top: auto;
+      right: auto;
+      transform: none;
+      color: var(--accent);
+      font-size: 1.2rem;
+      font-weight: 700;
+      z-index: 1;
+    }
+    .sfs-label {
+      font-size: 0.6rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4rem;
+    }
+    .sfs-value {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--fg);
+      background: #0b0c10;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      word-break: break-word;
+      width: 100%;
+    }
+    .sfs-value.highlight {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .bridge-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      background: rgba(0, 242, 254, 0.1);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      color: var(--accent);
+      border-radius: 3px;
+      padding: 0.15rem 0.35rem;
+      margin: 0.15rem;
+    }
+    .attr-grid {
+      display: grid;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .attr-row {
+      display: grid;
+      grid-template-columns: 140px repeat(var(--model-count, 3), 1fr);
+      gap: 0.4rem;
+      align-items: center;
+    }
+    .attr-row-header {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .attr-name {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    .attr-cell {
+      text-align: center;
+      font-size: 0.8rem;
+      padding: 0.2rem;
+      border-radius: 3px;
+    }
+    .attr-cell.has {
+      color: var(--success);
+      background: rgba(57, 255, 20, 0.08);
+    }
+    .attr-cell.missing {
+      color: #64748b;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .model-col-header {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--fg);
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .model-col-header.selected-col {
+      color: var(--success);
+      font-weight: 700;
+    }
+    .method-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+    }
+    .method-badge.bridge {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+    .method-badge.embeddings {
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      color: #a78bfa;
+    }
+    .method-badge.deberta {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #60a5fa;
+    }
     /* Provider Status in Config Tab */
     .provider-status-list {
       display: flex;
@@ -756,6 +1143,16 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   </main>
 
   <script>
+    function escapeHtml(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     document.addEventListener('alpine:init', () => {
       Alpine.data('playground', () => ({
         loading: false,
@@ -946,6 +1343,347 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
           return trace;
         },
 
+        renderPickResult(pickData) {
+          const explanation = pickData.selectionExplanation;
+          const selected = pickData.selected;
+          const candidates = pickData.candidates || [];
+          const excluded = candidates.filter(c => c.status === 'excluded');
+          const runnerUps = candidates.filter(c => c.status === 'runner_up');
+          
+          let html = '<div class="pick-result">';
+          
+          if (explanation) {
+            html += \`<div class="pick-summary">\${escapeHtml(explanation.summary)}</div>\`;
+          }
+          
+          if (selected) {
+            html += '<div class="result-card">';
+            html += '<div class="result-card-title">Selected Model</div>';
+            html += \`<div class="selected-model-row">\`;
+            html += \`<span class="selected-model-name">\${escapeHtml(selected.provider)}/\${escapeHtml(selected.model)}</span>\`;
+            html += \`<span class="score-badge">score \${selected.score}</span>\`;
+            html += \`</div>\`;
+            
+            const bd = candidates.find(c => c.provider === selected.provider && c.model === selected.model)?.scoresBreakdown;
+            if (bd) {
+              html += '<div class="breakdown-grid">';
+              html += \`<div class="breakdown-item"><div class="breakdown-label">Quality</div><div class="breakdown-value">\${bd.quality}</div></div>\`;
+              html += \`<div class="breakdown-item"><div class="breakdown-label">Capability</div><div class="breakdown-value">\${bd.capabilityMatch}</div></div>\`;
+              html += \`<div class="breakdown-item"><div class="breakdown-label">Latency</div><div class="breakdown-value">\${bd.latency}</div></div>\`;
+              html += \`<div class="breakdown-item \${bd.cost < 0 ? 'negative' : ''}"><div class="breakdown-label">Cost</div><div class="breakdown-value">\${bd.cost}</div></div>\`;
+              if (bd.overkillPenalty !== undefined) {
+                html += \`<div class="breakdown-item negative"><div class="breakdown-label">Overkill</div><div class="breakdown-value">\${bd.overkillPenalty}</div></div>\`;
+              }
+              if (bd.semanticBoost !== undefined && bd.semanticBoost > 0) {
+                html += \`<div class="breakdown-item" style="border-color:var(--accent);"><div class="breakdown-label" style="color:var(--accent);">AI Match</div><div class="breakdown-value">\${bd.semanticBoost}</div></div>\`;
+              }
+              html += '</div>';
+
+              if (bd.semanticSimilarity !== undefined) {
+                const pct = Math.round(bd.semanticSimilarity * 100);
+                const color = pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444';
+                const matchLabel = bd.modelAttributesMatched ? \`matched: "\${bd.modelAttributesMatched}"\` : '';
+                html += \`<div style="margin-top:0.75rem;padding:0.5rem;background:#0f172a;border-radius:4px;">\`;
+                html += \`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">\`;
+                html += \`<span style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">🧠 Semantic Match \${matchLabel}</span>\`;
+                html += \`<span style="font-size:0.85rem;font-weight:700;color:\${color};">\${pct}%</span>\`;
+                html += \`</div>\`;
+                html += \`<div style="height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">\`;
+                html += \`<div style="height:100%;width:\${pct}%;background:\${color};border-radius:3px;transition:width 0.3s;"></div>\`;
+                html += \`</div>\`;
+                html += \`<div style="font-size:0.7rem;color:#64748b;margin-top:0.25rem;">Agent skills → model attributes: "\${bd.agentSpecializationsMatched}"</div>\`;
+                html += \`</div>\`;
+              }
+            }
+            html += '</div>';
+          }
+          
+          if (explanation) {
+            if (explanation.cascadeSteps && explanation.cascadeSteps.length > 0) {
+              html += '<div class="result-card" style="border:none;background:transparent;padding:0;">';
+              html += '<div class="result-card-title">Decision Trace (Cascade Path)</div>';
+              html += '<div class="cascade-list">';
+              for (let i = 0; i < explanation.cascadeSteps.length; i++) {
+                const step = explanation.cascadeSteps[i];
+                const isLast = i === explanation.cascadeSteps.length - 1;
+                const status = step.includes('Skipped') ? 'skipped' : step.includes('Success') ? 'success' : 'fallback';
+                const icon = status === 'skipped' ? '⊘' : status === 'success' ? '✓' : '↓';
+                
+                const match = step.match(/^(Tier \\d+):\\s*(.*)$/);
+                const title = match ? match[1] : \`Step \${i + 1}\`;
+                const msg = match ? match[2] : step;
+
+                html += \`<div class="cascade-item \${status}">\`;
+                html += \`<div class="cascade-icon">\${icon}</div>\`;
+                html += \`<div class="cascade-body">\`;
+                html += \`<div class="cascade-title">\${escapeHtml(title)}</div>\`;
+                html += \`\${escapeHtml(msg)}\`;
+                html += \`</div>\`;
+                if (!isLast) {
+                  html += '<div class="cascade-line"></div>';
+                }
+                html += '</div>';
+              }
+              html += '</div>';
+              html += '</div>';
+            }
+
+            const selectedBd = selected ? candidates.find(c => c.provider === selected.provider && c.model === selected.model)?.scoresBreakdown : null;
+
+            html += '<div class="result-card">';
+            html += '<div class="result-card-title">Decision Steps</div>';
+            html += '<ul class="steps-list">';
+            for (const step of explanation.steps) {
+              html += \`<li>\${escapeHtml(step)}</li>\`;
+            }
+            html += '</ul>';
+
+            if (pickData.classifierComparison) {
+              const cc = pickData.classifierComparison;
+              html += '<div style="margin:1rem 0;padding:1rem;background:#0f172a;border-radius:8px;border:1px solid var(--border);">';
+              html += '<div style="font-size:0.75rem;font-weight:700;color:#94a3b8;margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Zero-Shot Classifier Comparison</div>';
+              html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem;">';
+
+              html += '<div>';
+              html += \`<div style="font-size:0.7rem;color:#60a5fa;font-weight:600;margin-bottom:0.4rem;">\${escapeHtml(cc.debertaModelName)}</div>\`;
+              if (cc.debertaPrimaryTags && cc.debertaPrimaryTags.length > 0) {
+                for (const tag of cc.debertaPrimaryTags.slice(0, 4)) {
+                  const score = tag.score;
+                  const barColor = score >= 0.7 ? '#22c55e' : score >= 0.4 ? '#eab308' : '#94a3b8';
+                  html += \`<div style="display:flex;align-items:center;gap:0.4rem;margin:0.2rem 0;font-size:0.7rem;">\`;
+                  html += \`<span style="color:#cbd5e1;min-width:70px;">\${escapeHtml(tag.tag)}</span>\`;
+                  html += \`<div style="flex:1;height:5px;background:#1e293b;border-radius:2px;"><div style="height:100%;width:\${Math.round(score * 100)}%;background:\${barColor};border-radius:2px;"></div></div>\`;
+                  html += \`<span style="color:\${barColor};font-family:var(--font-mono);min-width:35px;text-align:right;">\${Math.round(score * 100)}%</span>\`;
+                  html += \`</div>\`;
+                }
+              } else {
+                html += '<div style="color:#64748b;font-size:0.7rem;">no scores available</div>';
+              }
+              html += '</div>';
+
+              html += '<div>';
+              html += \`<div style="font-size:0.7rem;color:#a78bfa;font-weight:600;margin-bottom:0.4rem;">\${escapeHtml(cc.modernBertModelName)}</div>\`;
+              if (cc.modernBertPrimaryTags && cc.modernBertPrimaryTags.length > 0) {
+                for (const tag of cc.modernBertPrimaryTags.slice(0, 4)) {
+                  const score = tag.score;
+                  const barColor = score >= 0.7 ? '#22c55e' : score >= 0.4 ? '#eab308' : '#94a3b8';
+                  html += \`<div style="display:flex;align-items:center;gap:0.4rem;margin:0.2rem 0;font-size:0.7rem;">\`;
+                  html += \`<span style="color:#cbd5e1;min-width:70px;">\${escapeHtml(tag.tag)}</span>\`;
+                  html += \`<div style="flex:1;height:5px;background:#1e293b;border-radius:2px;"><div style="height:100%;width:\${Math.round(score * 100)}%;background:\${barColor};border-radius:2px;"></div></div>\`;
+                  html += \`<span style="color:\${barColor};font-family:var(--font-mono);min-width:35px;text-align:right;">\${Math.round(score * 100)}%</span>\`;
+                  html += \`</div>\`;
+                }
+              } else {
+                html += '<div style="color:#64748b;font-size:0.7rem;">model unavailable</div>';
+              }
+              html += '</div>';
+
+              html += '</div>';
+
+              html += \`<div style="display:flex;gap:1rem;font-size:0.7rem;color:#94a3b8;">\`;
+              html += \`<span><span style="color:#22c55e;">◆</span> \${cc.agreementCount} agreed</span>\`;
+              html += \`<span><span style="color:#eab308;">◆</span> \${cc.disagreementCount} disagreed</span>\`;
+              html += '</div>';
+
+              html += '</div>';
+            }
+
+            if (explanation.tierUsed === 2 && selectedBd && selectedBd.semanticSimilarity !== undefined) {
+              html += '<li style="list-style:none; margin:1rem 0; padding:1rem; background:#1e293b; border-radius:8px; border:1px solid var(--border);">';
+                
+                const hasDeberta = selectedBd.debertaTagScores && selectedBd.debertaTagScores.length > 0;
+                const method = hasDeberta ? 'deberta' : (selectedBd.bridgeConceptsUsed && selectedBd.bridgeConceptsUsed.length > 0 ? 'bridge' : 'embeddings');
+                html += \`<div style="margin-bottom:1rem;"><span class="method-badge \${method}">\${method === 'deberta' ? '🧠 DeBERTa NLI' : method === 'bridge' ? '🔗 Bridge Concepts' : '🧮 Neural Embeddings'}</span></div>\`;
+                
+                html += '<div class="semantic-flow" style="margin-bottom:1.5rem;">';
+                html += '<div class="semantic-flow-step">';
+                html += '<div class="sfs-label">Agent Skills</div>';
+                html += \`<div class="sfs-value">\${escapeHtml(selectedBd.agentSpecializationsMatched || '—')}</div>\`;
+                html += '</div>';
+                
+                if (method === 'bridge' && selectedBd.bridgeConceptsUsed) {
+                  html += '<div class="semantic-flow-step">';
+                  html += '<div class="sfs-label">Keywords Found</div>';
+                  html += '<div>';
+                  const uniquePhrases = [...new Set(selectedBd.bridgeConceptsUsed.map(b => b.phrase))];
+                  for (const phrase of uniquePhrases.slice(0, 5)) {
+                    html += \`<span class="bridge-tag">"\${escapeHtml(phrase)}"</span>\`;
+                  }
+                  html += '</div>';
+                  html += '</div>';
+                  
+                  html += '<div class="semantic-flow-step">';
+                  html += '<div class="sfs-label">Mapped To Attributes</div>';
+                  html += '<div>';
+                  const uniqueAttrs = [...new Set(selectedBd.bridgeConceptsUsed.map(b => b.attribute))];
+                  for (const attr of uniqueAttrs) {
+                    const topScore = Math.max(...selectedBd.bridgeConceptsUsed.filter(b => b.attribute === attr).map(b => b.score));
+                    const barColor = topScore >= 0.8 ? '#22c55e' : topScore >= 0.5 ? '#eab308' : '#94a3b8';
+                    html += \`<div style="display:flex;align-items:center;gap:0.4rem;margin:0.15rem 0;">\`;
+                    html += \`<span class="bridge-tag" style="border-color:\${barColor};color:\${barColor};">\${escapeHtml(attr)}</span>\`;
+                    html += \`<div style="flex:1;height:4px;background:#0f172a;border-radius:2px;min-width:30px;"><div style="height:100%;width:\${Math.round(topScore * 100)}%;background:\${barColor};border-radius:2px;"></div></div>\`;
+                    html += \`<span style="font-size:0.6rem;color:\${barColor};font-family:var(--font-mono);">\${Math.round(topScore * 100)}%</span>\`;
+                    html += \`</div>\`;
+                  }
+                  html += '</div>';
+                  html += '</div>';
+                } else {
+                  html += '<div class="semantic-flow-step">';
+                  html += '<div class="sfs-label">AI Compared Against</div>';
+                  html += \`<div class="sfs-value">all \${(selectedBd.matchedAttributesList?.length || 0) + (selectedBd.missingAttributesList?.length || 0)} requested attributes</div>\`;
+                  html += '</div>';
+                }
+                
+                html += '<div class="semantic-flow-step">';
+                html += '<div class="sfs-label">Best Match</div>';
+                html += \`<div class="sfs-value highlight">\${escapeHtml(selectedBd.modelAttributesMatched || '—')}</div>\`;
+                html += '</div>';
+                html += '</div>';
+
+                if (hasDeberta && selectedBd.debertaTagScores) {
+                  html += '<div class="semantic-flow-step" style="margin-top:1rem;">';
+                  html += '<div class="sfs-label">DeBERTa Tag Scores</div>';
+                  html += '<div style="display:flex;flex-direction:column;gap:0.3rem;margin-top:0.5rem;">';
+                  for (const tagScore of selectedBd.debertaTagScores.slice(0, 6)) {
+                    const score = tagScore.score;
+                    const barColor = score >= 0.7 ? '#22c55e' : score >= 0.4 ? '#eab308' : '#94a3b8';
+                    html += \`<div style="display:flex;align-items:center;gap:0.5rem;">\`;
+                    html += \`<span style="font-family:var(--font-mono);font-size:0.7rem;color:#cbd5e1;min-width:80px;">\${escapeHtml(tagScore.tag)}</span>\`;
+                    html += \`<div style="flex:1;height:6px;background:#0f172a;border-radius:3px;min-width:40px;"><div style="height:100%;width:\${Math.round(score * 100)}%;background:\${barColor};border-radius:3px;"></div></div>\`;
+                    html += \`<span style="font-size:0.65rem;color:\${barColor};font-family:var(--font-mono);min-width:35px;text-align:right;">\${Math.round(score * 100)}%</span>\`;
+                    html += \`</div>\`;
+                  }
+                  html += '</div>';
+                  html += '</div>';
+                }
+
+                const semCandidates = candidates
+                  .filter(c => c.status !== 'excluded' && c.scoresBreakdown && c.scoresBreakdown.semanticSimilarity !== undefined)
+                  .sort((a, b) => (b.scoresBreakdown?.semanticSimilarity || 0) - (a.scoresBreakdown?.semanticSimilarity || 0))
+                  .slice(0, 5);
+
+                if (semCandidates.length > 0) {
+                  html += '<div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1rem;">';
+                  for (const c of semCandidates) {
+                    const isSelected = selected && c.provider === selected.provider && c.model === selected.model;
+                    const bd = c.scoresBreakdown;
+                    const sim = bd?.semanticSimilarity || 0;
+                    let scoreClass = 'score-low';
+                    if (sim >= 0.7) scoreClass = 'score-high';
+                    else if (sim >= 0.4) scoreClass = 'score-med';
+                    const boost = bd?.semanticBoost || 0;
+                    const boostStr = boost > 0 ? '+' + boost.toFixed(1) : '—';
+                    const attrMatched = bd?.modelAttributesMatched || '—';
+                    const bridgeCount = bd?.bridgeConceptsUsed?.length || 0;
+                    const bridgeStr = bridgeCount > 0 ? bridgeCount + ' concepts' : '—';
+                    const selStyle = isSelected ? 'border-left:3px solid #22c55e;background:rgba(34,197,94,0.05);' : '';
+                    
+                    html += \`<div style="padding:0.75rem;border:1px solid var(--border);border-radius:6px;background:#151821;\${selStyle}">\`;
+                    html += \`<div style="font-family:var(--font-mono);font-size:0.85rem;font-weight:700;margin-bottom:0.5rem;color:\${isSelected ? '#22c55e' : 'var(--fg)'};">\${escapeHtml(c.model)}</div>\`;
+                    html += \`<div style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.75rem;">\`;
+                    html += \`<div style="display:flex;justify-content:space-between;"><span style="color:#64748b;">Semantic Score</span><span class="\${scoreClass}" style="padding:0.1rem 0.4rem;border-radius:3px;font-weight:700;">\${Math.round(sim * 100)}%</span></div>\`;
+                    html += \`<div style="display:flex;justify-content:space-between;"><span style="color:#64748b;">Boost</span><span>\${boostStr}</span></div>\`;
+                    html += \`<div style="display:flex;justify-content:space-between;"><span style="color:#64748b;">Best Matched</span><span style="color:#cbd5e1;">\${escapeHtml(attrMatched)}</span></div>\`;
+                    html += \`<div style="display:flex;justify-content:space-between;"><span style="color:#64748b;">Bridge</span><span style="color:#94a3b8;">\${bridgeStr}</span></div>\`;
+                    html += \`</div></div>\`;
+                  }
+                  html += '</div>';
+                }
+
+                const comparisonModels = [
+                  candidates.find(c => c.status === 'selected'),
+                  ...candidates.filter(c => c.status === 'runner_up').slice(0, 2)
+                ].filter(Boolean);
+                
+                const requestedAttrs = selectedBd.matchedAttributesList || [];
+                const allRequestedAttrs = [...requestedAttrs, ...(selectedBd.missingAttributesList || [])];
+                
+                if (allRequestedAttrs.length > 0 && comparisonModels.length > 1) {
+                  html += \`<div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1rem;">\`;
+                  for (const attr of allRequestedAttrs) {
+                    html += \`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;">\`;
+                    html += \`<div style="background:#0f1015;padding:0.4rem 0.75rem;font-family:var(--font-mono);font-size:0.75rem;font-weight:700;border-bottom:1px solid var(--border);">\${escapeHtml(attr)}</div>\`;
+                    html += \`<div style="display:flex;flex-direction:column;">\`;
+                    for (const m of comparisonModels) {
+                      const isSelected = m.status === 'selected';
+                      const bd = m.scoresBreakdown;
+                      const has = bd?.matchedAttributesList?.includes(attr);
+                      const selBg = isSelected ? 'background:rgba(255,255,255,0.02);' : '';
+                      html += \`<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0.75rem;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.75rem;\${selBg}">\`;
+                      html += \`<span style="color:\${isSelected ? '#22c55e' : '#cbd5e1'};font-family:var(--font-mono);">\${escapeHtml(m.model)}</span>\`;
+                      html += \`<span style="padding:0.1rem 0.4rem;border-radius:3px;background:\${has ? 'rgba(57,255,20,0.08)' : 'rgba(255,255,255,0.02)'};color:\${has ? 'var(--success)' : '#64748b'};font-weight:700;">\${has ? '✓' : '✗'}</span>\`;
+                      html += \`</div>\`;
+                    }
+                    html += \`</div></div>\`;
+                  }
+                  html += \`</div>\`;
+                }
+
+                html += '</li>';
+              }
+            html += '</ul>';
+            html += '</div>';
+            
+            html += '<div class="result-card">';
+            html += '<div class="result-card-title">Why This Model?</div>';
+            html += \`<div style="font-size:0.85rem;color:#cbd5e1;line-height:1.5;white-space:pre-wrap;font-family:monospace;">\${escapeHtml(explanation.whySelected)}</div>\`;
+            html += '</div>';
+            
+            if (explanation.costImpact) {
+              html += '<div class="result-card">';
+              html += '<div class="result-card-title">Cost Impact</div>';
+              html += \`<div class="cost-impact">\${escapeHtml(explanation.costImpact)}</div>\`;
+              html += '</div>';
+            }
+          }
+          
+          if (runnerUps.length > 0 || selected) {
+            html += '<div class="result-card">';
+            html += '<div class="result-card-title">Winner & Runner-ups</div>';
+            html += '<table class="runner-ups-table"><thead><tr><th>Model</th><th>Score</th><th>Capability</th><th>Attrs Matched</th></tr></thead><tbody>';
+            
+            const tableRows = [];
+            const winner = candidates.find(c => c.status === 'selected');
+            if (winner) {
+              tableRows.push({ ...winner, isWinner: true });
+            }
+            tableRows.push(...runnerUps.slice(0, 5));
+
+            for (const r of tableRows) {
+              const rbd = r.scoresBreakdown;
+              const capVal = rbd ? rbd.capabilityMatch : '—';
+              const matchedCount = rbd?.matchedAttributesList?.length || 0;
+              const totalCount = matchedCount + (rbd?.missingAttributesList?.length || 0);
+              const attrDisplay = totalCount > 0 ? \`\${matchedCount}/\${totalCount}\` : '—';
+              
+              if (r.isWinner) {
+                html += \`<tr style="background:rgba(34,197,94,0.1);"><td style="border-left:3px solid #22c55e;"><strong style="color:#22c55e;">\${escapeHtml(r.provider)}/\${escapeHtml(r.model)}</strong></td><td style="font-weight:bold;color:#22c55e;">\${r.score}</td><td style="font-weight:bold;">\${capVal}</td><td style="font-weight:bold;">\${attrDisplay}</td></tr>\`;
+              } else {
+                html += \`<tr><td>\${escapeHtml(r.provider)}/\${escapeHtml(r.model)}</td><td>\${r.score}</td><td>\${capVal}</td><td>\${attrDisplay}</td></tr>\`;
+              }
+            }
+            html += '</tbody></table>';
+            html += '</div>';
+          }
+          
+          if (excluded.length > 0) {
+            html += '<div class="result-card">';
+            html += \`<div class="result-card-title">Excluded Models (\${excluded.length})</div>\`;
+            html += '<div class="excluded-list">';
+            for (const e of excluded.slice(0, 20)) {
+              html += \`<div class="excluded-item"><span class="excluded-model">\${escapeHtml(e.provider)}/\${escapeHtml(e.model)}</span><span class="excluded-reason">\${escapeHtml(e.rejectionReason || '')}</span></div>\`;
+            }
+            if (excluded.length > 20) {
+              html += \`<div style="font-size:0.75rem;color:#64748b;padding:0.25rem 0;">...and \${excluded.length - 20} more</div>\`;
+            }
+            html += '</div>';
+            html += '</div>';
+          }
+          
+          html += '</div>';
+          return html;
+        },
+
         async pickOnly() {
           this.loading = true;
           this.clearErrors();
@@ -974,7 +1712,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
             } else {
               this.decisionTrace = this.buildDecisionTrace(json);
               vizEl.classList.add('visible');
-              results.innerHTML = '<pre style="white-space: pre-wrap; word-wrap: break-word;">' + JSON.stringify(json, null, 2) + '</pre>';
+              results.innerHTML = this.renderPickResult(json);
             }
           } catch(e) {
             this.showError('Network Error', e.message);
@@ -1042,26 +1780,14 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
         if (type === 'pick') {
           try {
             const pickData = JSON.parse(data);
-            
+
             // Build and show decision trace
             const trace = alpine.buildDecisionTrace(pickData);
             alpine.decisionTrace = trace;
             vizEl.classList.add('visible');
-            
-            // Show structured output
-            let pickHtml = \`<div style="margin-bottom: 1rem;">\`;
-            if (pickData.selected) {
-              pickHtml += \`<span style="color:var(--success);font-weight:700;">✓ Selected:</span>
-                <span style="color:var(--accent);"> \${pickData.selected.provider}/\${pickData.selected.model}</span>
-                <span style="color:#64748b;margin-left:0.5rem;">(score: \${pickData.selected.score})</span>\`;
-            }
-            if (pickData.classificationTrace) {
-              const ct = pickData.classificationTrace;
-              pickHtml += \`<br><span style="color:#64748b;">Classified as </span><span style="color:var(--fg);">\${ct.classification}</span>
-                <span style="color:#64748b;"> tier </span><span style="color:var(--fg);">\${ct.tierUsed}</span>\`;
-            }
-            pickHtml += \`</div><hr style="border:1px dashed var(--border);margin:1rem 0;"><div id="chat-stream"></div>\`;
-            results.innerHTML = pickHtml;
+
+            // Show full visualization with cascade path
+            results.innerHTML = alpine.renderPickResult(pickData) + '<hr style="border:1px dashed var(--border);margin:1rem 0;"><div id="chat-stream"></div>';
           } catch(e) {}
         } else if (type === 'chunk') {
           const streamContainer = document.getElementById('chat-stream');

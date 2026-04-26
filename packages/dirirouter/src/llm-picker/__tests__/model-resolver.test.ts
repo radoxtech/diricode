@@ -20,7 +20,7 @@ import {
   CascadeModelResolver,
   type ResolverCandidate,
   Tier1HeuristicRouter,
-  Tier2BertRouter,
+  Tier2EmbeddingsRouter,
   Tier3TinyLLMRouter,
 } from "../model-resolver.js";
 import {
@@ -147,7 +147,7 @@ describe("ModelAttributeSchema", () => {
   });
 
   it("covers exhaustive union", () => {
-    expect(ModelAttributeSchema.options).toHaveLength(7);
+    expect(ModelAttributeSchema.options).toHaveLength(14);
   });
 });
 
@@ -536,11 +536,11 @@ describe("Tier1HeuristicRouter", () => {
   });
 });
 
-describe("Tier2BertRouter", () => {
-  const router = new Tier2BertRouter();
+describe("Tier2EmbeddingsRouter", () => {
+  const router = new Tier2EmbeddingsRouter();
 
   it("has correct name and maxLatencyMs", () => {
-    expect(router.name).toBe("bert");
+    expect(router.name).toBe("embeddings");
     expect(router.maxLatencyMs).toBe(50);
   });
 

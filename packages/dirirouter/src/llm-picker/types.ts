@@ -24,6 +24,13 @@ export const ModelAttributeSchema = z.enum([
   "ui-ux",
   "bulk",
   "quality",
+  "coding",
+  "architecture",
+  "refactoring",
+  "debugging",
+  "repo-understanding",
+  "instruction-fidelity",
+  "code-review",
 ]);
 export type ModelAttribute = z.infer<typeof ModelAttributeSchema>;
 
@@ -150,6 +157,7 @@ export const DecisionConstraintsSchema = z.object({
   excludedModels: z.array(z.string()).optional(),
   preferredProviders: z.array(z.string()).optional(),
   preferredModels: z.array(z.string()).optional(),
+  allowOverkill: z.boolean().optional(),
 });
 export type DecisionConstraints = z.infer<typeof DecisionConstraintsSchema>;
 
@@ -177,22 +185,33 @@ export type DecisionRequest = z.infer<typeof DecisionRequestSchema>;
 // Decision Response
 // ---------------------------------------------------------------------------
 
-/**
- * A single candidate model that was evaluated.
- */
+export const ScoresBreakdownSchema = z.object({
+  quality: z.number().min(0),
+  cost: z.number(),
+  latency: z.number(),
+  capabilityMatch: z.number().min(0),
+  capabilityGapPenalty: z.number().optional(),
+  overkillPenalty: z.number().optional(),
+  modelClassBonus: z.number().optional(),
+  semanticSimilarity: z.number().optional(),
+  semanticBoost: z.number().optional(),
+  agentSpecializationsMatched: z.string().optional(),
+  modelAttributesMatched: z.string().optional(),
+  matchedAttributesList: z.array(z.string()).optional(),
+  missingAttributesList: z.array(z.string()).optional(),
+  bridgeConceptsUsed: z
+    .array(z.object({ phrase: z.string(), attribute: z.string(), score: z.number() }))
+    .optional(),
+  debertaTagScores: z.array(z.object({ tag: z.string(), score: z.number() })).optional(),
+});
+export type ScoresBreakdown = z.infer<typeof ScoresBreakdownSchema>;
+
 export const ModelCandidateSchema = z.object({
   provider: z.string().min(1),
   model: z.string().min(1),
   score: z.number().min(0).max(100),
   status: z.enum(["selected", "runner_up", "excluded"]),
-  scoresBreakdown: z
-    .object({
-      quality: z.number().min(0).max(100),
-      cost: z.number().min(0).max(100),
-      latency: z.number().min(0).max(100),
-      capabilityMatch: z.number().min(0).max(100),
-    })
-    .optional(),
+  scoresBreakdown: ScoresBreakdownSchema.optional(),
   rejectionReason: z.string().optional(),
 });
 export type ModelCandidate = z.infer<typeof ModelCandidateSchema>;
@@ -215,7 +234,7 @@ export const SelectedModelSchema = z.object({
   provider: z.string().min(1),
   model: z.string().min(1),
   modelVersion: z.string().optional(),
-  score: z.number().min(0).max(100),
+  score: z.number(),
   estimatedCostUsd: z.number().nonnegative().optional(),
   estimatedLatencyMs: z.number().int().nonnegative().optional(),
   contextWindow: z.number().int().nonnegative().optional(),
@@ -227,6 +246,40 @@ export type SelectedModel = z.infer<typeof SelectedModelSchema>;
  * Full response returned by the ModelResolver for a decision request.
  * @see ADR-049
  */
+export const SelectionExplanationSchema = z.object({
+  summary: z.string(),
+  steps: z.array(z.string()),
+  cascadeSteps: z.array(z.string()),
+  whySelected: z.string(),
+  whyExcluded: z.array(z.string()),
+  costImpact: z.string(),
+  tierUsed: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+});
+export type SelectionExplanation = z.infer<typeof SelectionExplanationSchema>;
+
+export const ClassifierComparisonSchema = z.object({
+  inputText: z.string(),
+  debertaModelName: z.string(),
+  debertaAllTags: z.array(z.object({ tag: z.string(), score: z.number() })),
+  debertaPrimaryTags: z.array(z.object({ tag: z.string(), score: z.number() })),
+  modernBertModelName: z.string(),
+  modernBertAllTags: z.array(z.object({ tag: z.string(), score: z.number() })),
+  modernBertPrimaryTags: z.array(z.object({ tag: z.string(), score: z.number() })),
+  agreementTags: z.array(
+    z.object({ tag: z.string(), debertaScore: z.number(), modernBertScore: z.number() }),
+  ),
+  disagreementTags: z.array(
+    z.object({ tag: z.string(), debertaScore: z.number(), modernBertScore: z.number() }),
+  ),
+  agreementCount: z.number().int().nonnegative(),
+  disagreementCount: z.number().int().nonnegative(),
+  winningModel: z.string(),
+  routingDecisionTags: z.array(
+    z.object({ tag: z.string(), score: z.number(), source: z.string() }),
+  ),
+});
+export type ClassifierComparison = z.infer<typeof ClassifierComparisonSchema>;
+
 export const DecisionResponseSchema = z.object({
   requestId: z.string().uuid(),
   decisionId: z.string().uuid(),
@@ -236,6 +289,8 @@ export const DecisionResponseSchema = z.object({
   candidates: z.array(ModelCandidateSchema).optional(),
   decisionMeta: DecisionMetaSchema.optional(),
   classificationTrace: ClassificationTraceSchema.optional(),
+  selectionExplanation: SelectionExplanationSchema.optional(),
+  classifierComparison: ClassifierComparisonSchema.optional(),
 });
 export type DecisionResponse = z.infer<typeof DecisionResponseSchema>;
 
