@@ -49,12 +49,32 @@ export type {
 
 export {
   Tier1HeuristicRouter,
-  Tier2BertRouter,
+  Tier2EmbeddingsRouter,
   Tier3TinyLLMRouter,
   CascadeModelResolver,
 } from "./model-resolver.js";
 
 export type { CascadeModelResolverOptions, ResolverCandidate } from "./model-resolver.js";
+
+export {
+  CANONICAL_ROUTING_TAGS,
+  ROUTING_TAG_DEFINITIONS,
+  ROUTING_TAG_FOLDING,
+  STACK_SIGNALS,
+  PROBLEM_SIGNALS,
+  AGENT_ARCHETYPE_SIGNALS,
+  META_MODEL_SIGNALS,
+} from "./routing-taxonomy.js";
+
+export type { CanonicalRoutingTag } from "./routing-taxonomy.js";
+
+export {
+  ROUTING_CLASSIFIER_SYSTEM_PROMPT,
+  buildRoutingClassifierUserPrompt,
+  buildCompactRoutingClassifierPrompt,
+} from "./classifier-prompts.js";
+
+export type { ClassifierPromptInput } from "./classifier-prompts.js";
 
 export {
   PricingTierSchema,

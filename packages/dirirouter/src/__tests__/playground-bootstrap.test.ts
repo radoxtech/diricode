@@ -3,6 +3,28 @@ import { bootstrapPlayground } from "../playground/bootstrap.js";
 import * as providerRegistry from "../provider-registry.js";
 import type { ProviderDiscoveryEntry } from "../provider-registry.js";
 
+vi.mock("../llm-picker/classifier-engine.js", () => ({
+  classifyRoutingTags: vi.fn().mockResolvedValue({
+    inputText: "",
+    deberta: {
+      modelId: "mock-deberta",
+      modelName: "Mock DeBERTa",
+      tagScores: [],
+      primaryTags: [],
+      isTrueZeroShot: true,
+    },
+    modernBert: {
+      modelId: "mock-modernbert",
+      modelName: "Mock ModernBERT",
+      tagScores: [],
+      primaryTags: [],
+      isTrueZeroShot: true,
+    },
+    agreementTags: [],
+    disagreementTags: [],
+  }),
+}));
+
 describe("bootstrapPlayground", () => {
   test("returns expected result shape", async () => {
     const result = await bootstrapPlayground();

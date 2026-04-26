@@ -198,7 +198,7 @@ export {
   getPricingTierRejectionReason,
   resolveHardRuleRange,
   Tier1HeuristicRouter,
-  Tier2BertRouter,
+  Tier2EmbeddingsRouter,
   Tier3TinyLLMRouter,
   CascadeModelResolver,
   ContextTierSchema,

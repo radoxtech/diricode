@@ -20,7 +20,7 @@ import {
   CascadeModelResolver,
   type ResolverCandidate,
   Tier1HeuristicRouter,
-  Tier2BertRouter,
+  Tier2EmbeddingsRouter,
   Tier3TinyLLMRouter,
 } from "../model-resolver.js";
 import {
@@ -135,6 +135,13 @@ describe("ModelAttributeSchema", () => {
       "ui-ux",
       "bulk",
       "quality",
+      "coding",
+      "architecture",
+      "refactoring",
+      "debugging",
+      "repo-understanding",
+      "instruction-fidelity",
+      "code-review",
     ];
     for (const attribute of modelAttributes) {
       expect(ModelAttributeSchema.parse(attribute)).toBe(attribute);
@@ -142,12 +149,12 @@ describe("ModelAttributeSchema", () => {
   });
 
   it("rejects invalid model attribute", () => {
-    expect(() => ModelAttributeSchema.parse("coding")).toThrow();
+    expect(() => ModelAttributeSchema.parse("invalid-attribute")).toThrow();
     expect(() => ModelAttributeSchema.parse("")).toThrow();
   });
 
   it("covers exhaustive union", () => {
-    expect(ModelAttributeSchema.options).toHaveLength(7);
+    expect(ModelAttributeSchema.options).toHaveLength(14);
   });
 });
 
@@ -376,23 +383,23 @@ describe("ModelCandidateSchema", () => {
     expect(candidate.scoresBreakdown?.quality).toBe(90);
   });
 
-  it("rejects score out of range", () => {
-    expect(() =>
+  it("accepts weighted scores outside a percentage range", () => {
+    expect(
       ModelCandidateSchema.parse({
         provider: "x",
         model: "y",
         score: 101,
         status: "selected",
-      }),
-    ).toThrow();
-    expect(() =>
+      }).score,
+    ).toBe(101);
+    expect(
       ModelCandidateSchema.parse({
         provider: "x",
         model: "y",
         score: -1,
         status: "selected",
-      }),
-    ).toThrow();
+      }).score,
+    ).toBe(-1);
   });
 
   it("accepts all valid status values", () => {
@@ -536,11 +543,11 @@ describe("Tier1HeuristicRouter", () => {
   });
 });
 
-describe("Tier2BertRouter", () => {
-  const router = new Tier2BertRouter();
+describe("Tier2EmbeddingsRouter", () => {
+  const router = new Tier2EmbeddingsRouter();
 
   it("has correct name and maxLatencyMs", () => {
-    expect(router.name).toBe("bert");
+    expect(router.name).toBe("embeddings");
     expect(router.maxLatencyMs).toBe(50);
   });
 
