@@ -1,7 +1,8 @@
 import type { ModelFamily } from "./types.js";
 
 export interface NormalizationResult {
-  family: ModelFamily;
+  family: string;
+  canonicalFamily?: ModelFamily;
   stability: "stable" | "preview";
 }
 
@@ -39,16 +40,9 @@ export function normalizeModelFamily(modelId: string): NormalizationResult {
 
   for (const { pattern, family } of FAMILY_RULES) {
     if (pattern.test(lower)) {
-      return { family, stability: isPreview ? "preview" : "stable" };
+      return { family, canonicalFamily: family, stability: isPreview ? "preview" : "stable" };
     }
   }
 
-  return { family: fallbackFamily(lower), stability: isPreview ? "preview" : "stable" };
-}
-
-function fallbackFamily(modelId: string): ModelFamily {
-  if (modelId.includes("claude")) return "claude-sonnet";
-  if (modelId.includes("gemini")) return "gemini-flash";
-  if (modelId.startsWith("gpt") || modelId.startsWith("o")) return "gpt-standard";
-  return "gpt-standard";
+  return { family: lower, stability: isPreview ? "preview" : "stable" };
 }

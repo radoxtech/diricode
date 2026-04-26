@@ -18,6 +18,7 @@ const GEMINI_FALLBACK_AVAILABILITIES: ProviderModelAvailability[] = [
     supports_streaming: true,
     input_cost_per_1k: 0,
     output_cost_per_1k: 0,
+    pricing_tier: "budget",
     trusted: true,
   },
   {
@@ -33,6 +34,7 @@ const GEMINI_FALLBACK_AVAILABILITIES: ProviderModelAvailability[] = [
     supports_streaming: true,
     input_cost_per_1k: 0,
     output_cost_per_1k: 0,
+    pricing_tier: "budget",
     trusted: true,
   },
   {
@@ -48,6 +50,7 @@ const GEMINI_FALLBACK_AVAILABILITIES: ProviderModelAvailability[] = [
     supports_streaming: true,
     input_cost_per_1k: 0,
     output_cost_per_1k: 0,
+    pricing_tier: "standard",
     trusted: true,
   },
 ];

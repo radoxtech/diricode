@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ProviderModelAvailability } from "@diricode/dirirouter/contracts";
 import {
   AgentInfoSchema,
   CascadeTierSchema,
@@ -19,6 +20,9 @@ import {
 import {
   CascadeModelResolver,
   type ResolverCandidate,
+  requestedModelTierToPricingCap,
+  SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD,
+  shouldExposeSemanticExplainability,
   Tier1HeuristicRouter,
   Tier2EmbeddingsRouter,
   Tier3TinyLLMRouter,
@@ -806,7 +810,7 @@ describe("CascadeModelResolver", () => {
       expect(hugeCandidate?.score).toBeGreaterThan(midCandidate?.score ?? 0);
     });
 
-    it("LOW tier accepts model with 200k+ context", async () => {
+    it("LOW tier still resolves when candidate is budget-priced and has 200k+ context", async () => {
       const resolver = new CascadeModelResolver(undefined, {
         defaultProvider: "mid",
         defaultModel: "mid-model",
@@ -815,7 +819,7 @@ describe("CascadeModelResolver", () => {
             provider: "mid",
             model: "mid-model",
             family: "mid",
-            pricingTier: "standard",
+            pricingTier: "budget",
             contextWindow: 200_000,
             trusted: true,
             estimatedCostUsd: 0.3,
@@ -824,7 +828,11 @@ describe("CascadeModelResolver", () => {
           },
         ],
       });
-      const response = await resolver.resolve(baseRequest("low"));
+      const response = await resolver.resolve({
+        ...baseRequest("low"),
+        agent: { id: "coder-agent", role: "coder", seniority: "senior", specializations: [] },
+        task: { type: "coding" },
+      });
       expect(response.status).toBe("resolved");
       expect(response.selected?.model).toBe("mid-model");
     });
@@ -850,6 +858,82 @@ describe("CascadeModelResolver", () => {
   });
 
   describe("CascadeModelResolverOptions", () => {
+    it("keeps unknown-family provider availabilities neutral while preserving availability-derived attributes", async () => {
+      const providerAvailabilities: ProviderModelAvailability[] = [
+        {
+          provider: "zai",
+          model_id: "glm-5-plus",
+          family: "glm-5-plus",
+          stability: "stable",
+          available: true,
+          context_window: 256_000,
+          supports_tool_calling: true,
+          supports_vision: false,
+          supports_structured_output: true,
+          supports_streaming: true,
+          input_cost_per_1k: 0.2,
+          output_cost_per_1k: 0.3,
+          pricing_tier: "premium",
+          trusted: true,
+        },
+      ];
+
+      const resolver = new CascadeModelResolver(undefined, {
+        defaultProvider: "zai",
+        defaultModel: "glm-5-plus",
+        providerAvailabilities,
+      });
+
+      const response = await resolver.resolve(validRequest());
+      expect(response.selected?.model).toBe("glm-5-plus");
+      const candidate = response.candidates?.find((entry) => entry.model === "glm-5-plus");
+      expect(candidate?.scoresBreakdown?.matchedAttributesList).toContain("agentic");
+      expect(candidate?.scoresBreakdown?.matchedAttributesList).not.toContain("reasoning");
+      expect(candidate?.scoresBreakdown?.matchedAttributesList).not.toContain("quality");
+      expect(candidate?.scoresBreakdown?.missingAttributesList).toContain("reasoning");
+    });
+
+    it("uses authoritative availability pricing_tier when provided", async () => {
+      const providerAvailabilities: ProviderModelAvailability[] = [
+        {
+          provider: "copilot",
+          model_id: "gpt-5-x",
+          family: "unknown-family",
+          stability: "stable",
+          available: true,
+          context_window: 256_000,
+          supports_tool_calling: true,
+          supports_vision: false,
+          supports_structured_output: true,
+          supports_streaming: true,
+          input_cost_per_1k: 0,
+          output_cost_per_1k: 0,
+          pricing_tier: "premium",
+          trusted: true,
+        },
+      ];
+
+      const resolver = new CascadeModelResolver(undefined, {
+        providerAvailabilities,
+      });
+
+      const response = await resolver.resolve({
+        ...validRequest(),
+        agent: { id: "coder-agent", role: "coder", seniority: "mid", specializations: [] },
+        task: { type: "coding" },
+        modelDimensions: {
+          tier: "low",
+          modelAttributes: [],
+          fallbackType: null,
+        },
+      });
+
+      expect(response.status).toBe("no_match");
+      expect(response.candidates?.[0]?.rejectionReason).toContain(
+        "excluded by requested model tier: low caps candidates at budget, but premium exceeds it",
+      );
+    });
+
     it("uses custom defaultProvider and defaultModel", async () => {
       const resolver = new CascadeModelResolver(undefined, {
         defaultProvider: "openai",
@@ -909,6 +993,140 @@ describe("CascadeModelResolver", () => {
       ).toContain("maximum budget");
     });
 
+    it("hard-caps low tier requests to budget candidates before ranking", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        candidatePool: hardRuleCandidates,
+      });
+
+      const response = await resolver.resolve({
+        ...validRequest(),
+        agent: { id: "coder-agent", role: "coder", seniority: "mid", specializations: [] },
+        task: { type: "coding" },
+        modelDimensions: {
+          tier: "low",
+          modelAttributes: ["reasoning"],
+          fallbackType: null,
+        },
+      });
+
+      expect(response.status).toBe("resolved");
+      expect(response.selected?.model).toBe("budget-model");
+      expect(
+        response.candidates?.find((candidate) => candidate.model === "standard-model")
+          ?.rejectionReason,
+      ).toContain("excluded by requested model tier: low caps candidates at budget");
+      expect(
+        response.candidates?.find((candidate) => candidate.model === "premium-model")
+          ?.rejectionReason,
+      ).toContain("excluded by requested model tier: low caps candidates at budget");
+    });
+
+    it("returns explicit no_match when requested tier leaves no eligible candidates", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        candidatePool: hardRuleCandidates.filter((candidate) => candidate.pricingTier !== "budget"),
+      });
+
+      const response = await resolver.resolve({
+        ...validRequest(),
+        agent: { id: "coder-agent", role: "coder", seniority: "mid", specializations: [] },
+        task: { type: "coding" },
+        modelDimensions: {
+          tier: "low",
+          modelAttributes: [],
+          fallbackType: null,
+        },
+      });
+
+      expect(response.status).toBe("no_match");
+      expect(response.selected).toBeUndefined();
+      expect(response.decisionMeta?.fallbackReason).toBe(
+        "no candidates satisfied requested model tier low (maximum budget)",
+      );
+      expect(response.candidates?.every((candidate) => candidate.status === "excluded")).toBe(true);
+    });
+
+    it("fails closed for unknown renamed models under low requests", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        providerAvailabilities: [
+          {
+            provider: "copilot",
+            model_id: "gpt-5-ultimate-2026",
+            family: "mystery-family",
+            stability: "stable",
+            available: true,
+            context_window: 400_000,
+            supports_tool_calling: true,
+            supports_vision: true,
+            supports_structured_output: true,
+            supports_streaming: true,
+            input_cost_per_1k: 0,
+            output_cost_per_1k: 0,
+            trusted: true,
+          },
+        ],
+      });
+
+      const response = await resolver.resolve({
+        ...validRequest(),
+        agent: { id: "coder-agent", role: "coder", seniority: "mid", specializations: [] },
+        task: { type: "coding" },
+        modelDimensions: {
+          tier: "low",
+          modelAttributes: [],
+          fallbackType: null,
+        },
+      });
+
+      expect(response.status).toBe("no_match");
+      expect(response.decisionMeta?.fallbackReason).toBe(
+        "no candidates satisfied requested model tier low (maximum budget)",
+      );
+      expect(response.candidates?.[0]?.rejectionReason).toContain(
+        "excluded by requested model tier: low requires known pricing tier at or below budget",
+      );
+    });
+
+    it("fails closed for unknown renamed models under medium requests", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        providerAvailabilities: [
+          {
+            provider: "copilot",
+            model_id: "claude-ultra-next",
+            family: "mystery-family",
+            stability: "stable",
+            available: true,
+            context_window: 400_000,
+            supports_tool_calling: true,
+            supports_vision: true,
+            supports_structured_output: true,
+            supports_streaming: true,
+            input_cost_per_1k: 0,
+            output_cost_per_1k: 0,
+            trusted: true,
+          },
+        ],
+      });
+
+      const response = await resolver.resolve({
+        ...validRequest(),
+        agent: { id: "coder-agent", role: "coder", seniority: "mid", specializations: [] },
+        task: { type: "coding" },
+        modelDimensions: {
+          tier: "medium",
+          modelAttributes: [],
+          fallbackType: null,
+        },
+      });
+
+      expect(response.status).toBe("no_match");
+      expect(response.decisionMeta?.fallbackReason).toBe(
+        "no candidates satisfied requested model tier medium (maximum standard)",
+      );
+      expect(response.candidates?.[0]?.rejectionReason).toContain(
+        "excluded by requested model tier: medium requires known pricing tier at or below standard",
+      );
+    });
+
     it("requires at least standard tier for complex architect tasks", async () => {
       const resolver = new CascadeModelResolver(undefined, {
         hardRulesConfig: DEFAULT_HARD_RULES_CONFIG,
@@ -933,6 +1151,78 @@ describe("CascadeModelResolver", () => {
           ?.rejectionReason,
       ).toContain("below minimum standard");
     });
+
+    it("hides weak semantic explainability below visibility threshold while keeping boosts above boost threshold", async () => {
+      const resolver = new CascadeModelResolver(undefined, {
+        candidatePool: [
+          {
+            provider: "ui",
+            model: "weak-ui-model",
+            family: "ui",
+            pricingTier: "budget",
+            trusted: true,
+            estimatedCostUsd: 0.01,
+            modelAttributes: ["ui-ux"],
+          },
+          {
+            provider: "code",
+            model: "strong-code-model",
+            family: "code",
+            pricingTier: "budget",
+            trusted: true,
+            estimatedCostUsd: 0.01,
+            modelAttributes: ["coding"],
+          },
+        ],
+      });
+
+      const response = await resolver.resolve({
+        ...validRequest(),
+        agent: {
+          id: "frontend-agent",
+          role: "coder",
+          seniority: "mid",
+          specializations: ["javascript"],
+        },
+        task: { type: "coding" },
+        modelDimensions: {
+          tier: "low",
+          modelAttributes: [],
+          fallbackType: null,
+        },
+      });
+
+      const weakUi = response.candidates?.find((candidate) => candidate.model === "weak-ui-model");
+      const strongCode = response.candidates?.find((candidate) => candidate.model === "strong-code-model");
+
+      expect(response.status).toBe("resolved");
+      expect(weakUi?.scoresBreakdown?.semanticSimilarity).toBeUndefined();
+      expect(weakUi?.scoresBreakdown?.modelAttributesMatched).toBeUndefined();
+      expect(weakUi?.scoresBreakdown?.agentSpecializationsMatched).toBeUndefined();
+      expect(strongCode?.scoresBreakdown?.semanticSimilarity).toBeGreaterThanOrEqual(
+        SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD,
+      );
+      expect(response.selected?.model).toBe("strong-code-model");
+    });
+  });
+});
+
+describe("requestedModelTierToPricingCap", () => {
+  it("maps low/medium/heavy to budget/standard/premium", () => {
+    expect(requestedModelTierToPricingCap("low")).toBe("budget");
+    expect(requestedModelTierToPricingCap("medium")).toBe("standard");
+    expect(requestedModelTierToPricingCap("heavy")).toBe("premium");
+  });
+});
+
+describe("shouldExposeSemanticExplainability", () => {
+  it("uses the 0.2 visibility threshold", () => {
+    expect(shouldExposeSemanticExplainability(SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD - 0.01)).toBe(
+      false,
+    );
+    expect(shouldExposeSemanticExplainability(SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD)).toBe(
+      true,
+    );
   });
 });
 

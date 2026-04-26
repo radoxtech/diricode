@@ -3,6 +3,28 @@ import { env, pipeline } from "@huggingface/transformers";
 env.allowLocalModels = false;
 
 type ExtractorResult = unknown;
+type BridgeAttributeScores = Record<string, number>;
+
+interface CanonicalStackConcept {
+  readonly id: string;
+  readonly aliases: readonly string[];
+  readonly semanticText: string;
+  readonly attributeScores: BridgeAttributeScores;
+}
+
+interface StackConceptMatch {
+  readonly id: string;
+  readonly alias: string;
+  readonly semanticText: string;
+  readonly attributeScores: BridgeAttributeScores;
+}
+
+interface AliasMatch {
+  readonly concept: CanonicalStackConcept;
+  readonly alias: string;
+  readonly start: number;
+  readonly end: number;
+}
 
 let extractorPromise: Promise<ExtractorResult> | null = null;
 
@@ -27,11 +49,278 @@ export function cosineSimilarity(vecA: number[], vecB: number[]): number {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
+const CANONICAL_STACK_CONCEPTS: readonly CanonicalStackConcept[] = [
+  {
+    id: "backend-platform",
+    aliases: [
+      "backend",
+      "back-end",
+      "server",
+      "server-side",
+      "api",
+      "apis",
+      "rest api",
+      "graphql",
+      "endpoint",
+      "endpoints",
+      "service",
+      "services",
+      "microservice",
+      "microservices",
+      "express",
+      "koa",
+      "hono",
+      "nestjs",
+      "nest",
+      "django",
+      "flask",
+      "fastapi",
+      "spring",
+      "spring boot",
+      "asp.net",
+      "asp.net core",
+      "laravel",
+      "rails",
+      "nodejs",
+      "node.js",
+      "bun",
+      "deno",
+    ],
+    semanticText: "backend api services server runtime integration",
+    attributeScores: { coding: 1.0, architecture: 0.55, debugging: 0.15 },
+  },
+  {
+    id: "frontend-platform",
+    aliases: [
+      "frontend",
+      "front-end",
+      "react",
+      "next",
+      "next.js",
+      "nextjs",
+      "vue",
+      "nuxt",
+      "angular",
+      "svelte",
+      "sveltekit",
+      "html",
+      "css",
+      "tailwind",
+      "design system",
+      "web app",
+      "webapp",
+      "browser ui",
+    ],
+    semanticText: "frontend ui components styling design system web interface",
+    attributeScores: { "ui-ux": 1.0, coding: 0.75, architecture: 0.2 },
+  },
+  {
+    id: "programming-languages",
+    aliases: [
+      "js",
+      "javascript",
+      "ts",
+      "typescript",
+      "python",
+      "java",
+      "c#",
+      "csharp",
+      "golang",
+      "go",
+      "rust",
+      "ruby",
+      "php",
+      "scala",
+      "elixir",
+    ],
+    semanticText: "programming language implementation software engineering",
+    attributeScores: { coding: 0.95, architecture: 0.2 },
+  },
+  {
+    id: "data-systems",
+    aliases: [
+      "database",
+      "databases",
+      "sql",
+      "postgres",
+      "postgresql",
+      "mysql",
+      "sqlite",
+      "mongodb",
+      "mongo",
+      "redis",
+      "prisma",
+      "drizzle",
+      "schema",
+      "migration",
+      "migrations",
+      "etl",
+      "data pipeline",
+      "warehouse",
+      "analytics",
+      "clickhouse",
+      "bigquery",
+    ],
+    semanticText: "data systems database schema migrations storage analytics",
+    attributeScores: { architecture: 0.95, coding: 0.7, bulk: 0.25 },
+  },
+  {
+    id: "ops-platform",
+    aliases: [
+      "devops",
+      "infra",
+      "infrastructure",
+      "platform",
+      "deployment",
+      "deployments",
+      "docker",
+      "kubernetes",
+      "k8s",
+      "terraform",
+      "github actions",
+      "ci/cd",
+      "cicd",
+      "aws",
+      "gcp",
+      "azure",
+      "cloudflare",
+      "vercel",
+      "netlify",
+      "monitoring",
+      "observability",
+    ],
+    semanticText: "platform devops infrastructure deployment cloud operations",
+    attributeScores: { architecture: 0.9, coding: 0.6, debugging: 0.25 },
+  },
+  {
+    id: "mobile-platform",
+    aliases: [
+      "mobile",
+      "ios",
+      "android",
+      "react native",
+      "expo",
+      "flutter",
+      "swift",
+      "kotlin",
+      "xcode",
+    ],
+    semanticText: "mobile application native app client interface",
+    attributeScores: { coding: 0.9, "ui-ux": 0.45, architecture: 0.25 },
+  },
+  {
+    id: "ai-ml-stack",
+    aliases: [
+      "ai",
+      "ml",
+      "machine learning",
+      "llm",
+      "rag",
+      "embeddings",
+      "vector database",
+      "fine-tuning",
+      "finetuning",
+      "model serving",
+      "inference",
+      "pytorch",
+      "tensorflow",
+      "scikit-learn",
+      "pandas",
+      "numpy",
+      "data science",
+      "feature engineering",
+    ],
+    semanticText: "ai machine learning llm models reasoning inference data workflows",
+    attributeScores: { reasoning: 0.9, coding: 0.8, agentic: 0.55, architecture: 0.45 },
+  },
+] as const;
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function createBoundaryAwarePattern(phrase: string): RegExp {
+  const escaped = escapeRegex(phrase.toLowerCase()).replace(/\s+/g, "[\\s/_-]+");
+  return new RegExp(`(^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`, "i");
+}
+
+function createAliasPattern(alias: string): RegExp {
+  return createBoundaryAwarePattern(alias);
+}
+
+function matchesBoundaryAwarePhrase(text: string, phrase: string): boolean {
+  return createBoundaryAwarePattern(phrase).test(text);
+}
+
+function matchCanonicalStackConcepts(specText: string): StackConceptMatch[] {
+  const lowered = specText.toLowerCase();
+  const aliasMatches: AliasMatch[] = [];
+
+  for (const concept of CANONICAL_STACK_CONCEPTS) {
+    for (const alias of concept.aliases) {
+      const pattern = createAliasPattern(alias);
+      const matched = pattern.exec(lowered);
+      if (matched?.index !== undefined) {
+        const prefixLength = matched[1]?.length ?? 0;
+        const start = matched.index + prefixLength;
+        const matchedLength = matched[0].length - prefixLength;
+        aliasMatches.push({
+          concept,
+          alias,
+          start,
+          end: start + matchedLength,
+        });
+      }
+    }
+  }
+
+  const filteredMatches = aliasMatches.filter((candidate) => {
+    const candidateLength = candidate.end - candidate.start;
+    return !aliasMatches.some((other) => {
+      if (other === candidate) {
+        return false;
+      }
+
+      const otherLength = other.end - other.start;
+      const overlaps = candidate.start < other.end && other.start < candidate.end;
+      return overlaps && otherLength > candidateLength;
+    });
+  });
+
+  const bestConceptMatches = new Map<string, StackConceptMatch>();
+  for (const match of filteredMatches) {
+    const existing = bestConceptMatches.get(match.concept.id);
+    if (existing && existing.alias.length >= match.alias.length) {
+      continue;
+    }
+
+    bestConceptMatches.set(match.concept.id, {
+      id: match.concept.id,
+      alias: match.alias,
+      semanticText: match.concept.semanticText,
+      attributeScores: match.concept.attributeScores,
+    });
+  }
+
+  return [...bestConceptMatches.values()];
+}
+
+function buildNormalizedSemanticText(specText: string, matches: readonly StackConceptMatch[]): string {
+  if (matches.length === 0) {
+    return specText;
+  }
+
+  const semanticExpansions = [...new Set(matches.map((match) => match.semanticText))];
+  return `${specText}\nnormalized stack context: ${semanticExpansions.join(" | ")}`;
+}
+
 export const BRIDGE_CONCEPTS: Record<string, Record<string, number>> = {
   coding: { coding: 1.0 },
   programming: { coding: 1.0 },
-  javascript: { coding: 0.95, "ui-ux": 0.35 },
-  typescript: { coding: 0.95, "ui-ux": 0.35 },
+  js: { coding: 0.95 },
+  javascript: { coding: 0.95 },
+  ts: { coding: 0.95 },
+  typescript: { coding: 0.95 },
   react: { "ui-ux": 0.9, coding: 0.75 },
   jsx: { "ui-ux": 0.8, coding: 0.7 },
   tsx: { "ui-ux": 0.8, coding: 0.7 },
@@ -230,16 +519,29 @@ export async function computeBestMatch(
   }
 
   const lowerText = specText.toLowerCase();
+  const normalizedMatches = matchCanonicalStackConcepts(specText);
+  const normalizedSpecText = buildNormalizedSemanticText(specText, normalizedMatches);
   const bridgeScores: Record<string, number> = {};
   const bridgeHits: { phrase: string; attribute: string; score: number }[] = [];
 
   if (!options.disableBridge) {
     for (const [phrase, attrScores] of Object.entries(BRIDGE_CONCEPTS)) {
-      if (lowerText.includes(phrase)) {
+      if (matchesBoundaryAwarePhrase(lowerText, phrase)) {
         for (const [attr, score] of Object.entries(attrScores)) {
           bridgeScores[attr] = Math.max(bridgeScores[attr] ?? 0, score);
           bridgeHits.push({ phrase, attribute: attr, score });
         }
+      }
+    }
+
+    for (const match of normalizedMatches) {
+      for (const [attr, score] of Object.entries(match.attributeScores)) {
+        bridgeScores[attr] = Math.max(bridgeScores[attr] ?? 0, score);
+        bridgeHits.push({
+          phrase: `${match.alias} -> ${match.id}`,
+          attribute: attr,
+          score,
+        });
       }
     }
   }
@@ -270,7 +572,7 @@ export async function computeBestMatch(
       if (!extractor) throw new Error("Extractor not initialized");
       return embedWithExtractor(text, extractor);
     });
-    const specVec = await embedText(specText);
+    const specVec = await embedText(normalizedSpecText);
 
     let maxScore = 0;
     let bestAttr = "";

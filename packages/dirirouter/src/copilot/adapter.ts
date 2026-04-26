@@ -154,6 +154,7 @@ export class CopilotProvider implements Provider {
           supports_streaming: streaming,
           input_cost_per_1k: 0,
           output_cost_per_1k: 0,
+          pricing_tier: normalized.family === "gpt-reasoning" ? "premium" : normalized.family === "gpt-standard" ? "standard" : normalized.family === "gpt-mini" || normalized.family === "gpt-nano" ? "budget" : undefined,
           trusted: true,
         });
       }

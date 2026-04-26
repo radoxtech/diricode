@@ -98,7 +98,7 @@ export const STACK_SIGNALS = {
     "gin",
     "go",
   ],
-  languages: ["typescript", "javascript", "python", "java", "c#", "go", "rust", "php"],
+  languages: ["typescript", "ts", "javascript", "js", "python", "java", "c#", "go", "rust", "php"],
   data: ["postgres", "postgresql", "mysql", "mongodb", "redis", "sql", "prisma", "drizzle"],
   infra: ["docker", "kubernetes", "aws", "gcp", "azure", "terraform", "github actions", "ci/cd"],
 } as const;

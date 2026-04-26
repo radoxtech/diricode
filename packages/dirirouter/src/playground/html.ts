@@ -1,5 +1,6 @@
 import type { BootstrapResult } from "./types.js";
 import { ModelAttributeSchema, FallbackTypeSchema } from "../llm-picker/types.js";
+import { SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD } from "../llm-picker/model-resolver.js";
 
 export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   const modelAttributes = ModelAttributeSchema.options;
@@ -1143,6 +1144,8 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   </main>
 
   <script>
+    const SEMANTIC_VISIBILITY_THRESHOLD = ${SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD};
+
     function escapeHtml(str) {
       if (str == null) return '';
       return String(str)
@@ -1151,6 +1154,10 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    function isSemanticExplainabilityVisible(bd) {
+      return !!bd && typeof bd.semanticSimilarity === 'number' && bd.semanticSimilarity >= SEMANTIC_VISIBILITY_THRESHOLD;
     }
 
     document.addEventListener('alpine:init', () => {
@@ -1379,7 +1386,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
               }
               html += '</div>';
 
-              if (bd.semanticSimilarity !== undefined) {
+              if (isSemanticExplainabilityVisible(bd)) {
                 const pct = Math.round(bd.semanticSimilarity * 100);
                 const color = pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444';
                 const matchLabel = bd.modelAttributesMatched ? \`matched: "\${bd.modelAttributesMatched}"\` : '';
@@ -1488,7 +1495,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
               html += '</div>';
             }
 
-            if (explanation.tierUsed === 2 && selectedBd && selectedBd.semanticSimilarity !== undefined) {
+            if (explanation.tierUsed === 2 && isSemanticExplainabilityVisible(selectedBd)) {
               html += '<li style="list-style:none; margin:1rem 0; padding:1rem; background:#1e293b; border-radius:8px; border:1px solid var(--border);">';
                 
                 const hasDeberta = selectedBd.debertaTagScores && selectedBd.debertaTagScores.length > 0;
@@ -1558,7 +1565,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
                 }
 
                 const semCandidates = candidates
-                  .filter(c => c.status !== 'excluded' && c.scoresBreakdown && c.scoresBreakdown.semanticSimilarity !== undefined)
+                  .filter(c => c.status !== 'excluded' && isSemanticExplainabilityVisible(c.scoresBreakdown))
                   .sort((a, b) => (b.scoresBreakdown?.semanticSimilarity || 0) - (a.scoresBreakdown?.semanticSimilarity || 0))
                   .slice(0, 5);
 

@@ -5,6 +5,7 @@ import type {
   DecisionResponse,
   ModelAttribute,
   ModelCandidate,
+  ModelTier,
   ModelResolver,
   ModelRouter,
   RouterClassification,
@@ -14,7 +15,9 @@ import type {
 import { contextTierMinTokens, contextWindowToTier, ModelAttributeSchema } from "./types.js";
 import { resolveFamilyMetadata } from "../families/catalog.js";
 import type { ProviderModelAvailability } from "@diricode/dirirouter/contracts";
+import { PricingTierSchema } from "../contracts/model-card.js";
 import {
+  comparePricingTiers,
   DEFAULT_HARD_RULES_CONFIG,
   getPricingTierRejectionReason,
   resolveHardRuleRange,
@@ -75,6 +78,39 @@ export class Tier3TinyLLMRouter implements ModelRouter {
 }
 
 const DEFAULT_CONFIDENCE_THRESHOLD = 0.6;
+const SEMANTIC_BOOST_THRESHOLD = 0.4;
+export const SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD = 0.2;
+
+const REQUESTED_MODEL_TIER_CAP: Readonly<Record<ModelTier, PricingTier>> = {
+  low: "budget",
+  medium: "standard",
+  heavy: "premium",
+};
+
+export function requestedModelTierToPricingCap(tier: ModelTier): PricingTier {
+  return REQUESTED_MODEL_TIER_CAP[tier];
+}
+
+export function shouldExposeSemanticExplainability(semanticSimilarity: number): boolean {
+  return semanticSimilarity >= SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD;
+}
+
+function getRequestedTierRejectionReason(
+  pricingTier: PricingTier | undefined,
+  requestedTier: ModelTier,
+): string | undefined {
+  const maxPricingTier = requestedModelTierToPricingCap(requestedTier);
+
+  if (pricingTier === undefined) {
+    return `excluded by requested model tier: ${requestedTier} requires known pricing tier at or below ${maxPricingTier}`;
+  }
+
+  if (comparePricingTiers(pricingTier, maxPricingTier) > 0) {
+    return `excluded by requested model tier: ${requestedTier} caps candidates at ${maxPricingTier}, but ${pricingTier} exceeds it`;
+  }
+
+  return undefined;
+}
 
 export interface ResolverCandidate {
   readonly provider: string;
@@ -90,29 +126,18 @@ export interface ResolverCandidate {
   readonly knownForComplexities?: readonly string[];
 }
 
-function pricingTierFromModelName(modelName: string): PricingTier {
-  const lower = modelName.toLowerCase();
-  if (lower.includes("gemini")) {
-    if (lower.includes("pro") || lower.includes("ultra")) {
-      return "standard";
-    }
-    // Flash and Flash-Lite are budget-class models
-    return "budget";
+function resolveAvailabilityPricingTier(avail: ProviderModelAvailability): PricingTier | undefined {
+  const directTier = PricingTierSchema.safeParse(avail.pricing_tier);
+  if (directTier.success) {
+    return directTier.data;
   }
-  if (
-    lower.includes("haiku") ||
-    lower.includes("mini") ||
-    lower.includes("turbo") ||
-    lower.includes("highspeed") ||
-    lower.includes("nano") ||
-    lower.includes("lite")
-  ) {
-    return "budget";
+
+  const vendorMetadataTier = PricingTierSchema.safeParse(avail.vendor_metadata?.pricing_tier);
+  if (vendorMetadataTier.success) {
+    return vendorMetadataTier.data;
   }
-  if (lower.includes("opus") || lower.endsWith("-plus")) {
-    return "premium";
-  }
-  return "standard";
+
+  return resolveFamilyMetadata(avail.model_id, avail.family as never, avail.stability)?.pricing_tier;
 }
 
 function deriveModelAttributesFromAvailability(avail: ProviderModelAvailability): ModelAttribute[] {
@@ -149,10 +174,11 @@ function deriveModelAttributesFromAvailability(avail: ProviderModelAvailability)
   }
 
   const familyMeta = resolveFamilyMetadata(avail.model_id);
-  for (const attr of familyMeta.default_attributes) {
-    if (ModelAttributeSchema.options.includes(attr as ModelAttribute)) {
-      attributes.add(attr as ModelAttribute);
-    }
+  const familyDefaultAttributes = familyMeta?.default_attributes ?? [];
+  for (const attr of familyDefaultAttributes) {
+      if (ModelAttributeSchema.options.includes(attr as ModelAttribute)) {
+        attributes.add(attr as ModelAttribute);
+      }
   }
 
   return [...attributes];
@@ -180,7 +206,7 @@ function buildCandidatePoolFromAvailabilities(
     provider: avail.provider,
     model: avail.model_id,
     family: avail.family,
-    pricingTier: pricingTierFromModelName(avail.model_id),
+    pricingTier: resolveAvailabilityPricingTier(avail),
     contextWindow: avail.context_window,
     estimatedCostUsd: avail.input_cost_per_1k + avail.output_cost_per_1k,
     trusted: avail.trusted,
@@ -388,6 +414,8 @@ export class CascadeModelResolver implements ModelResolver {
     const selectedCandidate = candidates.find((candidate) => candidate.status === "selected");
 
     if (selectedCandidate === undefined) {
+      const fallbackReason = this.getNoMatchFallbackReason(request, candidates);
+
       return {
         requestId: request.requestId,
         decisionId: randomUUID(),
@@ -398,7 +426,7 @@ export class CascadeModelResolver implements ModelResolver {
           policyUsed: request.policyOverride ?? this.defaultPolicy,
           selectionLatencyMs,
           isFallback: false,
-          fallbackReason: "no candidates matched pricing-tier hard rules",
+          fallbackReason,
         },
         classificationTrace: {
           tierUsed,
@@ -580,6 +608,38 @@ agreementCount: classifierComparison.agreementTags.length,
     };
   }
 
+  private getNoMatchFallbackReason(request: DecisionRequest, candidates: ModelCandidate[]): string {
+    if (candidates.length === 0) {
+      return "no candidates available";
+    }
+
+    const excludedCandidates = candidates.filter((candidate) => candidate.status === "excluded");
+    const exclusionCount = excludedCandidates.length;
+
+    if (exclusionCount === 0) {
+      return "no eligible candidates remain after ranking";
+    }
+
+    const requestedTierExclusions = excludedCandidates.filter((candidate) =>
+      candidate.rejectionReason?.startsWith("excluded by requested model tier:") === true,
+    ).length;
+    const hardRuleExclusions = excludedCandidates.filter((candidate) =>
+      candidate.rejectionReason?.startsWith("excluded by pricing-tier hard rules:") === true,
+    ).length;
+
+    if (requestedTierExclusions === exclusionCount) {
+      const requestedTier = request.modelDimensions.tier;
+      const maxPricingTier = requestedModelTierToPricingCap(requestedTier);
+      return `no candidates satisfied requested model tier ${requestedTier} (maximum ${maxPricingTier})`;
+    }
+
+    if (hardRuleExclusions === exclusionCount) {
+      return "no candidates matched pricing-tier hard rules";
+    }
+
+    return "no eligible candidates remain after applying requested model tier, hard rules, and constraints";
+  }
+
   private buildSelectionExplanation({
     request,
     classification,
@@ -610,6 +670,9 @@ agreementCount: classifierComparison.agreementTags.length,
     );
     steps.push(
       `Router tier used: ${String(classification.tier)} — ${tierDescriptions[classification.tier] ?? "unknown tier"}`,
+    );
+    steps.push(
+      `Requested model tier ${request.modelDimensions.tier} caps candidates at pricing tier ${requestedModelTierToPricingCap(request.modelDimensions.tier)}`,
     );
 
     if (classification.tier === 2) {
@@ -763,6 +826,7 @@ agreementCount: classifierComparison.agreementTags.length,
       descriptors.map(async (descriptor) => {
         const rejectionReason =
           forceExcludedReason ??
+          getRequestedTierRejectionReason(descriptor.pricingTier, request.modelDimensions.tier) ??
           (descriptor.pricingTier
             ? getPricingTierRejectionReason(descriptor.pricingTier, hardRuleRange)
             : undefined) ??
@@ -922,33 +986,52 @@ agreementCount: classifierComparison.agreementTags.length,
     if (request.agent.specializations.length > 0 && (descriptor.modelAttributes?.length ?? 0) > 0) {
       specText = request.agent.specializations.join(", ");
 
+      const matchResult = await computeBestMatch(specText, descriptor.modelAttributes ?? []);
+      const normalizedSemanticSimilarity = matchResult.score;
+      const normalizedBestAttr = matchResult.bestAttribute;
+      bridgeConcepts = matchResult.bridgeConcepts;
+
+      let classifierSemanticSimilarity = 0;
+      let classifierBestAttr = "";
+
       if (classifierResult?.deberta.tagScores.length) {
         const debeTagMap = new Map(classifierResult.deberta.tagScores.map((t) => [t.tag, t.score]));
         const attributeScores = (descriptor.modelAttributes ?? []).map((attr) => {
           const score = debeTagMap.get(attr as never) ?? 0;
           return { attr, score };
         });
-        semanticSimilarity =
+        classifierSemanticSimilarity =
           attributeScores.length > 0 ? Math.max(...attributeScores.map((a) => a.score)) : 0;
-        const topMatch = attributeScores.find((a) => a.score === semanticSimilarity);
-        bestAttr = topMatch?.attr ?? "";
+        const topMatch = attributeScores.find((a) => a.score === classifierSemanticSimilarity);
+        classifierBestAttr = topMatch?.attr ?? "";
         debertaMatchedTags = attributeScores
           .filter((a) => a.score > 0)
           .sort((a, b) => b.score - a.score)
           .slice(0, 5)
           .map((a) => ({ tag: a.attr, score: Math.round(a.score * 100) / 100 }));
-      } else {
-        const matchResult = await computeBestMatch(specText, descriptor.modelAttributes ?? []);
-        semanticSimilarity = matchResult.score;
-        bestAttr = matchResult.bestAttribute;
-        bridgeConcepts = matchResult.bridgeConcepts;
       }
 
-      if (semanticSimilarity > 0.4) {
-        semanticBoost = Math.round((semanticSimilarity - 0.4) * (1 / 0.6) * 30);
+      if (normalizedSemanticSimilarity >= classifierSemanticSimilarity) {
+        semanticSimilarity = normalizedSemanticSimilarity;
+        bestAttr = normalizedBestAttr;
+      } else {
+        semanticSimilarity = classifierSemanticSimilarity;
+        bestAttr = classifierBestAttr;
+      }
+
+      if (!bestAttr) {
+        bestAttr = normalizedBestAttr || classifierBestAttr;
+      }
+
+      if (semanticSimilarity > SEMANTIC_BOOST_THRESHOLD) {
+        semanticBoost = Math.round(
+          (semanticSimilarity - SEMANTIC_BOOST_THRESHOLD) * (1 / 0.6) * 30,
+        );
         capabilityMatch += semanticBoost;
       }
     }
+
+    const semanticExplainabilityVisible = shouldExposeSemanticExplainability(semanticSimilarity);
 
     const matchedAttrs = request.modelDimensions.modelAttributes.filter((attribute) =>
       descriptor.modelAttributes?.includes(attribute),
@@ -1022,14 +1105,18 @@ agreementCount: classifierComparison.agreementTags.length,
         capabilityGapPenalty: capabilityGapPenalty !== 0 ? capabilityGapPenalty : undefined,
         overkillPenalty: overkillPenalty !== 0 ? overkillPenalty : undefined,
         modelClassBonus: modelClassBonus > 0 ? modelClassBonus : undefined,
-        semanticSimilarity: semanticSimilarity > 0 ? semanticSimilarity : undefined,
+        semanticSimilarity: semanticExplainabilityVisible ? semanticSimilarity : undefined,
         semanticBoost: semanticBoost > 0 ? semanticBoost : undefined,
-        agentSpecializationsMatched: semanticSimilarity > 0 ? specText : undefined,
-        modelAttributesMatched: semanticSimilarity > 0 ? bestAttr : undefined,
+        agentSpecializationsMatched: semanticExplainabilityVisible ? specText : undefined,
+        modelAttributesMatched: semanticExplainabilityVisible ? bestAttr : undefined,
         matchedAttributesList: matchedAttrs.length > 0 ? matchedAttrs : undefined,
         missingAttributesList: missingAttrs.length > 0 ? missingAttrs : undefined,
-        bridgeConceptsUsed: bridgeConcepts.length > 0 ? bridgeConcepts : undefined,
-        debertaTagScores: debertaMatchedTags.length > 0 ? debertaMatchedTags : undefined,
+        bridgeConceptsUsed:
+          semanticExplainabilityVisible && bridgeConcepts.length > 0 ? bridgeConcepts : undefined,
+        debertaTagScores:
+          semanticExplainabilityVisible && debertaMatchedTags.length > 0
+            ? debertaMatchedTags
+            : undefined,
       },
     };
   }

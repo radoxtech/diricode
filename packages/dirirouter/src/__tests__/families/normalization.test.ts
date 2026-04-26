@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { resolveFamilyMetadata } from "../../families/catalog.js";
 import { normalizeModelFamily } from "../../families/normalization.js";
 
 describe("normalizeModelFamily", () => {
@@ -6,6 +7,7 @@ describe("normalizeModelFamily", () => {
     it("maps claude-3-opus to claude-opus", () => {
       const result = normalizeModelFamily("claude-3-opus");
       expect(result.family).toBe("claude-opus");
+      expect(result.canonicalFamily).toBe("claude-opus");
       expect(result.stability).toBe("stable");
     });
 
@@ -38,6 +40,7 @@ describe("normalizeModelFamily", () => {
     it("maps gemini-2.5-pro to gemini-pro", () => {
       const result = normalizeModelFamily("gemini-2.5-pro");
       expect(result.family).toBe("gemini-pro");
+      expect(result.canonicalFamily).toBe("gemini-pro");
       expect(result.stability).toBe("stable");
     });
 
@@ -64,6 +67,7 @@ describe("normalizeModelFamily", () => {
     it("maps o1 to gpt-reasoning", () => {
       const result = normalizeModelFamily("o1");
       expect(result.family).toBe("gpt-reasoning");
+      expect(result.canonicalFamily).toBe("gpt-reasoning");
       expect(result.stability).toBe("stable");
     });
 
@@ -90,6 +94,7 @@ describe("normalizeModelFamily", () => {
     it("maps gpt-4o to gpt-standard", () => {
       const result = normalizeModelFamily("gpt-4o");
       expect(result.family).toBe("gpt-standard");
+      expect(result.canonicalFamily).toBe("gpt-standard");
       expect(result.stability).toBe("stable");
     });
 
@@ -127,6 +132,27 @@ describe("normalizeModelFamily", () => {
     it("marks alpha model as preview", () => {
       const result = normalizeModelFamily("claude-sonnet-alpha");
       expect(result.stability).toBe("preview");
+    });
+  });
+
+  describe("unknown families", () => {
+    it("keeps unknown vendor model IDs neutral instead of inheriting a canonical family", () => {
+      const result = normalizeModelFamily("glm-5-plus");
+      expect(result.family).toBe("glm-5-plus");
+      expect(result.canonicalFamily).toBeUndefined();
+      expect(result.stability).toBe("stable");
+    });
+
+    it("returns no family metadata defaults for unknown families", () => {
+      expect(resolveFamilyMetadata("glm-5-plus")).toBeUndefined();
+    });
+
+    it("still resolves canonical metadata for known families", () => {
+      expect(resolveFamilyMetadata("claude-4-sonnet")).toMatchObject({
+        family: "claude-sonnet",
+        stability: "stable",
+        default_attributes: ["agentic", "quality", "ui-ux"],
+      });
     });
   });
 });

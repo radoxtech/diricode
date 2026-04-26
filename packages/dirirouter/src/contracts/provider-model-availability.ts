@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PricingTierSchema } from "./model-card.js";
 
 export const ModelStabilitySchema = z.enum(["stable", "preview"]);
 export type ModelStability = z.infer<typeof ModelStabilitySchema>;
@@ -27,6 +28,7 @@ const rawSchema = z.object({
   cost_per_1k_input: z.number().nonnegative().optional(),
   cost_per_1k_output: z.number().nonnegative().optional(),
   trusted: z.boolean(),
+  pricing_tier: PricingTierSchema.optional(),
   rate_limit: RateLimitSchema.optional(),
   vendor_metadata: z.record(z.unknown()).optional(),
   id: z.string().min(1).optional(),
@@ -50,6 +52,7 @@ const transformSchema = rawSchema.transform(
     input_cost_per_1k: number;
     output_cost_per_1k: number;
     trusted: boolean;
+    pricing_tier?: "budget" | "standard" | "premium";
     rate_limit?: { requests_per_hour: number; remaining: number };
     vendor_metadata?: Record<string, unknown>;
     id?: string;
@@ -68,6 +71,7 @@ const transformSchema = rawSchema.transform(
     input_cost_per_1k: val.input_cost_per_1k ?? val.cost_per_1k_input ?? 0,
     output_cost_per_1k: val.output_cost_per_1k ?? val.cost_per_1k_output ?? 0,
     trusted: val.trusted,
+    pricing_tier: val.pricing_tier,
     rate_limit: val.rate_limit,
     vendor_metadata: val.vendor_metadata,
     id: val.id ?? `${val.provider}-${val.model_id ?? ""}`,
