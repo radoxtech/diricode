@@ -2,13 +2,12 @@ import { env, pipeline } from "@huggingface/transformers";
 
 env.allowLocalModels = false;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ExtractorResult = any;
+type ExtractorResult = unknown;
 
 let extractorPromise: Promise<ExtractorResult> | null = null;
 
 export async function getExtractor(): Promise<ExtractorResult> {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+   
   extractorPromise ??= pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
   return extractorPromise;
 }
@@ -217,9 +216,8 @@ async function embedWithExtractor(
   text: string,
   extractor: ExtractorResult,
 ): Promise<number[]> {
-  const output = await extractor(text, { pooling: "mean", normalize: true });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return Array.from((output as any).data);
+  const output = await (extractor as (text: string, options: { pooling: string; normalize: boolean }) => Promise<{ data: Iterable<number> }>)(text, { pooling: "mean", normalize: true });
+  return Array.from(output.data);
 }
 
 export async function computeBestMatch(
@@ -266,8 +264,9 @@ export async function computeBestMatch(
   }
 
   try {
-    const extractor = options.embedText ? null : await getExtractor();
-    const embedText = options.embedText ?? ((text: string) => {
+    const embedOpt = options as unknown as { embedText?: (text: string) => Promise<number[]> };
+    const extractor = embedOpt.embedText ? null : await getExtractor();
+    const embedText = embedOpt.embedText ?? ((text: string) => {
       if (!extractor) throw new Error("Extractor not initialized");
       return embedWithExtractor(text, extractor);
     });
@@ -284,9 +283,12 @@ export async function computeBestMatch(
     );
 
     for (let i = 0; i < attributes.length; i++) {
-      const attrVec = attrOutputs[i];
+      const attrVec = attrOutputs[i] as number[] | undefined;
       if (!attrVec) continue;
-      const score = cosineSimilarity(specVec, attrVec);
+      const score = cosineSimilarity(
+        specVec,
+        attrVec,
+      );
       if (score > maxScore) {
         maxScore = score;
         bestAttr = attributes[i] ?? "";
