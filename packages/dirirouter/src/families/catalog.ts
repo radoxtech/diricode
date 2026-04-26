@@ -94,7 +94,7 @@ export function resolveFamilyMetadata(
     return undefined;
   }
   const resolvedStability = explicitStability ?? stability;
-  const base = FAMILY_METADATA[resolvedFamily];
+  const base = (FAMILY_METADATA as Record<string, FamilyMetadata>)[resolvedFamily];
   if (base === undefined) {
     return undefined;
   }

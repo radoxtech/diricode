@@ -77,7 +77,7 @@ describe("renderPlayground semantic visibility", () => {
   test("embeds semantic visibility threshold and hides weak semantic cards", () => {
     const html = renderPlayground();
     expect(html).toContain(
-      `const SEMANTIC_VISIBILITY_THRESHOLD = ${SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD};`,
+      `const SEMANTIC_VISIBILITY_THRESHOLD = ${SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD.toString()};`,
     );
     expect(html).toContain("function isSemanticExplainabilityVisible(bd)");
     expect(html).toContain("if (isSemanticExplainabilityVisible(bd)) {");

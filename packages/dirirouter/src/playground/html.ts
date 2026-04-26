@@ -9,6 +9,7 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>const SEMANTIC_VISIBILITY_THRESHOLD = ${SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD.toString()};</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DiriRouter // Standalone</title>
@@ -925,6 +926,9 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   </header>
 
   <main>
+    <script>
+      const SEMANTIC_VISIBILITY_THRESHOLD = ${SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD.toString()};
+    </script>
     <!-- LEFT PANEL: TABBED INTERFACE -->
     <div class="panel panel-left">
       
@@ -1144,8 +1148,6 @@ export function renderPlayground(_data: Partial<BootstrapResult> = {}): string {
   </main>
 
   <script>
-    const SEMANTIC_VISIBILITY_THRESHOLD = ${SEMANTIC_EXPLAINABILITY_VISIBILITY_THRESHOLD};
-
     function escapeHtml(str) {
       if (str == null) return '';
       return String(str)
