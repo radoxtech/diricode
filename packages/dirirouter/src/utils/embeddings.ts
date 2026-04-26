@@ -2,13 +2,14 @@ import { env, pipeline } from "@huggingface/transformers";
 
 env.allowLocalModels = false;
 
-// Type for the feature extraction pipeline
-type ExtractorPipeline = (text: string, options: { pooling: string; normalize: boolean }) => Promise<{ data: Float32Array }>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExtractorResult = any;
 
-let extractorPromise: Promise<ExtractorPipeline> | null = null;
+let extractorPromise: Promise<ExtractorResult> | null = null;
 
-export async function getExtractor(): Promise<ExtractorPipeline> {
-  extractorPromise ??= pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2") as Promise<ExtractorPipeline>;
+export async function getExtractor(): Promise<ExtractorResult> {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  extractorPromise ??= pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
   return extractorPromise;
 }
 
@@ -214,10 +215,11 @@ export interface ComputeBestMatchOptions {
 
 async function embedWithExtractor(
   text: string,
-  extractor: ExtractorPipeline,
+  extractor: ExtractorResult,
 ): Promise<number[]> {
   const output = await extractor(text, { pooling: "mean", normalize: true });
-  return Array.from(output.data);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return Array.from((output as any).data);
 }
 
 export async function computeBestMatch(
