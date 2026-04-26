@@ -47,14 +47,15 @@ export async function runWhoami(): Promise<void> {
       const user = await validateGithubToken(token);
       login = user.name ? `${user.login} (${user.name})` : user.login;
     } catch (err) {
-      if (err instanceof InvalidTokenError) {
+      const authError = err as Error;
+      if (authError instanceof InvalidTokenError) {
         process.stdout.write(
-          `GitHub token found (source: ${sourceLabel}) but it appears invalid: ${err.message}\n` +
+          `GitHub token found (source: ${sourceLabel}) but it appears invalid: ${authError.message}\n` +
             `Run 'dc login' to re-authenticate.\n`,
         );
         return;
       }
-      throw err;
+      throw authError;
     }
 
     process.stdout.write(`GitHub: ${login} | Token source: ${sourceLabel}\n`);

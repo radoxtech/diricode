@@ -13,7 +13,6 @@ import type {
 } from "./types.js";
 import { contextTierMinTokens, contextWindowToTier, ModelAttributeSchema } from "./types.js";
 import { resolveFamilyMetadata } from "../families/catalog.js";
-import type { ModelFamily } from "../families/types.js";
 import type { ProviderModelAvailability } from "@diricode/dirirouter/contracts";
 import {
   DEFAULT_HARD_RULES_CONFIG,
@@ -149,7 +148,7 @@ function deriveModelAttributesFromAvailability(avail: ProviderModelAvailability)
     }
   }
 
-  const familyMeta = resolveFamilyMetadata(avail.model_id, avail.family as ModelFamily);
+  const familyMeta = resolveFamilyMetadata(avail.model_id);
   for (const attr of familyMeta.default_attributes) {
     if (ModelAttributeSchema.options.includes(attr as ModelAttribute)) {
       attributes.add(attr as ModelAttribute);
@@ -197,8 +196,8 @@ export interface CascadeModelResolverOptions {
   readonly defaultPolicy?: string;
   readonly hardRulesConfig?: HardRulesConfig;
   readonly candidatePool?: readonly ResolverCandidate[];
-  /** Direct candidate pool — takes precedence over providerAvailabilities */
   readonly providerAvailabilities?: ProviderModelAvailability[];
+  readonly enableClassifierComparison?: boolean;
 }
 
 export class CascadeModelResolver implements ModelResolver {
@@ -210,6 +209,7 @@ export class CascadeModelResolver implements ModelResolver {
   private readonly defaultPolicy: string;
   private readonly hardRulesConfig: HardRulesConfig;
   private readonly candidatePool: readonly ResolverCandidate[];
+  private readonly enableClassifierComparison: boolean;
 
   constructor(routers?: readonly ModelRouter[], options: CascadeModelResolverOptions = {}) {
     this.routers = routers ?? [
@@ -222,6 +222,7 @@ export class CascadeModelResolver implements ModelResolver {
     this.defaultModel = options.defaultModel ?? "";
     this.defaultPolicy = options.defaultPolicy ?? "default";
     this.hardRulesConfig = options.hardRulesConfig ?? DEFAULT_HARD_RULES_CONFIG;
+    this.enableClassifierComparison = options.enableClassifierComparison ?? false;
     this.candidatePool =
       options.candidatePool ??
       buildCandidatePoolFromAvailabilities(options.providerAvailabilities ?? []);
@@ -263,13 +264,15 @@ export class CascadeModelResolver implements ModelResolver {
       finalClassification ??
       ({ tier: 1, confidence: 0, classification: "moderate" } satisfies RouterClassification);
 
-    const classifierComparison = await classifyRoutingTags({
-      agentRole: request.agent.role,
-      agentSeniority: request.agent.seniority,
-      agentSpecializations: request.agent.specializations,
-      taskType: request.task.type,
-      taskDescription: request.task.description ?? "",
-    }).catch(() => null);
+    const classifierComparison = this.enableClassifierComparison
+      ? await classifyRoutingTags({
+          agentRole: request.agent.role,
+          agentSeniority: request.agent.seniority,
+          agentSpecializations: request.agent.specializations,
+          taskType: request.task.type,
+          taskDescription: request.task.description ?? "",
+        }).catch(() => null)
+      : null;
 
     let hardRuleRange = resolveHardRuleRange(
       { agentRole: request.agent.role, taskComplexity: classification.classification },
@@ -1007,8 +1010,7 @@ agreementCount: classifierComparison.agreementTags.length,
       }
     }
 
-    const rawScore = quality + capabilityMatch + cost + latency;
-    const score = rawScore;
+    const score = quality + capabilityMatch + cost + latency;
 
     return {
       score,

@@ -55,7 +55,7 @@ async function loginCopilot(): Promise<void> {
     if (err instanceof GithubOAuthError) {
       throw new Error(`OAuth failed: ${err.message}`, { cause: err });
     }
-    throw err;
+    throw err as Error;
   }
 }
 

@@ -42,6 +42,7 @@ export async function bootstrapPlayground(): Promise<BootstrapResult> {
 
   const resolver = new CascadeModelResolver(undefined, {
     providerAvailabilities: allAvailabilities,
+    enableClassifierComparison: true,
   });
 
   const diriRouter = new DiriRouter({

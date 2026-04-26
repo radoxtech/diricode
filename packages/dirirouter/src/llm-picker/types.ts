@@ -209,7 +209,7 @@ export type ScoresBreakdown = z.infer<typeof ScoresBreakdownSchema>;
 export const ModelCandidateSchema = z.object({
   provider: z.string().min(1),
   model: z.string().min(1),
-  score: z.number().min(0).max(100),
+  score: z.number(),
   status: z.enum(["selected", "runner_up", "excluded"]),
   scoresBreakdown: ScoresBreakdownSchema.optional(),
   rejectionReason: z.string().optional(),
